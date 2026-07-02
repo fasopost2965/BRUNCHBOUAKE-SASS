@@ -1,0 +1,316 @@
+export type RoomType = 'studio' | 'room' | 'apartment';
+export type RoomStatus = 'available' | 'occupied' | 'dirty' | 'maintenance';
+
+export interface Room {
+  id: string;
+  name: string; // e.g., "Studio 101", "Appartement A", "Chambre 205"
+  type: RoomType;
+  pricePerNight: number; // in XOF (FCFA)
+  status: RoomStatus;
+  maxGuests: number;
+  features: string[];
+}
+
+export interface Reservation {
+  id: string;
+  roomId: string;
+  guestName: string;
+  guestPhone: string;
+  guestEmail: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  status: 'confirmed' | 'checked-in' | 'checked-out' | 'cancelled';
+  totalAmount: number;
+  paidAmount: number;
+  paymentStatus: 'unpaid' | 'partially-paid' | 'fully-paid';
+  specialRequests?: string;
+  securityPin?: string; // 4-digit code for POS transfers verification
+  creditLimit?: number; // Credit limit for restaurant/bar charges (FCFA)
+  // Identity and operational audit fields
+  nationality?: string;
+  idNumber?: string;
+  address?: string;
+  sourceOfStay?: string; // e.g. "Walk-in", "Booking.com", "Airbnb", "Direct"
+  staffMember?: string; // e.g. "Jean Dupont"
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  sourceModule?: string;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  category: 'plat' | 'boisson' | 'accompagnement' | 'dessert';
+  price: number; // in XOF (FCFA)
+  available: boolean;
+  image?: string;
+  description?: string;
+  isMaquisOnly?: boolean;
+  isRestaurantOnly?: boolean;
+  linkedStockItemId?: string; // Link to inventory item for auto-deduction
+}
+
+export interface StockItem {
+  id: string;
+  name: string;
+  category: 'boisson' | 'nourriture' | 'ingredient' | 'autre';
+  quantity: number;
+  unit: 'bouteille' | 'casier' | 'kg' | 'portion' | 'litre' | 'unité' | 'sac';
+  minQuantity: number;
+  pricePurchase: number; // Cost price in XOF
+  lastRestocked?: string;
+  location?: string; // e.g., "Réserve Kennedy", "Cuisine", "Bar Caisse"
+}
+
+export interface StockMovement {
+  id: string;
+  stockItemId: string;
+  itemName: string;
+  type: 'in' | 'out' | 'loss' | 'inventory'; // in: approvisionnement, out: vente/consommation, loss: perte/casse, inventory: correction
+  quantity: number; // positive delta
+  previousQty: number;
+  newQty: number;
+  reason: string;
+  date: string;
+  operator: string; // User who registered this
+}
+
+export interface OrderItem {
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface TableOrder {
+  id: string;
+  tableNumber: string; // e.g., "Table 1", "Bar 3", "Terrasse A"
+  items: OrderItem[];
+  status: 'pending' | 'preparing' | 'served' | 'paid';
+  createdAt: string;
+  totalAmount: number;
+  roomIdForCharge?: string; // If charged to room
+  waiterId?: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: 'admin' | 'receptionist' | 'waiter' | 'manager' | 'housekeeper';
+  phone: string;
+  status: 'active' | 'off-duty' | 'leave';
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  assignedTo?: string; // Staff member ID
+  assignedToName?: string;
+  category: 'housekeeping' | 'maintenance' | 'restaurant' | 'reception' | 'general';
+  status: 'pending' | 'in-progress' | 'completed';
+  dueDate: string;
+  roomId?: string; // Associated room if any
+}
+
+export interface Transaction {
+  id: string;
+  type: 'lodging_payment' | 'pos_sale' | 'expense';
+  amount: number;
+  method: 'wave' | 'orange_money' | 'mtn' | 'cash' | 'card';
+  description: string;
+  date: string;
+  referenceId?: string; // Reservation ID or Order ID
+}
+
+export interface GuestRecord {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  nationality?: string;
+  idNumber?: string;
+  address?: string;
+  notes?: string;
+  visitCount: number;
+  totalSpent: number;
+}
+
+// Mobile Money Unified Payment Layer models
+export type PaymentProvider = 'wave' | 'orange_money';
+
+export type PaymentIntentStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
+
+export interface PaymentIntent {
+  id: string; // pi_xxx
+  amount: number;
+  currency: 'XOF';
+  provider: PaymentProvider;
+  phoneNumber: string;
+  status: PaymentIntentStatus;
+  reference: string; // Unique internal payment reference
+  providerReference?: string; // Reference returned by external provider
+  sourceEntity: 'pos_order' | 'folio_charge' | 'reservation_deposit';
+  sourceId: string; // ID of the linked order, room folio, or reservation
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentTransaction {
+  id: string; // txn_xxx
+  paymentIntentId: string;
+  provider: PaymentProvider;
+  providerReference: string;
+  amount: number;
+  status: 'succeeded' | 'failed';
+  payerPhone: string;
+  auditTrail: string[]; // Timeline of operations
+  processedAt: string;
+}
+
+export interface WebhookEvent {
+  id: string; // evt_xxx
+  provider: PaymentProvider;
+  payload: any;
+  receivedAt: string;
+  status: 'pending' | 'processed' | 'failed';
+  error?: string;
+}
+
+export interface ProcessedEvent {
+  eventId: string; // Idempotency key from provider callback
+  processedAt: string;
+  paymentIntentId: string;
+}
+
+export interface PropertySettings {
+  establishmentName: string;
+  brandLogoText: string;
+  address: string;
+  city: string;
+  country: string;
+  phoneNumbers: string;
+  email: string;
+  taxId: string;
+  defaultCurrency: string;
+  checkInTime: string;
+  checkOutTime: string;
+  vatRate: number;
+  touristTaxPerNight: number;
+  paymentChannels: {
+    wave: boolean;
+    orange_money: boolean;
+    mtn: boolean;
+    cash: boolean;
+    card: boolean;
+  };
+  invoiceFooter: string;
+  receiptFooter: string;
+  housekeepingOnCheckout: boolean;
+  folioNumberFormat: string;
+  workingHours: {
+    start: string;
+    end: string;
+  };
+  notificationPreferences: {
+    smsOnCheckout: boolean;
+    emailOnHighExpense: boolean;
+  };
+}
+
+export type UserRole = 'admin' | 'receptionist' | 'waiter' | 'manager' | 'housekeeper' | 'accountant';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  status: 'active' | 'inactive' | 'blocked';
+  passwordHash: string; // Plain text or hash for mock persistence
+  isTemporaryPassword?: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  branch?: string;
+}
+
+// ==========================================
+// HUMAN RESOURCES AND PAYROLL MODELS
+// ==========================================
+
+export interface HREmployee {
+  id: string;
+  name: string;
+  customStatus: string; // e.g., "Gérant", "Serveur de nuit", "Chef de Cuisine" (Not fixed)
+  phone: string;
+  email: string;
+  hireDate: string;
+  baseSalary: number; // in FCFA
+  contractType: 'CDI' | 'CDD' | 'stage' | 'interim';
+  contractDuration?: string; // e.g., "6 mois", "3 mois", "Indéterminée"
+  department: string; // e.g., "Restauration", "Hébergement", "Administration", "Sécurité"
+  cnpsNumber?: string; // Numéro CNPS (Social Security)
+  status: 'active' | 'suspended' | 'terminated';
+}
+
+export interface Payslip {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  period: string; // e.g., "Juillet 2026"
+  baseSalary: number;
+  seniorityYears: number;
+  seniorityAmount: number;
+  includeSeniority: boolean;
+  bonusAmount: number;
+  includeBonus: boolean;
+  transportAllowance: number;
+  includeTransport: boolean;
+  socialSecurityDeduction: number; // e.g., CNPS (6.3% of raw base)
+  includeSocialSecurity: boolean;
+  taxDeduction: number; // e.g., ITS/IGR (e.g., 5% or customizable)
+  includeTax: boolean;
+  netSalary: number;
+  dateGenerated: string;
+  status: 'draft' | 'paid';
+  notes?: string;
+}
+
+export interface HRContract {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: 'CDI' | 'CDD' | 'stage' | 'interim';
+  startDate: string;
+  endDate?: string;
+  salary: number;
+  status: 'active' | 'completed' | 'terminated';
+  terms: string;
+  dateGenerated: string;
+}
+
+// ==========================================
+// OFFLINE SYNCHRONIZATION MODELS
+// ==========================================
+
+export interface OfflineSyncItem {
+  id: string;
+  transaction: Transaction;
+  status: 'pending' | 'syncing' | 'failed';
+  attempts: number;
+  lastAttempt?: string;
+  error?: string;
+}
+
+
+
+
+

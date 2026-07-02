@@ -1,0 +1,6 @@
+{
+  "name": "Brunch Bouaké Hospitality",
+  "description": "Système de Gestion Hybride Unifié (PMS, CRM, ERP, POS) pour l'Hébergement et le Maquis de Brunch Bouaké",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
