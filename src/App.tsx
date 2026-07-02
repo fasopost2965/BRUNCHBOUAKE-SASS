@@ -22,7 +22,9 @@ import {
   CloudOff,
   AlertTriangle,
   CheckCircle,
-  Palette
+  Palette,
+  Activity,
+  Calendar
 } from 'lucide-react';
 
 // Seed data
@@ -51,19 +53,21 @@ import RestaurantManager from './components/RestaurantManager';
 import StockManager from './components/StockManager';
 import ReportsManager from './components/ReportsManager';
 import HRManager from './components/HRManager';
+import OnboardingTour, { ONBOARDING_STEPS } from './components/OnboardingTour';
+import GuidedTourPage from './components/GuidedTourPage';
 
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir } from './types';
 
 import { PaymentOrchestrator } from './services/paymentService';
 import { DEFAULT_PROPERTY_SETTINGS } from './data';
 
 const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
-  admin: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr'],
-  manager: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr'],
-  receptionist: ['dashboard', 'pms', 'pos', 'staff', 'crm', 'blueprints', 'settings'],
-  waiter: ['dashboard', 'pos', 'restaurant', 'blueprints'],
-  accountant: ['dashboard', 'erp', 'stocks', 'blueprints', 'reports'],
-  housekeeper: ['dashboard', 'staff', 'blueprints']
+  admin: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr', 'tour'],
+  manager: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr', 'tour'],
+  receptionist: ['dashboard', 'pms', 'pos', 'staff', 'crm', 'blueprints', 'settings', 'tour'],
+  waiter: ['dashboard', 'pos', 'restaurant', 'blueprints', 'tour'],
+  accountant: ['dashboard', 'erp', 'stocks', 'blueprints', 'reports', 'tour'],
+  housekeeper: ['dashboard', 'staff', 'blueprints', 'tour']
 };
 
 const TAB_NAMES: Record<string, string> = {
@@ -79,7 +83,8 @@ const TAB_NAMES: Record<string, string> = {
   settings: "Configuration Établissement",
   users: "Utilisateurs & Droits Demo",
   reports: "Rapports & Statistiques",
-  hr: "Gestion RH & Paie"
+  hr: "Gestion RH & Paie",
+  tour: "Visite Guidée Interactive"
 };
 
 function AccessDenied({ currentRole, activeTab, onBackToDashboard }: { currentRole: string; activeTab: string; onBackToDashboard: () => void }) {
@@ -243,6 +248,116 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // ERP Invoices & Customer Avoirs States
+  const [invoices, setInvoices] = useState<Invoice[]>(() => {
+    const saved = localStorage.getItem('bb_invoices');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'FAC-2026-0001',
+        clientName: 'Koffi Anderson',
+        clientPhone: '+225 07 01 02 03 04',
+        date: '2026-06-30',
+        dueDate: '2026-07-15',
+        items: [
+          { description: 'Chambre Standard Gbêkê - Séjour de 2 nuits', quantity: 2, unitPrice: 18000, total: 36000 },
+          { description: 'Boisson - Bière Bock Grande Maquis', quantity: 4, unitPrice: 1000, total: 4000 }
+        ],
+        subtotal: 40000,
+        taxRate: 0.18,
+        taxAmount: 7200,
+        totalAmount: 47200,
+        status: 'paid',
+        paymentMethod: 'cash',
+        notes: 'Payé à l\'accueil lors du check-out'
+      },
+      {
+        id: 'FAC-2026-0002',
+        clientName: 'Amina Doukouré',
+        clientPhone: '+225 05 11 22 33 44',
+        date: '2026-07-01',
+        dueDate: '2026-07-10',
+        items: [
+          { description: 'Studio Bouaké Chic - Séjour de 1 nuit', quantity: 1, unitPrice: 25000, total: 25000 },
+          { description: 'Restauration - Kedjenou de Poulet & Attiéké', quantity: 2, unitPrice: 6000, total: 12000 }
+        ],
+        subtotal: 37000,
+        taxRate: 0.18,
+        taxAmount: 6660,
+        totalAmount: 43660,
+        status: 'unpaid',
+        notes: 'En attente de virement Wave ou Orange Money'
+      },
+      {
+        id: 'FAC-2026-0003',
+        clientName: 'Dr. Bakayoko Sylla',
+        clientPhone: '+225 07 88 99 00 11',
+        date: '2026-07-02',
+        dueDate: '2026-07-02',
+        items: [
+          { description: 'Appartement F2 VIP - Séjour de 3 nuits', quantity: 3, unitPrice: 45000, total: 135000 }
+        ],
+        subtotal: 135000,
+        taxRate: 0.18,
+        taxAmount: 24300,
+        totalAmount: 159300,
+        status: 'paid',
+        paymentMethod: 'wave',
+        notes: 'Facture VIP soldée par Wave CI'
+      }
+    ];
+  });
+
+  const [customerAvoirs, setCustomerAvoirs] = useState<CustomerAvoir[]>(() => {
+    const saved = localStorage.getItem('bb_customer_avoirs');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'AVO-001',
+        clientName: 'Amadou Coulibaly (Client Fidèle)',
+        clientPhone: '+225 07 47 48 49 50',
+        balance: 45000,
+        createdAt: '2026-07-01T10:00:00.000Z',
+        updatedAt: '2026-07-02T12:30:00.000Z',
+        movements: [
+          {
+            id: 'mov-1',
+            type: 'credit',
+            amount: 50000,
+            reason: 'Dépôt de garantie prépayé Maquis (Recharge compte)',
+            date: '2026-07-01T10:00:00.000Z',
+            paymentMethod: 'wave'
+          },
+          {
+            id: 'mov-2',
+            type: 'debit',
+            amount: 5000,
+            reason: 'Déduction consommation table 4 - Braisé & Bock',
+            date: '2026-07-02T12:30:00.000Z'
+          }
+        ]
+      },
+      {
+        id: 'AVO-002',
+        clientName: 'Sékou Sangaré',
+        clientPhone: '+225 05 06 07 08 09',
+        balance: 15000,
+        createdAt: '2026-07-02T08:15:00.000Z',
+        updatedAt: '2026-07-02T08:15:00.000Z',
+        movements: [
+          {
+            id: 'mov-3',
+            type: 'credit',
+            amount: 15000,
+            reason: 'Avoir émis pour remboursement bouteilles de gaz consignées',
+            date: '2026-07-02T08:15:00.000Z',
+            paymentMethod: 'cash'
+          }
+        ]
+      }
+    ];
+  });
+
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState<string>('');
 
@@ -403,7 +518,8 @@ export default function App() {
   });
 
   // Active view state
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pms' | 'pos' | 'erp' | 'staff' | 'crm' | 'blueprints' | 'settings' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pms' | 'pos' | 'erp' | 'staff' | 'crm' | 'blueprints' | 'settings' | 'users' | 'tour'>('dashboard');
+  const [pmsActiveSubTab, setPmsActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly'>('rooms');
   
   // Simulation role-based selector
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
@@ -414,6 +530,27 @@ export default function App() {
     }
     return 'admin';
   });
+
+  // Onboarding (Interactive Tour) States
+  const [isOnboarding, setIsOnboarding] = useState<boolean>(() => {
+    const completed = localStorage.getItem('bb_onboarding_completed');
+    return completed !== 'true'; // First load defaults to true
+  });
+  const [onboardingStepIndex, setOnboardingStepIndex] = useState<number>(-1); // -1 = Welcome, 0-5 = steps, 6 = Complete
+  const [previousRoleBeforeOnboarding, setPreviousRoleBeforeOnboarding] = useState<UserRole>(currentRole);
+
+  const handleStartOnboarding = () => {
+    setPreviousRoleBeforeOnboarding(currentRole);
+    setOnboardingStepIndex(-1); // Welcome screen
+    setIsOnboarding(true);
+  };
+
+  const handleCloseOnboarding = () => {
+    setIsOnboarding(false);
+    setOnboardingStepIndex(-1);
+    setCurrentRole(previousRoleBeforeOnboarding);
+    localStorage.setItem('bb_onboarding_completed', 'true');
+  };
 
   // Real-time local clock
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -487,6 +624,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('bb_stock_movements', JSON.stringify(stockMovements));
   }, [stockMovements]);
+
+  useEffect(() => {
+    localStorage.setItem('bb_invoices', JSON.stringify(invoices));
+  }, [invoices]);
+
+  useEffect(() => {
+    localStorage.setItem('bb_customer_avoirs', JSON.stringify(customerAvoirs));
+  }, [customerAvoirs]);
 
   // Global modifiers passed down to components
   const handleAddTransaction = (newT: Transaction) => {
@@ -635,6 +780,14 @@ export default function App() {
     );
   }
 
+  // Find which step is active for highlights
+  const isDashboardHighlighted = isOnboarding && onboardingStepIndex === 0;
+  const isPMSHighlighted = isOnboarding && onboardingStepIndex === 1;
+  const isPOSHighlighted = isOnboarding && onboardingStepIndex === 2;
+  const isStocksHighlighted = isOnboarding && onboardingStepIndex === 3;
+  const isStaffHighlighted = isOnboarding && onboardingStepIndex === 4;
+  const isSettingsHighlighted = isOnboarding && onboardingStepIndex === 5;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row selection:bg-orange-100 selection:text-orange-900 overflow-x-hidden">
       
@@ -650,16 +803,21 @@ export default function App() {
             background-color: #121b2e !important;
             color: #f1f5f9 !important;
           }
-          .border-slate-200, .border-slate-100, .border-slate-300, .border-slate-200\\/60, .divide-slate-100, .divide-slate-200, .divide-y > * {
+          .border-slate-200, .border-slate-100, .border-slate-300, .border-slate-200\\/60, .divide-slate-100, .divide-slate-200, .divide-y > *, .border-slate-200\\/40 {
             border-color: #1e293b !important;
           }
-          .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600 {
+          .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600,
+          .text-gray-950, .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600,
+          .text-black {
             color: #f1f5f9 !important;
           }
-          .text-slate-500, .text-slate-400 {
+          .text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400 {
             color: #94a3b8 !important;
           }
-          .hover\\:bg-slate-50:hover, .hover\\:bg-slate-50\\/50:hover, .hover\\:bg-slate-100:hover {
+          .text-slate-300, .text-slate-200, .text-slate-100, .text-gray-300, .text-gray-200, .text-gray-100 {
+            color: #cbd5e1 !important;
+          }
+          .hover\\:bg-slate-50:hover, .hover\\:bg-slate-50\\/50:hover, .hover\\:bg-slate-100:hover, .hover\\:bg-slate-50:focus {
             background-color: #1e293b !important;
           }
           input, select, textarea {
@@ -670,13 +828,50 @@ export default function App() {
           input:focus, select:focus, textarea:focus {
             border-color: #06b6d4 !important;
           }
+          
+          /* Semantic text coloring */
           .text-orange-500, .text-orange-600, .text-orange-700, .text-orange-800, .text-orange-950, .text-orange-900 {
             color: #22d3ee !important;
           }
+          .text-emerald-950, .text-emerald-900, .text-emerald-800, .text-emerald-700, .text-emerald-600 {
+            color: #34d399 !important;
+          }
+          .text-rose-950, .text-rose-900, .text-rose-800, .text-rose-700, .text-rose-600, .text-red-600, .text-red-700 {
+            color: #f87171 !important;
+          }
+          .text-blue-950, .text-blue-900, .text-blue-800, .text-blue-700, .text-blue-600 {
+            color: #60a5fa !important;
+          }
+          .text-amber-950, .text-amber-900, .text-amber-800, .text-amber-700, .text-amber-600, .text-yellow-600, .text-yellow-700 {
+            color: #fbbf24 !important;
+          }
+
+          /* Light backgrounds converted to dark translucent styles */
           .bg-orange-50, .bg-orange-100, .bg-orange-50\\/50 {
-            background-color: rgba(6, 182, 212, 0.15) !important;
+            background-color: rgba(6, 182, 212, 0.12) !important;
             color: #22d3ee !important;
           }
+          .bg-emerald-50, .bg-emerald-100, .bg-emerald-50\\/50, .bg-emerald-50\\/5 {
+            background-color: rgba(16, 185, 129, 0.12) !important;
+            color: #34d399 !important;
+          }
+          .bg-rose-50, .bg-rose-100, .bg-rose-500\\/10, .bg-red-50 {
+            background-color: rgba(244, 63, 94, 0.12) !important;
+            color: #f87171 !important;
+          }
+          .bg-blue-50, .bg-blue-100 {
+            background-color: rgba(59, 130, 246, 0.12) !important;
+            color: #60a5fa !important;
+          }
+          .bg-amber-50, .bg-amber-100, .bg-yellow-50, .bg-yellow-100 {
+            background-color: rgba(245, 158, 11, 0.12) !important;
+            color: #fbbf24 !important;
+          }
+          .bg-slate-50, .bg-slate-100, .bg-slate-200 {
+            background-color: #1e293b !important;
+          }
+
+          /* Interactive components buttons */
           .bg-orange-500, .bg-orange-600 {
             background-color: #06b6d4 !important;
             color: #0b1120 !important;
@@ -702,9 +897,8 @@ export default function App() {
             border-color: #334155 !important;
             color: #f1f5f9 !important;
           }
-          .bg-slate-100 {
-            background-color: #1e293b !important;
-            color: #f1f5f9 !important;
+          .recharts-text {
+            fill: #94a3b8 !important;
           }
         ` : ''}
 
@@ -769,46 +963,148 @@ export default function App() {
             border-radius: 0px !important;
             box-shadow: 4px 4px 0px 0px #000000 !important;
           }
-          .rounded-3xl, .rounded-2xl, .rounded-xl, .rounded-[24px], .rounded-lg {
+          .rounded-3xl, .rounded-2xl, .rounded-xl, .rounded-[24px], .rounded-lg, .rounded-md {
             border-radius: 0px !important;
           }
-          .border-slate-200, .border-slate-100, .border-slate-300, .border-orange-200, .border-orange-100, .divide-slate-200, .divide-slate-100 {
+          .border-slate-200, .border-slate-100, .border-slate-300, .border-orange-200, .border-orange-100, .divide-slate-200, .divide-slate-100, .border {
             border-color: #000000 !important;
             border-width: 1.5px !important;
           }
-          .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500, .text-slate-400 {
+          
+          /* Global high-contrast dark text on light backgrounds */
+          .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500, .text-slate-400,
+          .text-gray-950, .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400 {
             color: #000000 !important;
           }
+
+          /* Swiss red semantic mapping */
           .text-orange-500, .text-orange-600, .text-orange-700, .text-orange-900, .text-orange-950 {
             color: #da1212 !important;
             font-weight: 800 !important;
           }
+          
+          /* Clear status styling with border outlining */
+          .text-emerald-800, .text-emerald-700, .text-emerald-600, .text-emerald-950, .text-emerald-900 {
+            color: #047857 !important;
+            font-weight: 700 !important;
+          }
+          .text-rose-800, .text-rose-700, .text-rose-600, .text-rose-950, .text-rose-900, .text-red-600, .text-red-700, .text-red-800 {
+            color: #da1212 !important;
+            font-weight: 700 !important;
+          }
+          .text-blue-800, .text-blue-700, .text-blue-600, .text-blue-950, .text-blue-900 {
+            color: #1d4ed8 !important;
+            font-weight: 700 !important;
+          }
+          .text-amber-800, .text-amber-700, .text-amber-600, .text-amber-950, .text-amber-900 {
+            color: #b45309 !important;
+            font-weight: 700 !important;
+          }
+
           .bg-orange-50, .bg-orange-100 {
             background-color: #fde8e8 !important;
             color: #da1212 !important;
             border: 1px solid #da1212 !important;
             border-radius: 0px !important;
           }
-          .bg-orange-500, .bg-orange-600 {
+          .bg-emerald-50, .bg-emerald-100 {
+            background-color: #f0fdf4 !important;
+            border: 1px solid #047857 !important;
+            border-radius: 0px !important;
+          }
+          .bg-rose-50, .bg-rose-100, .bg-red-50 {
+            background-color: #fef2f2 !important;
+            border: 1px solid #da1212 !important;
+            border-radius: 0px !important;
+          }
+          .bg-blue-50, .bg-blue-100 {
+            background-color: #eff6ff !important;
+            border: 1px solid #1d4ed8 !important;
+            border-radius: 0px !important;
+          }
+          .bg-amber-50, .bg-amber-100, .bg-yellow-50, .bg-yellow-100 {
+            background-color: #fffbeb !important;
+            border: 1px solid #b45309 !important;
+            border-radius: 0px !important;
+          }
+
+          /* Buttons & primary active elements - force black with crisp borders */
+          .bg-orange-500, .bg-orange-600, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-teal-500, .bg-teal-600, .bg-blue-500, .bg-blue-600, .bg-rose-500, .bg-rose-600, .bg-red-500, .bg-red-600 {
             background-color: #000000 !important;
             color: #ffffff !important;
             border: 2px solid #000000 !important;
             border-radius: 0px !important;
           }
-          .bg-orange-500:hover, .bg-orange-600:hover {
+          .bg-orange-500:hover, .bg-orange-600:hover, .bg-emerald-500:hover, .bg-emerald-600:hover, .bg-teal-500:hover, .bg-teal-600:hover, .bg-blue-500:hover, .bg-blue-600:hover, .bg-rose-500:hover, .bg-rose-600:hover, .bg-red-500:hover, .bg-red-600:hover {
             background-color: #da1212 !important;
+            color: #ffffff !important;
+          }
+
+          /* Prevent black-on-black text inside dark containers and sidebar */
+          aside.bg-slate-900, aside.bg-slate-900 * {
             color: #ffffff !important;
           }
           aside.bg-slate-900 {
             background-color: #000000 !important;
             border-right: 3px solid #000000 !important;
           }
+          aside.bg-slate-900 button.bg-slate-800 {
+            background-color: #da1212 !important;
+            border: 2px solid #ffffff !important;
+            color: #ffffff !important;
+          }
+          aside.bg-slate-900 button:hover {
+            background-color: #333333 !important;
+            color: #ffffff !important;
+          }
+          
+          .bg-slate-900 *, .bg-slate-800 *, .bg-slate-950 *, .bg-orange-500 *, .bg-orange-600 *, .bg-emerald-600 *, .bg-rose-600 *, .bg-red-600 * {
+            color: #ffffff !important;
+          }
+          
+          /* Target specific nested classes inside dark elements to avoid global black text overrides */
+          aside.bg-slate-900 .text-slate-400, aside.bg-slate-900 .text-slate-500,
+          .bg-slate-900 .text-slate-400, .bg-slate-900 .text-slate-500,
+          .bg-slate-800 .text-slate-400, .bg-slate-800 .text-slate-500,
+          .bg-slate-950 .text-slate-400, .bg-slate-950 .text-slate-500,
+          .bg-orange-500 .text-slate-400, .bg-orange-500 .text-slate-500,
+          .bg-orange-600 .text-slate-400, .bg-orange-600 .text-slate-500,
+          .bg-emerald-600 .text-slate-400, .bg-emerald-600 .text-slate-500,
+          .bg-rose-600 .text-slate-400, .bg-rose-600 .text-slate-500 {
+            color: #d4d4d4 !important;
+          }
+          aside.bg-slate-900 .text-slate-900, aside.bg-slate-900 .text-slate-800,
+          .bg-slate-900 .text-slate-900, .bg-slate-900 .text-slate-800,
+          .bg-slate-800 .text-slate-900, .bg-slate-800 .text-slate-800,
+          .bg-slate-950 .text-slate-900, .bg-slate-950 .text-slate-800,
+          .bg-orange-500 .text-slate-900, .bg-orange-500 .text-slate-800,
+          .bg-orange-600 .text-slate-900, .bg-orange-600 .text-slate-800,
+          .bg-emerald-600 .text-slate-900, .bg-emerald-600 .text-slate-800,
+          .bg-rose-600 .text-slate-900, .bg-rose-600 .text-slate-800 {
+            color: #ffffff !important;
+          }
+
           input, select, textarea {
             background-color: #ffffff !important;
             border: 2px solid #000000 !important;
             border-radius: 0px !important;
             color: #000000 !important;
             font-family: monospace !important;
+          }
+          input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border-color: #da1212 !important;
+            box-shadow: 2px 2px 0px 0px #000000 !important;
+          }
+          .recharts-default-tooltip {
+            background-color: #ffffff !important;
+            border: 2px solid #000000 !important;
+            border-radius: 0px !important;
+            color: #000000 !important;
+          }
+          .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line {
+            stroke: #000000 !important;
+            stroke-width: 1.5px !important;
           }
         ` : ''}
       `}</style>
@@ -847,16 +1143,23 @@ export default function App() {
             </span>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+              id="nav-dashboard"
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
                 activeTab === 'dashboard' 
                   ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                   : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              }`}
+              } ${isDashboardHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <Home className="w-4 h-4 opacity-75" />
                 <span>Vue d'ensemble</span>
               </div>
+              {isDashboardHighlighted && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+              )}
             </button>
           </div>
 
@@ -865,17 +1168,93 @@ export default function App() {
             <span className="hidden md:block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
               Hébergement & PMS
             </span>
+            
+            {/* 1. Aperçu & Inventaire */}
             <button
-              onClick={() => setActiveTab('pms')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                activeTab === 'pms' 
+              onClick={() => {
+                setActiveTab('pms');
+                setPmsActiveSubTab('kpis');
+              }}
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                activeTab === 'pms' && pmsActiveSubTab === 'kpis'
                   ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                   : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
               } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
             >
               <div className="flex items-center gap-3">
-                <BedDouble className="w-4 h-4 opacity-75" />
-                <span>Gestion Chambres</span>
+                <Activity className="w-4 h-4 opacity-75 text-orange-500" />
+                <span>Aperçu & Inventaire</span>
+              </div>
+              {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+              )}
+            </button>
+
+            {/* 2. Grille des Chambres (PMS) */}
+            <button
+              onClick={() => {
+                setActiveTab('pms');
+                setPmsActiveSubTab('rooms');
+              }}
+              id="nav-pms"
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                activeTab === 'pms' && pmsActiveSubTab === 'rooms'
+                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''} ${isPMSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <BedDouble className="w-4 h-4 opacity-75 text-emerald-500" />
+                <span>Grille des Chambres</span>
+              </div>
+              {isPMSHighlighted ? (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+              ) : (
+                !ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                  <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+                )
+              )}
+            </button>
+
+            {/* 3. Planning Hebdomadaire */}
+            <button
+              onClick={() => {
+                setActiveTab('pms');
+                setPmsActiveSubTab('calendar');
+              }}
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                activeTab === 'pms' && pmsActiveSubTab === 'calendar'
+                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 opacity-75 text-blue-500" />
+                <span>Planning Hebdo (15j)</span>
+              </div>
+              {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+              )}
+            </button>
+
+            {/* 4. Calendrier Mensuel */}
+            <button
+              onClick={() => {
+                setActiveTab('pms');
+                setPmsActiveSubTab('monthly');
+              }}
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                activeTab === 'pms' && pmsActiveSubTab === 'monthly'
+                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 opacity-75 text-rose-500 animate-pulse" />
+                <span>Calendrier Mensuel</span>
               </div>
               {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
                 <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
@@ -890,16 +1269,23 @@ export default function App() {
             </span>
             <button
               onClick={() => setActiveTab('pos')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+              id="nav-pos"
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
                 activeTab === 'pos' 
                   ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                   : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              }`}
+              } ${isPOSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <UtensilsCrossed className="w-4 h-4 opacity-75" />
                 <span>Caisse Maquis POS</span>
               </div>
+              {isPOSHighlighted && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+              )}
             </button>
 
             {ROLE_PERMISSIONS[currentRole].includes('restaurant') && (
@@ -921,16 +1307,23 @@ export default function App() {
             {ROLE_PERMISSIONS[currentRole].includes('stocks') && (
               <button
                 onClick={() => setActiveTab('stocks')}
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+                id="nav-stocks"
+                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
                   activeTab === 'stocks' 
                     ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                }`}
+                } ${isStocksHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <Layers className="w-4 h-4 opacity-75 text-amber-500" />
                   <span>Gestion des Stocks</span>
                 </div>
+                {isStocksHighlighted && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -959,18 +1352,26 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('staff')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+              id="nav-staff"
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
                 activeTab === 'staff' 
                   ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                   : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('staff') ? 'opacity-65' : ''}`}
+              } ${!ROLE_PERMISSIONS[currentRole].includes('staff') ? 'opacity-65' : ''} ${isStaffHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <Users className="w-4 h-4 opacity-75" />
                 <span>Équipe & Tâches</span>
               </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('staff') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+              {isStaffHighlighted ? (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+              ) : (
+                !ROLE_PERMISSIONS[currentRole].includes('staff') && (
+                  <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+                )
               )}
             </button>
 
@@ -1046,16 +1447,23 @@ export default function App() {
             {ROLE_PERMISSIONS[currentRole].includes('settings') && (
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+                id="nav-settings"
+                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
                   activeTab === 'settings' 
                     ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                }`}
+                } ${isSettingsHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <Settings className="w-4 h-4 opacity-75 text-orange-500" />
                   <span>Configuration Établissement</span>
                 </div>
+                {isSettingsHighlighted && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                  </span>
+                )}
               </button>
             )}
 
@@ -1076,6 +1484,21 @@ export default function App() {
             )}
           </div>
         </nav>
+
+        {/* Onboarding Restart Button */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/10">
+          <button
+            onClick={() => setActiveTab('tour')}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer shadow-xs ${
+              activeTab === 'tour'
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-orange-500/25'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-orange-400 animate-pulse" />
+            <span>Guide d'Intégration</span>
+          </button>
+        </div>
 
         {/* User profile / role badge at bottom of sidebar with logout action */}
         <div className="hidden md:block p-4 border-t border-slate-800 bg-slate-950/20">
@@ -1315,6 +1738,8 @@ export default function App() {
                   onUpdateWebhookEvents={setWebhookEvents}
                   onUpdateProcessedEvents={setProcessedEvents}
                   settings={settings}
+                  activeSubTab={pmsActiveSubTab}
+                  onActiveSubTabChange={setPmsActiveSubTab}
                 />
               )}
 
@@ -1370,6 +1795,10 @@ export default function App() {
                   syncQueue={syncQueue}
                   isOnline={effectiveOnlineStatus}
                   onTriggerSync={triggerSync}
+                  invoices={invoices}
+                  onUpdateInvoices={setInvoices}
+                  customerAvoirs={customerAvoirs}
+                  onUpdateCustomerAvoirs={setCustomerAvoirs}
                 />
               )}
 
@@ -1443,6 +1872,14 @@ export default function App() {
                   }}
                 />
               )}
+
+              {activeTab === 'tour' && (
+                <GuidedTourPage 
+                  settings={settings}
+                  onUpdateSettings={setSettings}
+                  onStartOnboarding={handleStartOnboarding}
+                />
+              )}
             </>
           )}
 
@@ -1464,6 +1901,20 @@ export default function App() {
           </div>
         </footer>
       </main>
+
+      {/* Onboarding (Interactive Tour) overlay wizard */}
+      {isOnboarding && (
+        <OnboardingTour
+          currentStepIndex={onboardingStepIndex}
+          onSetStepIndex={setOnboardingStepIndex}
+          onCloseTour={handleCloseOnboarding}
+          currentRole={currentRole}
+          onSetRole={setCurrentRole}
+          activeTab={activeTab}
+          onSetTab={setActiveTab}
+          establishmentName={settings.establishmentName}
+        />
+      )}
     </div>
   );
 }

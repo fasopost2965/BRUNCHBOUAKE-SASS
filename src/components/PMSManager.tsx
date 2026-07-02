@@ -49,6 +49,8 @@ interface PMSProps {
   onUpdateWebhookEvents: React.Dispatch<React.SetStateAction<WebhookEvent[]>>;
   onUpdateProcessedEvents: React.Dispatch<React.SetStateAction<ProcessedEvent[]>>;
   settings: PropertySettings;
+  activeSubTab?: 'kpis' | 'rooms' | 'calendar' | 'monthly';
+  onActiveSubTabChange?: (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly') => void;
 }
 
 export default function PMSManager({
@@ -68,7 +70,9 @@ export default function PMSManager({
   onUpdatePaymentTransactions,
   onUpdateWebhookEvents,
   onUpdateProcessedEvents,
-  settings
+  settings,
+  activeSubTab: propActiveSubTab,
+  onActiveSubTabChange
 }: PMSProps) {
   
   const [filterType, setFilterType] = useState<'all' | 'studio' | 'room' | 'apartment'>('all');
@@ -127,13 +131,25 @@ export default function PMSManager({
   const [showFolioInvoiceModal, setShowFolioInvoiceModal] = useState(false);
   const [invoiceReservation, setInvoiceReservation] = useState<Reservation | null>(null);
 
-  // Sub-tab state for Room Cards vs. Reservation Calendar
-  const [activeSubTab, setActiveSubTab] = useState<'rooms' | 'calendar'>('rooms');
+  // Sub-tab state for Room Cards vs. Reservation Calendar vs. Monthly Calendar
+  const [localActiveSubTab, setLocalActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly'>('rooms');
+  const activeSubTab = propActiveSubTab !== undefined ? propActiveSubTab : localActiveSubTab;
+  const setActiveSubTab = (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly') => {
+    setLocalActiveSubTab(subTab);
+    if (onActiveSubTabChange) {
+      onActiveSubTabChange(subTab);
+    }
+  };
   const [calendarStartDate, setCalendarStartDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 2); // Show 2 days ago as context!
     return d;
   });
+
+  // Monthly Calendar States
+  const [monthlyYear, setMonthlyYear] = useState<number>(() => new Date().getFullYear());
+  const [monthlyMonth, setMonthlyMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(() => new Date());
 
   // Room Configuration & Capacity Expansion states
   const [showRoomInventoryModal, setShowRoomInventoryModal] = useState(false);
@@ -770,113 +786,202 @@ export default function PMSManager({
   };
 
   return (
-    <div className="space-y-6">
-      
-      {/* 🌟 MANAGER CAPACITY EXPANSION & KPIS PANEL */}
-      <div className="bg-slate-950 text-white rounded-3xl p-6 border border-slate-800/80 shadow-xl relative overflow-hidden">
-        {/* Background glow effects */}
-        <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+    <div className="space-y-6 text-left">
 
-        <div className="flex flex-col lg:flex-row gap-6 justify-between lg:items-center relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 bg-orange-500 text-white font-mono text-[9px] font-black rounded-md uppercase tracking-wider animate-pulse">
-                TRAVAUX EN COURS
-              </span>
-              <span className="text-slate-400 text-xs font-semibold">• Extension de capacité active</span>
+      {activeSubTab === 'kpis' && (
+        <div className="space-y-6 animate-fade-in text-slate-800">
+          
+          {/* 🌟 KPI & CAPACITY PANEL */}
+          <div className="bg-slate-950 text-white rounded-3xl p-6 border border-slate-800/80 shadow-xl relative overflow-hidden">
+            {/* Background glow effects */}
+            <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute -left-16 -bottom-16 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col lg:flex-row gap-6 justify-between lg:items-center relative z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 bg-orange-500 text-white font-mono text-[9px] font-black rounded-md uppercase tracking-wider animate-pulse">
+                    TRAVAUX EN COURS
+                  </span>
+                  <span className="text-slate-400 text-xs font-semibold">• Extension de capacité active</span>
+                </div>
+                <h3 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                  <BedDouble className="w-5 h-5 text-orange-500" />
+                  Pilotage de l'Inventaire & Capacité d'Accueil
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                  Ajoutez vos nouvelles chambres et studios au fur et à mesure de la livraison des travaux. Ajustez les tarifs, renommez les pièces et cochez les équipements (Climatisation, Smart TV, Wi-Fi, etc.) en un clic.
+                </p>
+              </div>
+
+              <button
+                onClick={handleOpenCreateRoom}
+                className="px-5 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all self-start lg:self-center cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-white" />
+                + Ajouter une Chambre ou Studio
+              </button>
             </div>
-            <h3 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-              <BedDouble className="w-5 h-5 text-orange-500" />
-              Pilotage de l'Inventaire & Capacité d'Accueil
-            </h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-xl">
-              Ajoutez vos nouvelles chambres et studios au fur et à mesure de la livraison des travaux. Ajustez les tarifs, renommez les pièces et cochez les équipements (Climatisation, Smart TV, Wi-Fi, etc.) en un clic.
-            </p>
+
+            {/* Mini Real-Time Capacity KPI grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-850 text-left">
+              <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Hébergements</span>
+                <span className="text-lg font-black text-white font-mono">{rooms.length}</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  {rooms.filter(r => r.type === 'studio').length} Studios, {rooms.filter(r => r.type === 'room').length} Chambres, {rooms.filter(r => r.type === 'apartment').length} Apparts
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Taux d'Occupation</span>
+                <span className="text-lg font-black text-orange-400 font-mono">
+                  {rooms.length > 0 ? Math.round((rooms.filter(r => r.status === 'occupied').length / rooms.length) * 100) : 0}%
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  {rooms.filter(r => r.status === 'occupied').length} pièces occupées en ce moment
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ménages Requis</span>
+                <span className="text-lg font-black text-amber-500 font-mono">
+                  {rooms.filter(r => r.status === 'dirty').length}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Chambres libérées à nettoyer
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Maintenance en cours</span>
+                <span className="text-lg font-black text-rose-400 font-mono">
+                  {rooms.filter(r => r.status === 'maintenance').length}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Hors-service (Travaux/Pannes)
+                </span>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={handleOpenCreateRoom}
-            className="px-5 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all self-start lg:self-center"
-          >
-            <Plus className="w-4 h-4 text-white" />
-            + Ajouter une Chambre ou Studio
-          </button>
+          {/* 📂 ROOM INVENTORY DETAILS TAB */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-950 uppercase tracking-tight">
+                  Inventaire Complet des Pièces & Équipements
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Liste exhaustive des ressources matérielles de {settings.establishmentName} avec capacités et tarifs.
+                </p>
+              </div>
+              <div className="text-xs bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 font-bold text-slate-600">
+                Valeur locative totale : <span className="font-mono text-slate-900">{rooms.reduce((acc, r) => acc + r.pricePerNight, 0).toLocaleString('fr-FR')} FCFA</span> / nuit
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-4">Hébergement</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Capacité</th>
+                    <th className="py-3 px-4">Tarif Journalier</th>
+                    <th className="py-3 px-4">Équipements & Confort</th>
+                    <th className="py-3 px-4">Statut Actuel</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {rooms.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                        Aucun hébergement disponible dans l'inventaire. Cliquez sur "+ Ajouter" pour commencer.
+                      </td>
+                    </tr>
+                  ) : (
+                    rooms.map((room) => (
+                      <tr key={room.id} className="hover:bg-slate-50/60 transition-all font-medium">
+                        <td className="py-3 px-4">
+                          <div className="font-black text-slate-900">{room.name}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">ID: {room.id}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase bg-slate-100 text-slate-600">
+                            {room.type === 'studio' ? 'Studio (ch+sal)' : room.type === 'apartment' ? 'Appartement' : 'Chambre Classique'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                          {room.maxGuests} Voyageurs max.
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-mono font-black text-slate-950">{room.pricePerNight.toLocaleString('fr-FR')}</span>
+                          <span className="text-[9px] text-slate-400 font-bold"> FCFA / nuit</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {room.features && room.features.length > 0 ? (
+                              room.features.map((feat, i) => (
+                                <span key={i} className="text-[9px] bg-orange-50 border border-orange-100/50 text-orange-700 px-1.5 py-0.5 rounded font-semibold">
+                                  {feat}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 text-[10px]">Aucun équipement</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {room.status === 'available' && (
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-wide">
+                              Disponible
+                            </span>
+                          )}
+                          {room.status === 'occupied' && (
+                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-[9px] font-black uppercase tracking-wide">
+                              Occupée
+                            </span>
+                          )}
+                          {room.status === 'dirty' && (
+                            <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-[9px] font-black uppercase tracking-wide">
+                              Ménage Requis
+                            </span>
+                          )}
+                          {room.status === 'maintenance' && (
+                            <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-[9px] font-black uppercase tracking-wide">
+                              En Panne
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditRoom(room)}
+                              className="p-1.5 hover:bg-slate-100 hover:text-slate-900 text-slate-400 rounded-lg transition-all cursor-pointer"
+                              title="Modifier la chambre"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRoom(room.id)}
+                              className="p-1.5 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg transition-all cursor-pointer"
+                              title="Retirer de l'inventaire"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-
-        {/* Mini Real-Time Capacity KPI grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-850 text-left">
-          <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Hébergements</span>
-            <span className="text-lg font-black text-white font-mono">{rooms.length}</span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">
-              {rooms.filter(r => r.type === 'studio').length} Studios, {rooms.filter(r => r.type === 'room').length} Chambres
-            </span>
-          </div>
-
-          <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Taux d'Occupation</span>
-            <span className="text-lg font-black text-orange-400 font-mono">
-              {rooms.length > 0 ? Math.round((rooms.filter(r => r.status === 'occupied').length / rooms.length) * 100) : 0}%
-            </span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">
-              {rooms.filter(r => r.status === 'occupied').length} pièces occupées en ce moment
-            </span>
-          </div>
-
-          <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ménages Requis</span>
-            <span className="text-lg font-black text-amber-500 font-mono">
-              {rooms.filter(r => r.status === 'dirty').length}
-            </span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">
-              Chambres libérées à nettoyer
-            </span>
-          </div>
-
-          <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/40">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Maintenance en cours</span>
-            <span className="text-lg font-black text-rose-400 font-mono">
-              {rooms.filter(r => r.status === 'maintenance').length}
-            </span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">
-              Hors-service (Travaux/Pannes)
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 📅 SECTION SUB-TABS: ROOM CARDS VS. RESERVATIONS CALENDAR */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => {
-            setActiveSubTab('rooms');
-            setSelectedRoom(null);
-          }}
-          className={`px-6 py-3.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            activeSubTab === 'rooms'
-              ? 'border-orange-500 text-orange-600 font-black'
-              : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
-          }`}
-        >
-          <BedDouble className="w-4 h-4" />
-          <span>Grille des Chambres (PMS)</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveSubTab('calendar');
-            setSelectedRoom(null);
-          }}
-          className={`px-6 py-3.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            activeSubTab === 'calendar'
-              ? 'border-orange-500 text-orange-600 font-black'
-              : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
-          }`}
-        >
-          <Calendar className="w-4 h-4 text-orange-500" />
-          <span>Calendrier des Réservations (Visualisation Planning)</span>
-        </button>
-      </div>
+      )}
 
       {activeSubTab === 'rooms' && (
         <>
@@ -1309,6 +1414,460 @@ export default function PMSManager({
           </div>
         </div>
       )}
+
+      {activeSubTab === 'monthly' && (() => {
+        const FrenchMonths = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+        const FrenchWeekdays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+        
+        // Compute cells
+        const firstDay = new Date(monthlyYear, monthlyMonth, 1);
+        const lastDay = new Date(monthlyYear, monthlyMonth + 1, 0);
+        
+        let startDayOfWeek = firstDay.getDay(); // 0 = Sun, 1 = Mon
+        startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // 0 = Mon, 6 = Sun
+        
+        const totalDays = lastDay.getDate();
+        const prevMonthLastDay = new Date(monthlyYear, monthlyMonth, 0).getDate();
+        
+        const cells = [];
+        // Trailing days of previous month
+        for (let i = startDayOfWeek - 1; i >= 0; i--) {
+          const dNum = prevMonthLastDay - i;
+          const dateObj = new Date(monthlyYear, monthlyMonth - 1, dNum);
+          cells.push({
+            date: dateObj,
+            isCurrentMonth: false,
+            dayNumber: dNum,
+          });
+        }
+        
+        // Days of current month
+        for (let i = 1; i <= totalDays; i++) {
+          const dateObj = new Date(monthlyYear, monthlyMonth, i);
+          cells.push({
+            date: dateObj,
+            isCurrentMonth: true,
+            dayNumber: i,
+          });
+        }
+        
+        // Leading days of next month
+        const totalCellsNeeded = cells.length > 35 ? 42 : 35;
+        const remainingToFit = totalCellsNeeded - cells.length;
+        for (let i = 1; i <= remainingToFit; i++) {
+          const dateObj = new Date(monthlyYear, monthlyMonth + 1, i);
+          cells.push({
+            date: dateObj,
+            isCurrentMonth: false,
+            dayNumber: i,
+          });
+        }
+
+        // Selected day calculations
+        const selectedDateStr = selectedCalendarDay.toISOString().split('T')[0];
+        
+        // Filter reservations on the selected calendar day
+        const selectedDayRes = reservations.filter(r => 
+          r.status !== 'cancelled' &&
+          r.checkInDate <= selectedDateStr && 
+          selectedDateStr < r.checkOutDate
+        );
+
+        // Find check-ins on selected day
+        const selectedDayCheckins = reservations.filter(r => 
+          r.status !== 'cancelled' && r.checkInDate === selectedDateStr
+        );
+
+        // Find check-outs on selected day
+        const selectedDayCheckouts = reservations.filter(r => 
+          r.status !== 'cancelled' && r.checkOutDate === selectedDateStr
+        );
+
+        // Calculate average occupancy rate for current month
+        let totalRoomDays = rooms.length * totalDays;
+        let occupiedRoomDays = 0;
+        for (let d = 1; d <= totalDays; d++) {
+          const dStr = `${monthlyYear}-${(monthlyMonth + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+          const dayOccupants = reservations.filter(r => 
+            r.status !== 'cancelled' && r.checkInDate <= dStr && dStr < r.checkOutDate
+          );
+          occupiedRoomDays += dayOccupants.length;
+        }
+        const avgOccupancyRate = totalRoomDays > 0 ? Math.round((occupiedRoomDays / totalRoomDays) * 100) : 0;
+
+        return (
+          <div className="space-y-4 animate-fade-in text-slate-800 text-left">
+            {/* COMPACT TOP HEADER WITH NAVIGATION AND STATISTICS */}
+            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3.5 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div className="flex items-center gap-3.5">
+                <div className="p-2 bg-orange-50 rounded-xl">
+                  <Calendar className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide leading-tight">
+                    {FrenchMonths[monthlyMonth]} {monthlyYear}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                    Calendrier Mensuel d'Occupation
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 shrink-0">
+                  <span className="text-[9px] text-orange-700 font-extrabold uppercase">Taux d'occup. moyen</span>
+                  <span className="font-mono font-black text-[11px] text-orange-800">
+                    {avgOccupancyRate}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (monthlyMonth === 0) {
+                      setMonthlyMonth(11);
+                      setMonthlyYear(prev => prev - 1);
+                    } else {
+                      setMonthlyMonth(prev => prev - 1);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 transition-all cursor-pointer text-xs font-black"
+                >
+                  &larr; Préc.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const today = new Date();
+                    setMonthlyMonth(today.getMonth());
+                    setMonthlyYear(today.getFullYear());
+                    setSelectedCalendarDay(today);
+                  }}
+                  className="px-4 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-[10px] font-black text-slate-700 transition-all cursor-pointer uppercase"
+                >
+                  Mois en cours
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (monthlyMonth === 11) {
+                      setMonthlyMonth(0);
+                      setMonthlyYear(prev => prev + 1);
+                    } else {
+                      setMonthlyMonth(prev => prev + 1);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 transition-all cursor-pointer text-xs font-black"
+                >
+                  Suiv. &rarr;
+                </button>
+              </div>
+            </div>
+
+            {/* SIDE-BY-SIDE GRID */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* LEFT SIDEBAR CARD: Unified and highly space-efficient */}
+              <div className="lg:col-span-1">
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs text-left h-full flex flex-col justify-between">
+                  <div>
+                    {/* Header with Selected Day */}
+                    <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                      <div className="p-1.5 bg-slate-50 border border-slate-100 rounded-lg text-center min-w-[36px] min-h-[36px] flex flex-col justify-center">
+                        <span className="text-[8px] text-slate-400 font-bold uppercase block leading-none">
+                          {selectedCalendarDay.toLocaleDateString('fr-FR', { weekday: 'short' })}
+                        </span>
+                        <span className="text-sm font-black font-mono text-slate-800 leading-none mt-0.5">
+                          {selectedCalendarDay.getDate()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-mono tracking-widest text-slate-400 font-extrabold block">
+                          Jour Sélectionné
+                        </span>
+                        <h4 className="text-xs font-black text-slate-800 capitalize leading-tight">
+                          {selectedCalendarDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Stats mini grid */}
+                    <div className="grid grid-cols-3 gap-1.5 mb-3">
+                      <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                        <span className="text-[8px] text-slate-400 font-bold block uppercase leading-none font-bold">Occ.</span>
+                        <span className="text-xs font-mono font-black text-slate-800 block mt-1">
+                          {selectedDayRes.length}/{rooms.length}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-center">
+                        <span className="text-[8px] text-blue-500 font-bold block uppercase leading-none font-bold">Arr.</span>
+                        <span className="text-xs font-mono font-black text-blue-700 block mt-1">
+                          {selectedDayCheckins.length}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-emerald-50/50 border border-emerald-100/50 rounded-xl text-center">
+                        <span className="text-[8px] text-emerald-500 font-bold block uppercase leading-none font-bold">Dép.</span>
+                        <span className="text-xs font-mono font-black text-emerald-700 block mt-1">
+                          {selectedDayCheckouts.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Compact Scrollable Movements List */}
+                    <div className="border-t border-slate-100 pt-3">
+                      <span className="text-[9px] uppercase font-mono font-extrabold text-slate-400 block mb-2">
+                        Mouvements ({selectedDayRes.length + selectedDayCheckins.length + selectedDayCheckouts.length})
+                      </span>
+                      
+                      {selectedDayRes.length === 0 && selectedDayCheckins.length === 0 && selectedDayCheckouts.length === 0 ? (
+                        <div className="py-6 text-center text-slate-400 text-[10px] italic">
+                          Aucun mouvement enregistré.
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                          {/* Arrivals */}
+                          {selectedDayCheckins.map(res => {
+                            const rm = rooms.find(r => r.id === res.roomId);
+                            return (
+                              <div key={`ci-${res.id}`} className="px-2 py-1.5 bg-blue-50 border border-blue-100/50 rounded-lg text-[10px] flex justify-between items-center">
+                                <span className="font-extrabold text-slate-800 truncate max-w-[100px]">{res.guestName}</span>
+                                <span className="px-1 bg-blue-100 text-blue-800 font-extrabold rounded text-[8px] uppercase">
+                                  {rm?.name.replace(/(Chambre|Studio)\s*/gi, '') || 'Arr'}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          {/* Stay overs */}
+                          {selectedDayRes.filter(r => r.checkInDate !== selectedDateStr).map(res => {
+                            const rm = rooms.find(r => r.id === res.roomId);
+                            return (
+                              <div key={`so-${res.id}`} className="px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[10px] flex justify-between items-center">
+                                <span className="font-medium text-slate-700 truncate max-w-[100px]">{res.guestName}</span>
+                                <span className="px-1 bg-slate-100 text-slate-600 font-bold rounded text-[8px] uppercase">
+                                  {rm?.name.replace(/(Chambre|Studio)\s*/gi, '') || 'In'}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          {/* Departures */}
+                          {selectedDayCheckouts.map(res => {
+                            const rm = rooms.find(r => r.id === res.roomId);
+                            return (
+                              <div key={`co-${res.id}`} className="px-2 py-1.5 bg-emerald-50 border border-emerald-100/50 rounded-lg text-[10px] flex justify-between items-center">
+                                <span className="font-extrabold text-slate-800 truncate max-w-[100px]">{res.guestName}</span>
+                                <span className="px-1 bg-emerald-100 text-emerald-800 font-extrabold rounded text-[8px] uppercase">
+                                  {rm?.name.replace(/(Chambre|Studio)\s*/gi, '') || 'Dép'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fast Check-In Action Button */}
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckInDate(selectedDateStr);
+                        const out = new Date(selectedCalendarDay);
+                        out.setDate(selectedCalendarDay.getDate() + 2);
+                        setCheckOutDate(out.toISOString().split('T')[0]);
+                        setCheckInType('walk-in');
+                        
+                        const availableRoom = rooms.find(r => r.status === 'available');
+                        if (availableRoom) {
+                          setSelectedRoom(availableRoom);
+                          setShowCheckInModal(true);
+                        } else if (rooms.length > 0) {
+                          setSelectedRoom(rooms[0]);
+                          setShowCheckInModal(true);
+                        } else {
+                          alert("Veuillez d'abord ajouter une chambre dans l'inventaire.");
+                        }
+                      }}
+                      className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Check-In ce jour
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT CALENDAR GRID: Ultra-compact design */}
+              <div className="lg:col-span-3">
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs text-left">
+                  {/* Legend */}
+                  <div className="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    <div className="flex gap-3">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                        <span>Séjour</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                        <span>Arrivée</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                        <span>Départ</span>
+                      </span>
+                    </div>
+                    <span className="font-bold text-[8px] font-mono text-slate-400">
+                      * Clic pour sélectionner un jour
+                    </span>
+                  </div>
+
+                  {/* Weekday Headers */}
+                  <div className="grid grid-cols-7 gap-1 text-center mb-1">
+                    {FrenchWeekdays.map((day, dIdx) => (
+                      <div
+                        key={day}
+                        className={`text-[9px] font-black uppercase tracking-wider py-1 text-slate-400 ${
+                          dIdx >= 5 ? 'text-orange-500 bg-orange-50/30 rounded' : ''
+                        }`}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days Grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {cells.map((cell, idx) => {
+                      const cellDateStr = cell.date.toISOString().split('T')[0];
+                      const isToday = new Date().toLocaleDateString() === cell.date.toLocaleDateString();
+                      const isSelected = selectedCalendarDay.toLocaleDateString() === cell.date.toLocaleDateString();
+                      
+                      // Reservations calculations
+                      const dayOccupants = reservations.filter(r => 
+                        r.status !== 'cancelled' &&
+                        r.checkInDate <= cellDateStr && 
+                        cellDateStr < r.checkOutDate
+                      );
+
+                      const dayCheckins = reservations.filter(r => 
+                        r.status !== 'cancelled' && r.checkInDate === cellDateStr
+                      );
+
+                      const dayCheckouts = reservations.filter(r => 
+                        r.status !== 'cancelled' && r.checkOutDate === cellDateStr
+                      );
+
+                      const totalRoomsCount = rooms.length;
+                      const occupancyPct = totalRoomsCount > 0 ? Math.round((dayOccupants.length / totalRoomsCount) * 100) : 0;
+
+                      // Grid cell color styling
+                      let bgClass = "bg-white border-slate-200 hover:border-orange-200";
+                      if (!cell.isCurrentMonth) {
+                        bgClass = "bg-slate-50/50 text-slate-300 border-slate-100 opacity-40";
+                      } else if (isToday) {
+                        bgClass = "bg-orange-50/20 border-orange-500 ring-1 ring-orange-500";
+                      } else if (isSelected) {
+                        bgClass = "bg-blue-50/20 border-blue-500 ring-1 ring-blue-300";
+                      }
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => setSelectedCalendarDay(cell.date)}
+                          className={`min-h-[58px] lg:min-h-[64px] border rounded-xl p-1.5 transition-all cursor-pointer flex flex-col justify-between group relative ${bgClass}`}
+                        >
+                          {/* Top row */}
+                          <div className="flex justify-between items-center">
+                            <span
+                              className={`text-[10px] font-mono font-black rounded h-4.5 w-4.5 flex items-center justify-center ${
+                                isToday
+                                  ? 'bg-orange-500 text-white'
+                                  : isSelected
+                                  ? 'bg-blue-500 text-white'
+                                  : 'text-slate-800'
+                              }`}
+                            >
+                              {cell.dayNumber}
+                            </span>
+
+                            {cell.isCurrentMonth && totalRoomsCount > 0 && (
+                              <span 
+                                className={`text-[8px] font-mono font-bold px-1 rounded-sm leading-none py-0.5 ${
+                                  occupancyPct >= 75
+                                    ? 'bg-rose-50 text-rose-700'
+                                    : occupancyPct >= 40
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : occupancyPct > 0
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-emerald-50 text-emerald-700'
+                                }`}
+                              >
+                                {dayOccupants.length}/{totalRoomsCount}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Middle Visual Dots - Single Horizontal Row (takes no vertical space) */}
+                          <div className="flex flex-wrap gap-0.5 max-h-[14px] overflow-hidden my-1">
+                            {cell.isCurrentMonth && (
+                              <>
+                                {/* Amber dots for Check-ins */}
+                                {dayCheckins.slice(0, 3).map(res => (
+                                  <span
+                                    key={`ci-${res.id}`}
+                                    className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"
+                                    title={`Arrivée: ${res.guestName}`}
+                                  />
+                                ))}
+
+                                {/* Blue dots for Stay-overs */}
+                                {dayOccupants.filter(r => r.checkInDate !== cellDateStr).slice(0, 3).map(res => (
+                                  <span
+                                    key={`so-${res.id}`}
+                                    className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"
+                                    title={`Séjour: ${res.guestName}`}
+                                  />
+                                ))}
+
+                                {/* Emerald dots for Checkouts */}
+                                {dayCheckouts.slice(0, 3).map(res => (
+                                  <span
+                                    key={`co-${res.id}`}
+                                    className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"
+                                    title={`Départ: ${res.guestName}`}
+                                  />
+                                ))}
+                              </>
+                            )}
+                          </div>
+
+                          {/* Bottom occupancy mini line */}
+                          {cell.isCurrentMonth && totalRoomsCount > 0 && (
+                            <div className="w-full bg-slate-100 h-0.5 rounded-full overflow-hidden mt-0.5">
+                              <div 
+                                className={`h-full transition-all ${
+                                  occupancyPct >= 75
+                                    ? 'bg-rose-500'
+                                    : occupancyPct >= 40
+                                    ? 'bg-amber-500'
+                                    : occupancyPct > 0
+                                    ? 'bg-blue-500'
+                                    : 'bg-emerald-400'
+                                }`}
+                                style={{ width: `${occupancyPct}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Selected Room Action Panel */}
       {selectedRoom && (

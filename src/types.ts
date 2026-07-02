@@ -308,6 +308,56 @@ export interface OfflineSyncItem {
   attempts: number;
   lastAttempt?: string;
   error?: string;
+  errorDetail?: string;
+}
+
+// ==========================================
+// FACTURATIION (INVOICES) & AVOIRS MODELS
+// ==========================================
+
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string; // e.g. FAC-XXXX
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  date: string;
+  dueDate: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxRate: number; // e.g., 0.18 for 18% VAT
+  taxAmount: number;
+  totalAmount: number;
+  status: 'draft' | 'unpaid' | 'paid' | 'cancelled';
+  paymentMethod?: 'cash' | 'wave' | 'orange_money' | 'mtn' | 'card' | 'avoir';
+  notes?: string;
+  sourceEntity?: 'reservation' | 'pos_order' | 'manual';
+  sourceId?: string;
+}
+
+export interface AvoirMovement {
+  id: string;
+  type: 'credit' | 'debit'; // credit: recharge/refund (adds to wallet), debit: payment (reduces wallet)
+  amount: number;
+  reason: string; // e.g. "Remboursement chambre", "Recharge prépayée", "Paiement Facture #FAC-01"
+  date: string;
+  paymentMethod?: 'cash' | 'wave' | 'orange_money' | 'mtn' | 'card';
+}
+
+export interface CustomerAvoir {
+  id: string; // e.g. AVO-XXXX or CustPhone
+  clientName: string;
+  clientPhone: string;
+  balance: number; // Active unused balance (FCFA)
+  movements: AvoirMovement[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 
