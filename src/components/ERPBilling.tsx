@@ -32,7 +32,8 @@ import {
   PlusCircle,
   Lock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Hotel
 } from 'lucide-react';
 import { 
   Transaction, 
@@ -41,7 +42,9 @@ import {
   Invoice, 
   InvoiceItem, 
   CustomerAvoir, 
-  AvoirMovement 
+  AvoirMovement,
+  Reservation,
+  Room
 } from '../types';
 
 interface ERPProps {
@@ -55,6 +58,8 @@ interface ERPProps {
   onUpdateInvoices: (invoices: Invoice[] | ((prev: Invoice[]) => Invoice[])) => void;
   customerAvoirs: CustomerAvoir[];
   onUpdateCustomerAvoirs: (avoirs: CustomerAvoir[] | ((prev: CustomerAvoir[]) => CustomerAvoir[])) => void;
+  reservations?: Reservation[];
+  rooms?: Room[];
 }
 
 export default function ERPBilling({
@@ -67,7 +72,9 @@ export default function ERPBilling({
   invoices,
   onUpdateInvoices,
   customerAvoirs,
-  onUpdateCustomerAvoirs
+  onUpdateCustomerAvoirs,
+  reservations = [],
+  rooms = []
 }: ERPProps) {
   
   // Outer modules active tab
@@ -88,6 +95,10 @@ export default function ERPBilling({
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'all' | 'unpaid' | 'paid' | 'cancelled'>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // Reservation invoice printing state
+  const [selectedReservationIdForInvoice, setSelectedReservationIdForInvoice] = useState('');
+  const selectedResObj = reservations.find(r => r.id === selectedReservationIdForInvoice);
 
   // Invoice creation form states
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -601,6 +612,268 @@ export default function ERPBilling({
     printWindow.document.close();
   };
 
+  // Print a professional receipt for a single general ledger transaction
+  const handlePrintTransactionReceipt = (t: Transaction) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Le bloqueur de fenêtres pop-up a empêché l'ouverture du reçu. Veuillez autoriser les fenêtres pop-up.");
+      return;
+    }
+
+    const categoryLabel = t.type === 'lodging_payment' ? 'Hébergement / Chambre' :
+                          t.type === 'pos_sale' ? 'Caisse Maquis POS' :
+                          'Dépense d\'Exploitation';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Reçu de Caisse - ${t.id}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #334155; line-height: 1.4; max-width: 500px; margin: 0 auto; }
+            .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 20px; }
+            .logo-text { font-size: 20px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: -0.02em; }
+            .receipt-title { font-size: 16px; font-weight: bold; color: #f97316; margin-top: 5px; margin-bottom: 2px; }
+            .receipt-id { font-family: monospace; font-size: 13px; font-weight: bold; color: #64748b; }
+            .meta-section { margin-bottom: 20px; font-size: 12px; }
+            .meta-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
+            .meta-label { color: #64748b; font-weight: 500; }
+            .meta-value { color: #0f172a; font-weight: bold; text-align: right; }
+            .amount-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; margin: 20px 0; }
+            .amount-label { font-size: 10px; text-transform: uppercase; tracking-wider; font-weight: bold; color: #64748b; }
+            .amount-value { font-size: 24px; font-weight: 900; color: #0f172a; font-family: monospace; margin-top: 5px; }
+            .footer { border-top: 2px dashed #cbd5e1; padding-top: 15px; text-align: center; font-size: 11px; color: #94a3b8; margin-top: 30px; }
+            .stamp { border: 2px solid #22c55e; color: #22c55e; display: inline-block; padding: 4px 10px; border-radius: 6px; font-weight: bold; text-transform: uppercase; transform: rotate(-5deg); font-size: 12px; margin-top: 10px; }
+            .stamp-out { border: 2px solid #ef4444; color: #ef4444; display: inline-block; padding: 4px 10px; border-radius: 6px; font-weight: bold; text-transform: uppercase; transform: rotate(-5deg); font-size: 12px; margin-top: 10px; }
+          </style>
+        </head>
+        <body onload="window.print()">
+          <div class="header">
+            <div class="logo-text">${settings.establishmentName}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 3px;">${settings.address}, ${settings.city}</div>
+            <div style="font-size: 11px; color: #64748b;">Tél: ${settings.phoneNumbers}</div>
+            <div class="receipt-title">REÇU DE CAISSE</div>
+            <div class="receipt-id">N° ${t.id}</div>
+          </div>
+
+          <div class="meta-section">
+            <div class="meta-row">
+              <span class="meta-label">Date d'opération :</span>
+              <span class="meta-value">${new Date(t.date).toLocaleString('fr-FR')}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Catégorie :</span>
+              <span class="meta-value">${categoryLabel}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Description :</span>
+              <span class="meta-value">${t.description}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Moyen de règlement :</span>
+              <span class="meta-value" style="text-transform: uppercase;">${t.method}</span>
+            </div>
+            ${t.referenceId ? `
+            <div class="meta-row">
+              <span class="meta-label">Réf. rattachée :</span>
+              <span class="meta-value" style="font-family: monospace;">${t.referenceId}</span>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="amount-card">
+            <div class="amount-label">${t.type === 'expense' ? 'Dépense Décaissée' : 'Montant Encaissé'}</div>
+            <div class="amount-value">${t.amount.toLocaleString('fr-FR')} FCFA</div>
+            <div>
+              ${t.type === 'expense' 
+                ? '<div class="stamp-out">DÉBIT CAISSE</div>' 
+                : '<div class="stamp">PAYÉ / ENCAISSÉ</div>'
+              }
+            </div>
+          </div>
+
+          <div class="footer">
+            <p style="font-weight: bold; margin-bottom: 2px;">${settings.receiptFooter || 'Merci de votre visite !'}</p>
+            <p>Brunch Bouaké ERP & PMS - Document de caisse officiel</p>
+            <p style="font-size: 9px; color: #cbd5e1; margin-top: 10px;">Généré le ${new Date().toLocaleString('fr-FR')}</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // Print a highly professional receipt / invoice for a reservation
+  const handlePrintReservationInvoice = (res: Reservation) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Le bloqueur de fenêtres pop-up a empêché l'ouverture de la facture. Veuillez autoriser les fenêtres pop-up.");
+      return;
+    }
+
+    // Find the associated room if rooms list is passed
+    const room = rooms.find(r => r.id === res.roomId);
+    
+    // Calculate nights
+    const checkIn = new Date(res.checkInDate);
+    const checkOut = new Date(res.checkOutDate);
+    const timeDiff = Math.abs(checkOut.getTime() - checkIn.getTime());
+    const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+
+    // Calculate details
+    const pricePerNight = room ? room.pricePerNight : Math.round(res.totalAmount / nights);
+    const rawLodgingTotal = pricePerNight * nights;
+    
+    // Taxes calculations
+    const touristTax = (settings.touristTaxPerNight || 1000) * nights * Math.max(1, res.numberOfGuests);
+    
+    // Let's assume VAT is included or calculated
+    const subtotal = res.totalAmount - touristTax;
+    const vatRate = settings.vatRate || 0.18;
+    const htvatAmount = subtotal / (1 + vatRate);
+    const vatAmount = subtotal - htvatAmount;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Facture Réservation ${res.id} - ${res.guestName}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #334155; line-height: 1.5; }
+            .header { display: flex; justify-content: space-between; border-bottom: 3px solid #f97316; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo-text { font-size: 24px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: -0.05em; }
+            .badge-paid { background-color: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 11px; text-transform: uppercase; display: inline-block; }
+            .badge-part-paid { background-color: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 11px; text-transform: uppercase; display: inline-block; }
+            .badge-unpaid { background-color: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 11px; text-transform: uppercase; display: inline-block; }
+            .grid-meta { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            th { border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: bold; }
+            td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+            .totals { float: right; width: 320px; margin-top: 10px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+            .totals-row.grand { border-top: 2px solid #0f172a; padding-top: 10px; font-size: 16px; font-weight: bold; color: #0f172a; }
+            .footer-msg { margin-top: 80px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; clear: both; }
+          </style>
+        </head>
+        <body onload="window.print()">
+          <div class="header">
+            <div>
+              <div class="logo-text">${settings.establishmentName.toUpperCase()}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">${settings.address}, ${settings.city}</div>
+              <div style="font-size: 11px; color: #64748b;">Tél : ${settings.phoneNumbers}</div>
+              <div style="font-size: 11px; color: #64748b;">N° CC/RCCM: ${settings.taxId || 'Non spécifié'}</div>
+            </div>
+            <div style="text-align: right;">
+              <h1 style="font-size: 26px; margin: 0; font-weight: 850; color: #0f172a;">FACTURE DE SÉJOUR</h1>
+              <div style="font-family: monospace; font-weight: bold; color: #f97316; margin: 5px 0; font-size: 15px;">Réf: ${res.id}</div>
+              <div style="margin-top: 10px;">
+                ${res.paymentStatus === 'fully-paid' 
+                  ? '<span class="badge-paid">SÉJOUR ENTIÈREMENT RÉGLÉ</span>' 
+                  : res.paymentStatus === 'partially-paid'
+                  ? `<span class="badge-part-paid">PARTIELLEMENT PAYÉ (${res.paidAmount.toLocaleString('fr-FR')} F)</span>`
+                  : '<span class="badge-unpaid">EN ATTENTE DE RÈGLEMENT (NON PAYÉ)</span>'
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-meta">
+            <div>
+              <div style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Client / Voyageur :</div>
+              <div style="font-size: 15px; font-weight: bold; color: #0f172a;">${res.guestName}</div>
+              <div style="font-size: 12px; color: #475569; margin-top: 4px;">Tél: ${res.guestPhone}</div>
+              ${res.guestEmail ? `<div style="font-size: 12px; color: #475569;">Email: ${res.guestEmail}</div>` : ''}
+              ${res.nationality ? `<div style="font-size: 12px; color: #475569; margin-top: 2px;">Nationalité: ${res.nationality}</div>` : ''}
+              ${res.idNumber ? `<div style="font-size: 12px; color: #475569;">N° Pièce: ${res.idNumber}</div>` : ''}
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #475569;">
+              <div><strong>Date d'arrivée (In) :</strong> ${checkIn.toLocaleDateString('fr-FR')}</div>
+              <div style="margin-top: 4px;"><strong>Date de départ (Out) :</strong> ${checkOut.toLocaleDateString('fr-FR')}</div>
+              <div style="margin-top: 4px;"><strong>Durée du séjour :</strong> ${nights} nuit(s)</div>
+              <div style="margin-top: 4px;"><strong>Type de chambre :</strong> ${room ? `${room.name} (${room.type.toUpperCase()})` : 'Chambre Standard'}</div>
+              <div style="margin-top: 4px;"><strong>Nombre de voyageurs :</strong> ${res.numberOfGuests}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: left;">Description des prestations</th>
+                <th style="text-align: center; width: 80px;">Quantité</th>
+                <th style="text-align: right; width: 120px;">Tarif Unitaire</th>
+                <th style="text-align: right; width: 140px;">Montant Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: bold; color: #1e293b;">
+                  Hébergement - ${room ? room.name : 'Chambre'}
+                  <span style="display: block; font-size: 11px; color: #64748b; font-weight: normal; margin-top: 3px;">
+                    Du ${checkIn.toLocaleDateString('fr-FR')} au ${checkOut.toLocaleDateString('fr-FR')}
+                  </span>
+                </td>
+                <td style="text-align: center; color: #1e293b;">${nights} nuit(s)</td>
+                <td style="text-align: right; font-family: monospace; color: #1e293b;">${pricePerNight.toLocaleString('fr-FR')} F</td>
+                <td style="text-align: right; font-family: monospace; font-weight: bold; color: #0f172a;">${rawLodgingTotal.toLocaleString('fr-FR')} F</td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold; color: #1e293b;">
+                  Taxe de Séjour de l'État
+                  <span style="display: block; font-size: 11px; color: #64748b; font-weight: normal; margin-top: 3px;">
+                    Calculée à ${settings.touristTaxPerNight || 1000} FCFA par nuit par personne
+                  </span>
+                </td>
+                <td style="text-align: center; color: #1e293b;">${nights} nuit(s)</td>
+                <td style="text-align: right; font-family: monospace; color: #1e293b;">${((settings.touristTaxPerNight || 1000) * Math.max(1, res.numberOfGuests)).toLocaleString('fr-FR')} F</td>
+                <td style="text-align: right; font-family: monospace; font-weight: bold; color: #0f172a;">${touristTax.toLocaleString('fr-FR')} F</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div class="totals-row">
+              <span>Montant HT</span>
+              <span style="font-family: monospace;">${Math.round(htvatAmount).toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div class="totals-row">
+              <span>TVA (${(vatRate * 100).toFixed(0)}%)</span>
+              <span style="font-family: monospace;">${Math.round(vatAmount).toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div class="totals-row">
+              <span>Taxe de Séjour</span>
+              <span style="font-family: monospace;">${touristTax.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div class="totals-row grand">
+              <span>MONTANT TOTAL TTC</span>
+              <span style="font-family: monospace;">${res.totalAmount.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            
+            <div class="totals-row" style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: bold;">
+              <span>Montant Réglé</span>
+              <span style="font-family: monospace; color: #16a34a;">${res.paidAmount.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div class="totals-row" style="font-weight: bold; color: #b91c1c;">
+              <span>Reste à Payer</span>
+              <span style="font-family: monospace;">${Math.max(0, res.totalAmount - res.paidAmount).toLocaleString('fr-FR')} FCFA</span>
+            </div>
+          </div>
+
+          <div style="clear: both; margin-top: 60px;">
+            <p style="font-size: 11px; color: #475569;"><strong>Notes / Conditions :</strong></p>
+            <p style="font-size: 11px; color: #64748b; font-style: italic; margin-top: 4px;">
+              ${res.specialRequests ? `Demandes spéciales: ${res.specialRequests}. ` : ''}
+              L'accès à la chambre et l'électricité sont soumis au règlement total du séjour dès l'enregistrement (Check-in).
+            </p>
+          </div>
+
+          <div class="footer-msg">
+            <p style="font-weight: bold; margin-bottom: 4px;">${settings.invoiceFooter || 'Brunch Bouaké vous remercie de votre confiance.'}</p>
+            <p>Brunch Bouaké SASS - PMS & ERP Intégré. Édité par le réceptionniste: ${res.staffMember || 'Système'}</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6 text-slate-800">
 
@@ -835,6 +1108,7 @@ export default function ERPBilling({
                     <th className="p-3.5">Canal de Règlement</th>
                     <th className="p-3.5">Statut de Synchro</th>
                     <th className="p-3.5 text-right">Montant (FCFA)</th>
+                    <th className="p-3.5 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -880,12 +1154,21 @@ export default function ERPBilling({
                         }`}>
                           {t.type === 'expense' ? '-' : '+'}{t.amount.toLocaleString('fr-FR')}
                         </td>
+                        <td className="p-3.5 text-center">
+                          <button
+                            onClick={() => handlePrintTransactionReceipt(t)}
+                            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-orange-600 rounded-xl transition-all cursor-pointer inline-flex items-center"
+                            title="Imprimer le Reçu"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
                   {filteredTransactions.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-slate-400 italic font-medium">
+                      <td colSpan={7} className="text-center py-8 text-slate-400 italic font-medium">
                         Aucune transaction ne correspond à vos filtres.
                       </td>
                     </tr>
@@ -1036,6 +1319,85 @@ export default function ERPBilling({
               {filteredInvoices.length === 0 && (
                 <div className="col-span-2 text-center py-10 border border-dashed border-slate-200 rounded-3xl text-slate-400 font-medium">
                   Aucune facture trouvée pour vos critères de recherche.
+                </div>
+              )}
+            </div>
+
+            {/* GENERATION FROM PMS RESERVATION */}
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 mt-6">
+              <div className="flex items-start gap-3.5 mb-4 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0">
+                  <Hotel className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-950 text-sm uppercase tracking-wider">
+                    Édition Rapide depuis Réservation PMS
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Sélectionnez une chambre louée ou un séjour enregistré pour générer et imprimer une facture de séjour détaillée et certifiée.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end text-left">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Sélectionner un séjour / client</label>
+                  <select
+                    value={selectedReservationIdForInvoice}
+                    onChange={(e) => setSelectedReservationIdForInvoice(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 text-slate-800 font-semibold"
+                  >
+                    <option value="">-- Choisissez un séjour --</option>
+                    {reservations.map((res) => {
+                      const roomObj = rooms.find(r => r.id === res.roomId);
+                      return (
+                        <option key={res.id} value={res.id}>
+                          {res.guestName} - Ch. {roomObj ? roomObj.name : res.roomId} ({res.status === 'checked-in' ? 'Présent' : res.status === 'checked-out' ? 'Parti' : 'Confirmé'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {selectedResObj ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePrintReservationInvoice(selectedResObj)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Imprimer Facture Officielle</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-slate-400 text-xs italic py-2.5">
+                    Sélectionnez un séjour pour afficher les options d'impression.
+                  </div>
+                )}
+              </div>
+
+              {selectedResObj && (
+                <div className="mt-4 p-4 bg-white border border-slate-150 rounded-2xl text-xs space-y-2 text-left">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[9px] uppercase">Client</span>
+                      <span className="font-extrabold text-slate-900">{selectedResObj.guestName}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[9px] uppercase">Période</span>
+                      <span className="font-medium text-slate-700">Du {new Date(selectedResObj.checkInDate).toLocaleDateString('fr-FR')} au {new Date(selectedResObj.checkOutDate).toLocaleDateString('fr-FR')}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[9px] uppercase">Règlement</span>
+                      <span className={`font-black ${selectedResObj.paymentStatus === 'fully-paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {selectedResObj.paymentStatus === 'fully-paid' ? 'Payé' : `${selectedResObj.paidAmount.toLocaleString('fr-FR')} F réglés`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[9px] uppercase">Total TTC</span>
+                      <span className="font-mono font-black text-slate-900">{selectedResObj.totalAmount.toLocaleString('fr-FR')} F</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

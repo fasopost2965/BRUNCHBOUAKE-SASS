@@ -1799,6 +1799,8 @@ export default function App() {
                   onUpdateInvoices={setInvoices}
                   customerAvoirs={customerAvoirs}
                   onUpdateCustomerAvoirs={setCustomerAvoirs}
+                  reservations={reservations}
+                  rooms={rooms}
                 />
               )}
 
