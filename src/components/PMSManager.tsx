@@ -25,9 +25,13 @@ import {
   Coffee,
   Wifi,
   Trash2,
-  Edit3
+  Edit3,
+  Image,
+  History,
+  PlusCircle,
+  Home
 } from 'lucide-react';
-import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings } from '../types';
+import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, RoomHistoryLog } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
 
 interface PMSProps {
@@ -51,6 +55,8 @@ interface PMSProps {
   settings: PropertySettings;
   activeSubTab?: 'kpis' | 'rooms' | 'calendar' | 'monthly';
   onActiveSubTabChange?: (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly') => void;
+  roomHistoryLogs?: RoomHistoryLog[];
+  onUpdateRoomHistoryLogs?: (updated: RoomHistoryLog[]) => void;
 }
 
 export default function PMSManager({
@@ -72,17 +78,110 @@ export default function PMSManager({
   onUpdateProcessedEvents,
   settings,
   activeSubTab: propActiveSubTab,
-  onActiveSubTabChange
+  onActiveSubTabChange,
+  roomHistoryLogs = [],
+  onUpdateRoomHistoryLogs
 }: PMSProps) {
   
   const [filterType, setFilterType] = useState<'all' | 'studio' | 'room' | 'apartment'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'occupied' | 'dirty' | 'maintenance'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // States for Room Photos Gallery & Room History log
+  const [selectedRoomPanelTab, setSelectedRoomPanelTab] = useState<'actions' | 'photos' | 'history'>('actions');
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [newLogTitle, setNewLogTitle] = useState('');
+  const [newLogType, setNewLogType] = useState<'reservation' | 'cleaning' | 'maintenance' | 'custom'>('custom');
+  const [newLogDesc, setNewLogDesc] = useState('');
+  const [newLogStaff, setNewLogStaff] = useState('Jean Dupont');
+
   // Modals / Selection States
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
+
+  React.useEffect(() => {
+    setSelectedRoomPanelTab('actions');
+    setNewPhotoUrl('');
+    setNewLogTitle('');
+    setNewLogDesc('');
+  }, [selectedRoom]);
+
+  const handleAddPhotoToRoom = (roomId: string) => {
+    if (!newPhotoUrl.trim()) return;
+    const targetRoom = rooms.find(r => r.id === roomId);
+    if (!targetRoom) return;
+    
+    const currentImages = targetRoom.images || [];
+    if (currentImages.length >= 6) {
+      alert("Vous pouvez associer au maximum 5 à 6 photos par hébergement.");
+      return;
+    }
+    
+    const updatedImages = [...currentImages, newPhotoUrl.trim()];
+    const updatedRooms = rooms.map(r => r.id === roomId ? { ...r, images: updatedImages } : r);
+    onUpdateRooms(updatedRooms);
+    setNewPhotoUrl('');
+    
+    if (onUpdateRoomHistoryLogs) {
+      const newLog: RoomHistoryLog = {
+        id: `log-${Date.now()}`,
+        roomId: roomId,
+        date: new Date().toISOString(),
+        type: 'custom',
+        title: "Photo ajoutée",
+        description: `Une nouvelle photo propre a été ajoutée pour la reconnaissance visuelle.`,
+        staffName: "Système"
+      };
+      onUpdateRoomHistoryLogs([newLog, ...roomHistoryLogs]);
+    }
+  };
+
+  const handleRemovePhotoFromRoom = (roomId: string, imgUrl: string) => {
+    const targetRoom = rooms.find(r => r.id === roomId);
+    if (!targetRoom) return;
+    
+    const updatedImages = (targetRoom.images || []).filter(img => img !== imgUrl);
+    const updatedRooms = rooms.map(r => r.id === roomId ? { ...r, images: updatedImages } : r);
+    onUpdateRooms(updatedRooms);
+
+    if (onUpdateRoomHistoryLogs) {
+      const newLog: RoomHistoryLog = {
+        id: `log-${Date.now()}`,
+        roomId: roomId,
+        date: new Date().toISOString(),
+        type: 'custom',
+        title: "Photo supprimée",
+        description: `Une photo a été retirée de la galerie d'identification.`,
+        staffName: "Système"
+      };
+      onUpdateRoomHistoryLogs([newLog, ...roomHistoryLogs]);
+    }
+  };
+
+  const handleAddCustomHistoryLog = (roomId: string) => {
+    if (!newLogTitle.trim() || !newLogDesc.trim()) {
+      alert("Veuillez renseigner un titre et une description pour l'entrée.");
+      return;
+    }
+    
+    if (onUpdateRoomHistoryLogs) {
+      const newLog: RoomHistoryLog = {
+        id: `log-${Date.now()}`,
+        roomId: roomId,
+        date: new Date().toISOString(),
+        type: newLogType,
+        title: newLogTitle.trim(),
+        description: newLogDesc.trim(),
+        staffName: newLogStaff
+      };
+      
+      onUpdateRoomHistoryLogs([newLog, ...roomHistoryLogs]);
+      setNewLogTitle('');
+      setNewLogDesc('');
+      alert("Entrée enregistrée avec succès dans l'historique.");
+    }
+  };
 
   // Form states for Check-In
   const [guestName, setGuestName] = useState('');
@@ -162,6 +261,10 @@ export default function PMSManager({
   const [roomFormPrice, setRoomFormPrice] = useState(15000);
   const [roomFormMaxGuests, setRoomFormMaxGuests] = useState(2);
   const [roomFormFeatures, setRoomFormFeatures] = useState<string[]>([]);
+  const [roomFormImage, setRoomFormImage] = useState('');
+  const [roomFormStep, setRoomFormStep] = useState(1);
+  const [roomFormImages, setRoomFormImages] = useState<string[]>([]);
+  const [roomFormCategoryNotes, setRoomFormCategoryNotes] = useState('');
 
   // Filtered rooms
   const filteredRooms = rooms.filter(room => {
@@ -656,6 +759,8 @@ export default function PMSManager({
       return;
     }
 
+    const finalImage = roomFormImage || (roomFormImages.length > 0 ? roomFormImages[0] : '');
+
     if (editingRoom) {
       // Editing existing room
       const updatedRooms = rooms.map(r => r.id === editingRoom.id ? {
@@ -664,7 +769,9 @@ export default function PMSManager({
         type: roomFormType,
         pricePerNight: roomFormPrice,
         maxGuests: roomFormMaxGuests,
-        features: roomFormFeatures
+        features: roomFormFeatures,
+        image: finalImage,
+        images: roomFormImages
       } : r);
       
       onUpdateRooms(updatedRooms);
@@ -685,7 +792,9 @@ export default function PMSManager({
         pricePerNight: roomFormPrice,
         status: 'available',
         maxGuests: roomFormMaxGuests,
-        features: roomFormFeatures
+        features: roomFormFeatures,
+        image: finalImage,
+        images: roomFormImages
       };
 
       onUpdateRooms([...rooms, newRoom]);
@@ -701,6 +810,10 @@ export default function PMSManager({
     setRoomFormPrice(15000);
     setRoomFormMaxGuests(2);
     setRoomFormFeatures([]);
+    setRoomFormImage('');
+    setRoomFormImages([]);
+    setRoomFormStep(1);
+    setRoomFormCategoryNotes('');
   };
 
   const handleDeleteRoom = (roomId: string) => {
@@ -742,6 +855,10 @@ export default function PMSManager({
     setRoomFormPrice(15000);
     setRoomFormMaxGuests(2);
     setRoomFormFeatures(['Climatisation', 'Wi-Fi Fibre', 'Télévision Smart']);
+    setRoomFormImage('');
+    setRoomFormStep(1);
+    setRoomFormImages([]);
+    setRoomFormCategoryNotes("Chambre Classique confortable avec lit double standard et équipements inclus.");
     setShowRoomInventoryModal(true);
   };
 
@@ -753,6 +870,17 @@ export default function PMSManager({
     setRoomFormPrice(room.pricePerNight);
     setRoomFormMaxGuests(room.maxGuests);
     setRoomFormFeatures(room.features);
+    setRoomFormImage(room.image || '');
+    setRoomFormImages(room.images || (room.image ? [room.image] : []));
+    setRoomFormStep(1);
+    
+    // Set descriptive notes based on type
+    const descMap = {
+      room: "Chambre Classique confortable avec lit double standard et équipements inclus.",
+      studio: "Studio spacieux avec un espace salon séparé et une kitchenette pour séjour de moyen/long terme.",
+      apartment: "Appartement de standing avec cuisine équipée séparée, grand salon et terrasse."
+    };
+    setRoomFormCategoryNotes(descMap[room.type] || "");
     setShowRoomInventoryModal(true);
   };
 
@@ -1063,6 +1191,34 @@ export default function PMSManager({
                 'border-slate-100 border-l-4 border-l-slate-400'
               }`}
             >
+              {/* Room Image */}
+              {(() => {
+                const displayImg = (room.images && room.images.length > 0) 
+                  ? room.images[0] 
+                  : (room.image || (settings?.categoryImages && (settings.categoryImages as any)[room.type]));
+                  
+                const extraPhotosCount = room.images ? room.images.length : 0;
+                
+                return displayImg ? (
+                  <div className="w-full h-32 rounded-xl overflow-hidden mb-4 relative shadow-xs border border-slate-100 bg-slate-50">
+                    <img 
+                      src={displayImg} 
+                      alt={room.name} 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 to-transparent pointer-events-none" />
+                    
+                    {extraPhotosCount > 0 && (
+                      <span className="absolute bottom-2 right-2 px-2 py-0.5 bg-slate-950/70 text-white text-[9px] font-black rounded-md uppercase tracking-wider backdrop-blur-xs flex items-center gap-1">
+                        <Image className="w-3 h-3 text-white" />
+                        {extraPhotosCount} Photo{extraPhotosCount > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                ) : null;
+              })()}
+
               {/* Top Bar inside card */}
               <div className="flex justify-between items-start">
                 <div>
@@ -1871,17 +2027,60 @@ export default function PMSManager({
 
       {/* Selected Room Action Panel */}
       {selectedRoom && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 transition-all">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 transition-all space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">Salle Sélectionnée</span>
               <h3 className="text-lg font-bold text-slate-900">{selectedRoom.name}</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Gérez les arrivées, départs, ménages et modifications pour ce studio.
+                Gérez les arrivées, départs, ménages, photos propres et historique de cet hébergement.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setSelectedRoom(null)}
+              className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all"
+            >
+              Fermer la sélection
+            </button>
+          </div>
 
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+          {/* Sub Tab Navigation for Selected Room */}
+          <div className="flex border-b border-slate-200 gap-4 text-xs font-bold text-slate-500 pt-2">
+            <button
+              type="button"
+              onClick={() => setSelectedRoomPanelTab('actions')}
+              className={`pb-2 border-b-2 transition-all ${
+                selectedRoomPanelTab === 'actions' ? 'border-orange-500 text-slate-900 font-extrabold' : 'border-transparent hover:text-slate-700'
+              }`}
+            >
+              Actions & Statut
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRoomPanelTab('photos')}
+              className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 ${
+                selectedRoomPanelTab === 'photos' ? 'border-orange-500 text-slate-900 font-extrabold' : 'border-transparent hover:text-slate-700'
+              }`}
+            >
+              <Image className="w-3.5 h-3.5" />
+              Photos de la Chambre ({selectedRoom.images?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRoomPanelTab('history')}
+              className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 ${
+                selectedRoomPanelTab === 'history' ? 'border-orange-500 text-slate-900 font-extrabold' : 'border-transparent hover:text-slate-700'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              Historique & Journal
+            </button>
+          </div>
+
+          {/* Tab 1: Actions */}
+          {selectedRoomPanelTab === 'actions' && (
+            <div className="flex flex-wrap gap-2 pt-2">
               {/* Actions based on room status */}
               {selectedRoom.status === 'available' && (
                 <button
@@ -1973,9 +2172,203 @@ export default function PMSManager({
                   Supprimer
                 </button>
               </div>
-
             </div>
-          </div>
+          )}
+
+          {/* Tab 2: Photos Gallery */}
+          {selectedRoomPanelTab === 'photos' && (
+            <div className="space-y-4 animate-fade-in pt-2">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-black uppercase text-slate-900">Photos de reconnaissance visuelle (3 à 5 propres)</h4>
+                <span className="text-[10px] text-slate-400 font-bold">{selectedRoom.images?.length || 0} / 6 photos</span>
+              </div>
+
+              {/* Gallery list */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {(!selectedRoom.images || selectedRoom.images.length === 0) ? (
+                  <div className="col-span-full py-6 text-center text-slate-400 text-[11px] italic bg-white rounded-xl border border-dashed border-slate-200">
+                    Aucune photo spécifique enregistrée. Utilisez le formulaire ci-dessous pour l'illustrer !
+                  </div>
+                ) : (
+                  selectedRoom.images.map((img, i) => (
+                    <div key={i} className="group relative h-24 rounded-xl overflow-hidden border border-slate-200 bg-white shadow-xs">
+                      <img src={img} alt={`${selectedRoom.name} - ${i+1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhotoFromRoom(selectedRoom.id, img)}
+                        className="absolute top-1 right-1 p-1 bg-slate-950/80 hover:bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Supprimer cette photo"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-slate-950/60 px-1 py-0.5 rounded text-[8px] text-white">#{i+1}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add url form */}
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 max-w-lg">
+                <label className="block text-[10px] font-black text-slate-500 uppercase">Ajouter un lien de photo propre :</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/photo-... ou URL propre"
+                    value={newPhotoUrl}
+                    onChange={(e) => setNewPhotoUrl(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddPhotoToRoom(selectedRoom.id)}
+                    className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg transition-all shrink-0 flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Ajouter
+                  </button>
+                </div>
+                <div className="flex gap-1.5 text-[9px] text-slate-400 font-medium">
+                  <span className="font-bold text-slate-500">Exemples rapides :</span>
+                  <button type="button" onClick={() => setNewPhotoUrl('https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80')} className="hover:underline text-orange-600">Chambre Lit double</button>
+                  <span>•</span>
+                  <button type="button" onClick={() => setNewPhotoUrl('https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80')} className="hover:underline text-orange-600">Salon Studio</button>
+                  <span>•</span>
+                  <button type="button" onClick={() => setNewPhotoUrl('https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80')} className="hover:underline text-orange-600">Salle de Bain</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: History & logs */}
+          {selectedRoomPanelTab === 'history' && (
+            <div className="space-y-4 animate-fade-in pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* History timeline list */}
+                <div className="md:col-span-2 space-y-3">
+                  <div className="flex justify-between items-center pb-1">
+                    <h4 className="text-xs font-black uppercase text-slate-900 flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-orange-500" />
+                      Journal de l'hébergement
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-mono">Filtre: {selectedRoom.name}</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-2">
+                    {(() => {
+                      const roomLogs = roomHistoryLogs.filter(log => log.roomId === selectedRoom.id);
+                      if (roomLogs.length === 0) {
+                        return (
+                          <div className="py-8 text-center text-slate-400 text-[11px] italic bg-white rounded-xl border border-dashed border-slate-200">
+                            Aucun historique enregistré pour le moment.
+                          </div>
+                        );
+                      }
+                      return roomLogs.map((log) => {
+                        const dateObj = new Date(log.date);
+                        return (
+                          <div key={log.id} className="p-3 bg-white border border-slate-200 rounded-xl hover:shadow-2xs transition-all flex justify-between gap-3 text-xs text-left">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${
+                                  log.type === 'reservation' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                  log.type === 'cleaning' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                  log.type === 'maintenance' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                                  'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {log.type === 'reservation' ? 'Séjour' :
+                                   log.type === 'cleaning' ? 'Ménage' :
+                                   log.type === 'maintenance' ? 'SAV' : 'Note'}
+                                </span>
+                                <strong className="font-extrabold text-slate-800 text-[11px]">{log.title}</strong>
+                              </div>
+                              <p className="text-slate-600 text-[11px]">{log.description}</p>
+                              {log.staffName && (
+                                <span className="text-[9px] text-slate-400 font-bold block">Enregistré par: {log.staffName}</span>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0 flex flex-col justify-between">
+                              <span className="text-[10px] font-mono text-slate-400">{dateObj.toLocaleDateString('fr-FR')} {dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</span>
+                              {log.amount !== undefined && log.amount > 0 && (
+                                <span className="font-mono text-[10px] text-slate-900 font-black">+{log.amount.toLocaleString('fr-FR')} F</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                {/* Add history entry form */}
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl text-xs text-left space-y-3.5 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Nouvelle entrée au journal</span>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Titre de l'événement *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Remplacement ampoule, Checkup Clim"
+                        value={newLogTitle}
+                        onChange={(e) => setNewLogTitle(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Catégorie *</label>
+                        <select
+                          value={newLogType}
+                          onChange={(e: any) => setNewLogType(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px]"
+                        >
+                          <option value="custom">Note libre</option>
+                          <option value="cleaning">Ménage</option>
+                          <option value="maintenance">Maintenance</option>
+                          <option value="reservation">Prestation / Séjour</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Auteur *</label>
+                        <select
+                          value={newLogStaff}
+                          onChange={(e) => setNewLogStaff(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px]"
+                        >
+                          <option value="Jean Dupont">Jean (Réception)</option>
+                          <option value="Mariam Diallo">Mariam (Chef)</option>
+                          <option value="Koffi Kouassi">Koffi (Gérant)</option>
+                          <option value="Technicien SAV">Technicien SAV</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Description détaillée *</label>
+                      <textarea
+                        required
+                        placeholder="Détaillez l'intervention ou la note..."
+                        value={newLogDesc}
+                        onChange={(e) => setNewLogDesc(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs h-16"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddCustomHistoryLog(selectedRoom.id)}
+                    className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-lg text-xs transition-all flex items-center justify-center gap-1"
+                  >
+                    <PlusCircle className="w-4 h-4 text-orange-500" />
+                    Enregistrer au Journal
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3058,7 +3451,7 @@ export default function PMSManager({
       })()}
 
       {/* ========================================================
-          MODAL: AJOUT ET CONFIGURATION DE CHAMBRE / STUDIO
+          MODAL: AJOUT ET CONFIGURATION DE CHAMBRE / STUDIO (FORMULAIRE EN ÉTAPES)
           ======================================================== */}
       {showRoomInventoryModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -3077,174 +3470,541 @@ export default function PMSManager({
                 {editingRoom ? `Modifier la Chambre : ${editingRoom.name}` : 'Créer une Nouvelle Chambre / Studio'}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {editingRoom ? "Ajustez les caractéristiques techniques et tarifs de la pièce existante." : "Déclarez une nouvelle capacité d'hébergement suite aux travaux d'extension."}
+                {editingRoom ? "Ajustez les caractéristiques techniques et tarifs de la pièce existante." : "Déclarez une nouvelle capacité d'hébergement en étapes guidées."}
               </p>
+            </div>
+
+            {/* Stepper progress */}
+            <div className="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+              {[
+                { step: 1, label: '1. Catégorie' },
+                { step: 2, label: '2. Informations' },
+                { step: 3, label: '3. Galerie Photos' },
+                { step: 4, label: '4. Équipements' }
+              ].map((s) => (
+                <div key={s.step} className="flex items-center gap-1">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                    roomFormStep === s.step
+                      ? 'bg-orange-500 text-white shadow-xs ring-2 ring-orange-500/20'
+                      : roomFormStep > s.step
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {s.step}
+                  </span>
+                  <span className={`hidden sm:inline text-[10px] font-bold ${
+                    roomFormStep === s.step ? 'text-slate-900 font-black' : 'text-slate-450'
+                  }`}>
+                    {s.label.split('. ')[1]}
+                  </span>
+                </div>
+              ))}
             </div>
 
             <form onSubmit={handleSaveRoom} className="space-y-4 text-xs">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* ID / Numero de chambre */}
-                <div>
-                  <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
-                    N° d'identification unique (ID) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    disabled={!!editingRoom}
-                    placeholder="Ex: 104, STUDIO-12, VIP-A"
-                    value={roomFormId}
-                    onChange={(e) => setRoomFormId(e.target.value.toUpperCase().replace(/\s+/g, ''))}
-                    className="w-full px-3 py-2 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
-                  />
-                  <span className="text-[9px] text-slate-400 block mt-1">Identifiant technique interne (non modifiable ultérieurement).</span>
+              {/* ÉTAPE 1 : CATÉGORIE DU PRODUIT */}
+              {roomFormStep === 1 && (
+                <div className="space-y-4 animate-fade-in">
+                  <div>
+                    <label className="block text-slate-500 font-bold uppercase tracking-wide text-[10px] mb-1.5">
+                      Sélectionner la Catégorie d'hébergement *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        {
+                          id: 'room',
+                          label: 'Chambre Classique',
+                          icon: BedDouble,
+                          price: 15000,
+                          guests: 2,
+                          desc: 'Hébergement standard élégant avec lit double confortable et salle de bain privative.'
+                        },
+                        {
+                          id: 'studio',
+                          label: 'Studio (ch+salon)',
+                          icon: Coffee,
+                          price: 25000,
+                          guests: 2,
+                          desc: 'Espace spacieux comprenant une chambre séparée, un salon détente et une kitchenette.'
+                        },
+                        {
+                          id: 'apartment',
+                          label: 'Appartement F2/F3',
+                          icon: Home,
+                          price: 45000,
+                          guests: 4,
+                          desc: 'Logement complet de standing avec plusieurs chambres, cuisine équipée et grande terrasse.'
+                        }
+                      ].map((category) => {
+                        const isSelected = roomFormType === category.id;
+                        const IconComp = category.icon;
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() => {
+                              setRoomFormType(category.id as any);
+                              setRoomFormPrice(category.price);
+                              setRoomFormMaxGuests(category.guests);
+                              setRoomFormCategoryNotes(category.desc);
+                            }}
+                            className={`p-4 rounded-2xl border text-left transition-all relative flex flex-col justify-between h-40 cursor-pointer ${
+                              isSelected
+                                ? 'bg-orange-50 border-orange-300 ring-2 ring-orange-500/20 text-orange-950 font-bold shadow-xs'
+                                : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50/50'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <IconComp className={`w-5 h-5 ${isSelected ? 'text-orange-600' : 'text-slate-400'}`} />
+                                {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-orange-600 shadow-xs" />}
+                              </div>
+                              <span className="text-[11px] font-black uppercase block tracking-tight mb-1">{category.label}</span>
+                              <p className="text-[9px] text-slate-500 font-medium leading-normal line-clamp-3">{category.desc}</p>
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 mt-2 text-[10px] text-slate-400 font-semibold">
+                              Tarif suggéré: <span className="font-mono font-black text-slate-800">{category.price.toLocaleString('fr-FR')} F</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2">
+                    <label className="block text-slate-500 font-bold uppercase tracking-wide text-[10px]">
+                      Informations complémentaires sur la catégorie :
+                    </label>
+                    <textarea
+                      value={roomFormCategoryNotes}
+                      onChange={(e) => setRoomFormCategoryNotes(e.target.value)}
+                      placeholder="Saisissez des notes complémentaires sur cette catégorie de produit..."
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs h-20 text-slate-800 focus:outline-none focus:border-orange-500"
+                    />
+                    <p className="text-[9px] text-slate-400">Ces spécifications aident la réception à mieux orienter les voyageurs lors du check-in.</p>
+                  </div>
+
+                  <div className="flex justify-between pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowRoomInventoryModal(false)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormStep(2)}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-850 text-white font-extrabold rounded-xl text-xs transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Suivant: Infos de Base</span> &rarr;
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                {/* Nom d'affichage */}
-                <div>
-                  <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
-                    Nom / Numéro d'affichage *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Chambre 4 (SB) ou Studio 12"
-                    value={roomFormName}
-                    onChange={(e) => setRoomFormName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-orange-500 text-slate-800"
-                  />
-                  <span className="text-[9px] text-slate-400 block mt-1">Nom public visible par la réception et sur la facture.</span>
+              {/* ÉTAPE 2 : INFORMATIONS DE BASE */}
+              {roomFormStep === 2 && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* ID / Numero de chambre */}
+                    <div>
+                      <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
+                        N° d'identification unique (ID) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        disabled={!!editingRoom}
+                        placeholder="Ex: 104, STUDIO-12, VIP-A"
+                        value={roomFormId}
+                        onChange={(e) => setRoomFormId(e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                        className="w-full px-3 py-2 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
+                      />
+                      <span className="text-[9px] text-slate-400 block mt-1">Identifiant technique interne (non modifiable ultérieurement).</span>
+                    </div>
+
+                    {/* Nom d'affichage */}
+                    <div>
+                      <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
+                        Nom / Numéro d'affichage *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Chambre 4 (SB) ou Studio 12"
+                        value={roomFormName}
+                        onChange={(e) => setRoomFormName(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-orange-500 text-slate-800"
+                      />
+                      <span className="text-[9px] text-slate-400 block mt-1">Nom public visible par la réception et sur la facture.</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Tarif par nuit */}
+                    <div>
+                      <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
+                        Tarif Journalier (FCFA) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        value={roomFormPrice}
+                        onChange={(e) => setRoomFormPrice(parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
+                      />
+                    </div>
+
+                    {/* Max Voyageurs */}
+                    <div>
+                      <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
+                        Capacité Maximale (Personnes) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        max={10}
+                        value={roomFormMaxGuests}
+                        onChange={(e) => setRoomFormMaxGuests(parseInt(e.target.value) || 2)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormStep(1)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+                    >
+                      &larr; Retour
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!roomFormName.trim() || !roomFormId.trim()}
+                      onClick={() => {
+                        if (!roomFormId.trim()) {
+                          alert("Veuillez renseigner un ID d'identification unique.");
+                          return;
+                        }
+                        if (!roomFormName.trim()) {
+                          alert("Veuillez renseigner un nom public d'affichage.");
+                          return;
+                        }
+                        setRoomFormStep(3);
+                      }}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-850 text-white font-extrabold rounded-xl text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Suivant: Galerie Photos &rarr;
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Type de piece */}
-                <div>
-                  <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
-                    Catégorie de Pièce *
-                  </label>
-                  <select
-                    value={roomFormType}
-                    onChange={(e: any) => {
-                      setRoomFormType(e.target.value);
-                      // Suggest generic values based on type
-                      if (e.target.value === 'studio') {
-                        setRoomFormMaxGuests(2);
-                        setRoomFormPrice(25000);
-                      } else if (e.target.value === 'apartment') {
-                        setRoomFormMaxGuests(4);
-                        setRoomFormPrice(45000);
-                      } else {
-                        setRoomFormMaxGuests(2);
-                        setRoomFormPrice(15000);
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-orange-500 text-slate-800"
-                  >
-                    <option value="room">Chambre Classique</option>
-                    <option value="studio">Studio (ch + salon)</option>
-                    <option value="apartment">Appartement F2/F3</option>
-                  </select>
-                </div>
+              {/* ÉTAPE 3 : PHOTOS DE L'HÉBERGEMENT */}
+              {roomFormStep === 3 && (
+                <div className="space-y-4 animate-fade-in text-left">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-slate-500 font-bold uppercase tracking-wide text-[10px]">
+                      Ajouter les photos propres (3 à 5 recommandées)
+                    </label>
+                    <span className="text-[10px] text-orange-600 font-black font-mono">
+                      {roomFormImages.length} photo(s) ajoutée(s)
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Uploadez des fichiers d'images de chaque chambre ou fournissez des URLs pour la reconnaissance visuelle de l'état de propreté à l'arrivée et au départ.
+                  </p>
 
-                {/* Tarif par nuit */}
-                <div>
-                  <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
-                    Tarif Journalier (FCFA) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={roomFormPrice}
-                    onChange={(e) => setRoomFormPrice(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
-                  />
-                </div>
+                  {/* Drag and Drop / Real File Upload Card */}
+                  <div className="border-2 border-dashed border-slate-200 hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/10 p-5 rounded-2xl transition-all text-center relative cursor-pointer group">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          if (roomFormImages.length + files.length > 6) {
+                            alert("Vous pouvez associer au maximum 6 photos de reconnaissance visuelle.");
+                            return;
+                          }
+                          Array.from(files).forEach((file: any) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === 'string') {
+                                const base64Data = reader.result;
+                                setRoomFormImages(prev => {
+                                  if (prev.includes(base64Data)) return prev;
+                                  return [...prev, base64Data];
+                                });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          });
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+                    <div className="space-y-1.5 pointer-events-none">
+                      <span className="text-2xl block group-hover:scale-110 transition-transform">📸</span>
+                      <p className="text-xs font-extrabold text-slate-800">
+                        Cliquez ou glissez-déposez des photos de la chambre ici
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        Sélectionnez de vraies photos depuis votre appareil (Max. 5 Mo par photo)
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Max Voyageurs */}
-                <div>
-                  <label className="block text-slate-500 font-bold mb-1 uppercase tracking-wide text-[10px]">
-                    Capacité Maximale *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    max={10}
-                    value={roomFormMaxGuests}
-                    onChange={(e) => setRoomFormMaxGuests(parseInt(e.target.value) || 2)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-orange-500 text-slate-800"
-                  />
-                </div>
-              </div>
-
-              {/* Equipements Minimum (Amenities list) */}
-              <div className="space-y-2">
-                <label className="block text-slate-500 font-bold uppercase tracking-wide text-[10px]">
-                  Équipements Minimum & Confort
-                </label>
-                <p className="text-[10px] text-slate-400">Sélectionnez les équipements fournis dans cette pièce pour faciliter la distinction.</p>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-4 border border-slate-200 rounded-2xl">
-                  {[
-                    { label: 'Climatisation', icon: Wind },
-                    { label: 'Télévision Smart', icon: Tv },
-                    { label: 'Machine à café', icon: Coffee },
-                    { label: 'Wi-Fi Fibre', icon: Wifi },
-                    { label: 'SdB Privée', icon: CheckCircle },
-                    { label: 'Mini-bar', icon: CheckCircle },
-                    { label: 'Eau Chaude', icon: CheckCircle },
-                    { label: 'Espace Bureau', icon: CheckCircle },
-                    { label: 'Bouilloire Élec.', icon: CheckCircle },
-                    { label: 'Kitchenette', icon: CheckCircle },
-                    { label: 'Terrasse/Balcon', icon: CheckCircle }
-                  ].map((amenity) => {
-                    const isChecked = roomFormFeatures.includes(amenity.label);
-                    const IconComp = amenity.icon;
-
-                    return (
-                      <button
-                        key={amenity.label}
-                        type="button"
-                        onClick={() => {
-                          if (isChecked) {
-                            setRoomFormFeatures(roomFormFeatures.filter(f => f !== amenity.label));
-                          } else {
-                            setRoomFormFeatures([...roomFormFeatures, amenity.label]);
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Ou ajouter par URL internet :</span>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="Coller l'URL d'une photo propre (Ex: https://...)..."
+                        id="roomFormPhotoInput"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const url = input.value.trim();
+                            if (url) {
+                              if (roomFormImages.length >= 6) {
+                                alert("Vous pouvez associer au maximum 6 photos de reconnaissance visuelle.");
+                                return;
+                              }
+                              setRoomFormImages([...roomFormImages, url]);
+                              input.value = '';
+                            }
                           }
                         }}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
-                          isChecked 
-                            ? 'bg-orange-50 border-orange-200 text-orange-900 font-bold' 
-                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-600'
-                        }`}
+                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-orange-500 text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById('roomFormPhotoInput') as HTMLInputElement;
+                          const url = input ? input.value.trim() : '';
+                          if (url) {
+                            if (roomFormImages.length >= 6) {
+                              alert("Vous pouvez associer au maximum 6 photos de reconnaissance visuelle.");
+                              return;
+                            }
+                            setRoomFormImages([...roomFormImages, url]);
+                            input.value = '';
+                          } else {
+                            alert("Veuillez saisir ou coller l'URL d'une photo.");
+                          }
+                        }}
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl transition-all shrink-0 cursor-pointer"
                       >
-                        <IconComp className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-orange-600' : 'text-slate-400'}`} />
-                        <span className="text-[10px] truncate">{amenity.label}</span>
+                        Ajouter
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
 
-              {/* Submit / Cancel Buttons */}
-              <div className="flex gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowRoomInventoryModal(false)}
-                  className="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold rounded-xl shadow-md shadow-orange-600/10 transition-all"
-                >
-                  {editingRoom ? 'Sauvegarder les modifications' : 'Créer & Ajouter'}
-                </button>
-              </div>
+                    {/* Presets suggestions based on type */}
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Modèles rapides à ajouter en un clic :</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: 'Lit Confort Classique', url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80' },
+                          { label: 'Lit VIP Studio', url: 'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=600&q=80' },
+                          { label: 'Salon Studio Chic', url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80' },
+                          { label: 'Salle de Bain Propre', url: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80' },
+                          { label: 'Vue Terrasse Extérieure', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80' },
+                          { label: 'Kitchenette Équipée', url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' }
+                        ].map((model) => {
+                          const alreadyAdded = roomFormImages.includes(model.url);
+                          return (
+                            <button
+                              key={model.label}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                if (roomFormImages.length >= 6) {
+                                  alert("Vous pouvez associer au maximum 6 photos.");
+                                  return;
+                                }
+                                setRoomFormImages([...roomFormImages, model.url]);
+                              }}
+                              className={`px-2 py-1 rounded border text-[9px] font-medium transition-all ${
+                                alreadyAdded
+                                  ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                                  : 'bg-white border-slate-200 hover:border-orange-200 hover:text-orange-700 hover:bg-orange-50/20 text-slate-600 cursor-pointer'
+                              }`}
+                            >
+                              + {model.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List of current step photos */}
+                  <div className="space-y-1.5">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Aperçu de la Galerie de l'Hébergement :</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {roomFormImages.length === 0 ? (
+                        <div className="col-span-full py-8 text-center text-slate-400 text-[11px] italic bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1.5">
+                          <Image className="w-5 h-5 text-slate-300" />
+                          <span>Aucune photo dans la galerie. Ajoutez au moins 3 photos pour la reconnaissance visuelle.</span>
+                        </div>
+                      ) : (
+                        roomFormImages.map((img, idx) => (
+                          <div key={idx} className="relative group h-24 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-xs">
+                            <img 
+                              src={img} 
+                              alt={`Aperçu ${idx+1}`} 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer" 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRoomFormImages(roomFormImages.filter((_, i) => i !== idx));
+                              }}
+                              className="absolute top-1.5 right-1.5 p-1 bg-slate-900/80 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer"
+                              title="Supprimer cette photo"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="absolute bottom-1.5 left-1.5 bg-slate-950/80 px-1.5 py-0.5 rounded text-[8px] text-white font-mono font-bold uppercase tracking-wider shadow-xs">
+                              #{idx+1} {idx === 0 ? 'Principale' : ''}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormStep(2)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+                    >
+                      &larr; Retour
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (roomFormImages.length > 0 && !roomFormImage) {
+                          setRoomFormImage(roomFormImages[0]);
+                        }
+                        setRoomFormStep(4);
+                      }}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-850 text-white font-extrabold rounded-xl text-xs transition-all cursor-pointer"
+                    >
+                      {roomFormImages.length === 0 ? "Passer et continuer (Sans photo)" : `Suivant: Équipements (${roomFormImages.length} photo(s)) &rarr;`}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ÉTAPE 4 : ÉQUIPEMENTS & CONFIRMATION FINALE */}
+              {roomFormStep === 4 && (
+                <div className="space-y-4 animate-fade-in">
+                  
+                  {/* Equipements Minimum (Amenities list) */}
+                  <div className="space-y-2">
+                    <label className="block text-slate-500 font-bold uppercase tracking-wide text-[10px]">
+                      Équipements Minimum & Confort de l'Hébergement
+                    </label>
+                    <p className="text-[10px] text-slate-400">Sélectionnez les équipements fournis dans cette pièce pour faciliter la distinction.</p>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 border border-slate-200 rounded-2xl">
+                      {[
+                        { label: 'Climatisation', icon: Wind },
+                        { label: 'Télévision Smart', icon: Tv },
+                        { label: 'Machine à café', icon: Coffee },
+                        { label: 'Wi-Fi Fibre', icon: Wifi },
+                        { label: 'SdB Privée', icon: CheckCircle },
+                        { label: 'Mini-bar', icon: CheckCircle },
+                        { label: 'Eau Chaude', icon: CheckCircle },
+                        { label: 'Espace Bureau', icon: CheckCircle },
+                        { label: 'Bouilloire Élec.', icon: CheckCircle },
+                        { label: 'Kitchenette', icon: CheckCircle },
+                        { label: 'Terrasse/Balcon', icon: CheckCircle }
+                      ].map((amenity) => {
+                        const isChecked = roomFormFeatures.includes(amenity.label);
+                        const IconComp = amenity.icon;
+
+                        return (
+                          <button
+                            key={amenity.label}
+                            type="button"
+                            onClick={() => {
+                              if (isChecked) {
+                                setRoomFormFeatures(roomFormFeatures.filter(f => f !== amenity.label));
+                              } else {
+                                setRoomFormFeatures([...roomFormFeatures, amenity.label]);
+                              }
+                            }}
+                            className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              isChecked 
+                                ? 'bg-orange-50 border-orange-200 text-orange-900 font-extrabold shadow-2xs' 
+                                : 'bg-white border-slate-200 hover:border-slate-300 text-slate-600 hover:bg-slate-50/50'
+                            }`}
+                          >
+                            <IconComp className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-orange-600' : 'text-slate-400'}`} />
+                            <span className="text-[10px] truncate">{amenity.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Summary Box */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 space-y-3">
+                    <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Récapitulatif & Confirmation de l'Inventaire</span>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] font-medium">
+                      <div><span className="text-slate-400">Identifiant technique :</span> <strong className="text-slate-900 font-mono font-bold">{roomFormId}</strong></div>
+                      <div><span className="text-slate-400">Nom public :</span> <strong className="text-slate-900 font-bold">{roomFormName}</strong></div>
+                      <div><span className="text-slate-400">Catégorie :</span> <strong className="text-slate-900 uppercase font-black">{roomFormType === 'studio' ? 'Studio' : roomFormType === 'apartment' ? 'Appartement' : 'Chambre Classique'}</strong></div>
+                      <div><span className="text-slate-400">Tarif / nuit :</span> <strong className="text-slate-950 font-bold font-mono">{roomFormPrice.toLocaleString('fr-FR')} F</strong></div>
+                      <div><span className="text-slate-400">Capacité :</span> <strong className="text-slate-900 font-bold font-mono">{roomFormMaxGuests} pers.</strong></div>
+                      <div><span className="text-slate-400">Photos de propreté :</span> <strong className="text-slate-900 font-bold font-mono">{roomFormImages.length} photo(s)</strong></div>
+                    </div>
+
+                    {roomFormCategoryNotes && (
+                      <div className="pt-2 border-t border-slate-200/65 text-[10px] text-slate-500">
+                        <span className="font-bold text-slate-600 block mb-0.5">Description de la catégorie :</span>
+                        <p className="italic leading-relaxed">{roomFormCategoryNotes}</p>
+                      </div>
+                    )}
+
+                    {roomFormFeatures.length > 0 && (
+                      <div className="pt-2 border-t border-slate-200/65 text-[10px] text-slate-500">
+                        <span className="font-bold text-slate-600">Spécifications d'équipements :</span> {roomFormFeatures.join(', ')}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit / Cancel Buttons */}
+                  <div className="flex gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormStep(3)}
+                      className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                    >
+                      &larr; Retour
+                    </button>
+                    <button
+                      type="submit"
+                      className="w-2/3 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold rounded-xl shadow-md shadow-orange-600/10 transition-all text-xs cursor-pointer"
+                    >
+                      {editingRoom ? 'Sauvegarder les modifications' : 'Confirmer & Enregistrer dans l\'Inventaire'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
             </form>
           </div>

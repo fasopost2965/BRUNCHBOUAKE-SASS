@@ -1,4 +1,4 @@
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings, RoomHistoryLog } from './types';
 
 export const INITIAL_ROOMS: Room[] = [
   {
@@ -8,7 +8,13 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 25000,
     status: 'occupied',
     maxGuests: 2,
-    features: ['Climatisation', 'Wi-Fi Fibre', 'Kitchenette', 'SdB Privée', 'Mini-bar']
+    features: ['Climatisation', 'Wi-Fi Fibre', 'Kitchenette', 'SdB Privée', 'Mini-bar'],
+    image: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=600&q=80'
+    ]
   },
   {
     id: '102',
@@ -17,7 +23,13 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 18000,
     status: 'available',
     maxGuests: 2,
-    features: ['Climatisation', 'Wi-Fi Fibre', 'SdB Privée', 'Télévision Smart']
+    features: ['Climatisation', 'Wi-Fi Fibre', 'SdB Privée', 'Télévision Smart'],
+    image: 'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=600&q=80'
+    ]
   },
   {
     id: '103',
@@ -26,7 +38,13 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 45000,
     status: 'occupied',
     maxGuests: 4,
-    features: ['Climatisation Salon & Chambre', 'Cuisine Équipée', 'Canapé Cuir', 'Machine à café', 'Netflix']
+    features: ['Climatisation Salon & Chambre', 'Cuisine Équipée', 'Canapé Cuir', 'Machine à café', 'Netflix'],
+    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1502672011266-538602154887?auto=format&fit=crop&w=600&q=80'
+    ]
   },
   {
     id: '104',
@@ -35,7 +53,12 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 25000,
     status: 'dirty',
     maxGuests: 2,
-    features: ['Climatisation', 'Wi-Fi Fibre', 'Balcon', 'Kitchenette']
+    features: ['Climatisation', 'Wi-Fi Fibre', 'Balcon', 'Kitchenette'],
+    image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&q=80'
+    ]
   },
   {
     id: '105',
@@ -44,7 +67,12 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 20000,
     status: 'available',
     maxGuests: 2,
-    features: ['Climatisation', 'Wi-Fi Fibre', 'Espace Bureau', 'Bouilloire']
+    features: ['Climatisation', 'Wi-Fi Fibre', 'Espace Bureau', 'Bouilloire'],
+    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80'
+    ]
   },
   {
     id: '106',
@@ -53,7 +81,13 @@ export const INITIAL_ROOMS: Room[] = [
     pricePerNight: 60000,
     status: 'maintenance',
     maxGuests: 6,
-    features: ['3 Chambres', 'Salon d\'angle', 'Cuisine Américaine', 'Grande Terrasse', 'Lave-linge']
+    features: ['3 Chambres', 'Salon d\'angle', 'Cuisine Américaine', 'Grande Terrasse', 'Lave-linge'],
+    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=600&q=80'
+    ]
   }
 ];
 
@@ -335,6 +369,78 @@ export const DEFAULT_PROPERTY_SETTINGS: PropertySettings = {
   notificationPreferences: {
     smsOnCheckout: true,
     emailOnHighExpense: false
+  },
+  categoryImages: {
+    studio: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+    room: 'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=600&q=80',
+    apartment: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80'
+  },
+  pricingPolicy: {
+    basePrices: {
+      room: 15000,
+      studio: 25000,
+      apartment: 45000
+    },
+    weekendMultiplier: 1.10, // +10% on weekends
+    applyWeekendOnFri: true,
+    applyWeekendOnSat: true,
+    applyWeekendOnSun: false,
+    commissionRateBooking: 15, // 15% booking commission
+    pricingModelType: 'dynamic',
+    seasonalSurcharges: [
+      { id: 's1', name: 'Saison Haute / Fêtes Fin d\'Année', startMonth: 12, endMonth: 1, percentage: 15, active: true },
+      { id: 's2', name: 'Période Vacances Scolaires d\'Été', startMonth: 7, endMonth: 8, percentage: 10, active: false }
+    ]
   }
 };
+
+export const INITIAL_ROOM_HISTORY_LOGS: RoomHistoryLog[] = [
+  {
+    id: 'h1',
+    roomId: '101',
+    date: '2026-06-25T10:00:00Z',
+    type: 'cleaning',
+    title: 'Désinfection et grand ménage',
+    description: 'Désinfection complète, nettoyage en profondeur des rideaux et de la kitchenette. Literie neuve installée.',
+    staffName: 'Aka Florence'
+  },
+  {
+    id: 'h2',
+    roomId: '101',
+    date: '2026-06-28T14:15:00Z',
+    type: 'reservation',
+    title: 'Arrivée (Check-In) - Konan Koffi Serge',
+    description: 'Enregistrement effectué pour un séjour de 4 nuits. Paiement partiel reçu.',
+    staffName: 'Yao Amenan Chantal',
+    amount: 100000
+  },
+  {
+    id: 'h3',
+    roomId: '103',
+    date: '2026-06-29T15:30:00Z',
+    type: 'reservation',
+    title: 'Arrivée (Check-In) - Marc-Antoine Dubois',
+    description: 'Arrivée client d\'affaires. Règlement intégral de 270 000 FCFA reçu.',
+    staffName: 'Yao Amenan Chantal',
+    amount: 270000
+  },
+  {
+    id: 'h4',
+    roomId: '104',
+    date: '2026-06-30T11:45:00Z',
+    type: 'cleaning',
+    title: 'Ménage de départ requis',
+    description: 'Chambre libérée par le client ce matin. Signalée comme sale dans le PMS.',
+    staffName: 'Aka Florence'
+  },
+  {
+    id: 'h5',
+    roomId: '106',
+    date: '2026-07-01T09:00:00Z',
+    type: 'maintenance',
+    title: 'Signalement climatisation HS',
+    description: 'Le compresseur extérieur fait un bruit métallique et n\'émet plus d\'air froid. Transfert en maintenance.',
+    staffName: 'Zadi Richard'
+  }
+];
 

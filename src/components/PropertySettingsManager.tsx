@@ -16,7 +16,11 @@ import {
   Bell, 
   Network,
   Info,
-  Palette
+  Palette,
+  Tags,
+  TrendingUp,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { PropertySettings } from '../types';
 import { DEFAULT_PROPERTY_SETTINGS } from '../data';
@@ -28,7 +32,7 @@ interface PropertySettingsProps {
   onUpdateTheme?: (theme: 'savannah' | 'lagoon' | 'forest' | 'swiss') => void;
 }
 
-type SettingsSection = 'general' | 'pms' | 'finance' | 'system' | 'design';
+type SettingsSection = 'general' | 'pms' | 'finance' | 'pricing' | 'system' | 'design';
 
 export default function PropertySettingsManager({ 
   settings, 
@@ -37,7 +41,31 @@ export default function PropertySettingsManager({
   onUpdateTheme
 }: PropertySettingsProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
-  const [localSettings, setLocalSettings] = useState<PropertySettings>({ ...settings });
+  const [localSettings, setLocalSettings] = useState<PropertySettings>({ 
+    ...settings,
+    categoryImages: settings.categoryImages || {
+      studio: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+      room: 'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=600&q=80',
+      apartment: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80'
+    },
+    pricingPolicy: settings.pricingPolicy || {
+      basePrices: {
+        room: 15000,
+        studio: 25000,
+        apartment: 45000
+      },
+      weekendMultiplier: 1.10,
+      applyWeekendOnFri: true,
+      applyWeekendOnSat: true,
+      applyWeekendOnSun: false,
+      commissionRateBooking: 15,
+      pricingModelType: 'dynamic',
+      seasonalSurcharges: [
+        { id: 's1', name: 'Saison Haute / Fêtes Fin d\'Année', startMonth: 12, endMonth: 1, percentage: 15, active: true },
+        { id: 's2', name: 'Période Vacances Scolaires d\'Été', startMonth: 7, endMonth: 8, percentage: 10, active: false }
+      ]
+    }
+  });
   const [selectedBranch, setSelectedBranch] = useState<string>('CI-BKE-01'); // Bouaké Branch ID
   const [isSaved, setIsSaved] = useState(false);
 
@@ -173,6 +201,19 @@ export default function PropertySettingsManager({
 
           <button
             type="button"
+            onClick={() => setActiveSection('pricing')}
+            className={`flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all w-full text-left shrink-0 lg:shrink ${
+              activeSection === 'pricing'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <Tags className="w-4 h-4 text-orange-500" />
+            <span>4. Politique de Prix</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveSection('system')}
             className={`flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all w-full text-left shrink-0 lg:shrink ${
               activeSection === 'system'
@@ -181,7 +222,7 @@ export default function PropertySettingsManager({
             }`}
           >
             <Sliders className="w-4 h-4 text-orange-500" />
-            <span>4. Paramètres Système</span>
+            <span>5. Paramètres Système</span>
           </button>
 
           <button
@@ -194,7 +235,7 @@ export default function PropertySettingsManager({
             }`}
           >
             <Palette className="w-4 h-4 text-orange-500" />
-            <span>5. Style & Charte</span>
+            <span>6. Style & Charte</span>
           </button>
 
           {/* Settings info message */}
@@ -218,6 +259,7 @@ export default function PropertySettingsManager({
                   {activeSection === 'general' && 'Identité Globale de l\'Établissement'}
                   {activeSection === 'pms' && 'Heures Réglementaires & PMS de Réception'}
                   {activeSection === 'finance' && 'Fiscalité, Devises & Canaux d\'Encaissement'}
+                  {activeSection === 'pricing' && 'Politique Tarifaire & Module de Prix'}
                   {activeSection === 'system' && 'Configuration Technique & Notifications'}
                   {activeSection === 'design' && 'Personnalisation Visuelle & Design'}
                 </h4>
@@ -225,6 +267,7 @@ export default function PropertySettingsManager({
                   {activeSection === 'general' && 'Configurez le nom commercial, les coordonnées et les identifiants fiscaux imprimés sur les factures.'}
                   {activeSection === 'pms' && 'Régulez les heures de check-in / out et déterminez le format légal des folios et les tâches de ménage.'}
                   {activeSection === 'finance' && 'Saisissez le taux de TVA en vigueur en Côte d\'Ivoire (UEMOA), la taxe de séjour et les portefeuilles Mobile Money.'}
+                  {activeSection === 'pricing' && 'Définissez la politique de prix de base par catégorie, les surcoûts saisonniers ou de week-end (Booking/OTA).'}
                   {activeSection === 'system' && 'Ajustez les heures d\'activité du maquis restaurant et paramétrez les alertes administratives de service.'}
                   {activeSection === 'design' && 'Sélectionnez un style visuel d\'ambiance adapté à votre marque et à l\'expérience de l\'établissement.'}
                 </p>
@@ -428,6 +471,127 @@ export default function PropertySettingsManager({
                       <span className="p-2 bg-rose-50 text-rose-800 border border-rose-100 rounded-xl font-bold text-center">Maintenance (Panne)</span>
                     </div>
                   </div>
+
+                  <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/50 space-y-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                        Images de Couverture par Catégorie d'Hébergement
+                      </span>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Définissez l'image de couverture globale par défaut pour chaque catégorie d'hébergement (Studio, Chambre, Appartement). Ces images s'afficheront dans la grille PMS pour les chambres n'ayant pas d'image individuelle configurée.
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Studio Category Image */}
+                      <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-[11px] text-slate-800 uppercase block mb-1.5">1. Studios</span>
+                          <div className="h-28 rounded-xl overflow-hidden relative border border-slate-100 bg-slate-50 mb-2.5">
+                            <img 
+                              src={localSettings.categoryImages?.studio || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=300&q=80'} 
+                              alt="Studio default" 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-[8px] text-white font-extrabold uppercase rounded-md backdrop-blur-xs">Aperçu</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-500 font-bold block">URL de l'image</label>
+                          <input
+                            type="url"
+                            placeholder="Saisissez l'URL d'image pour Studio..."
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.categoryImages?.studio || ''}
+                            onChange={(e) => {
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                categoryImages: {
+                                  ...(prev.categoryImages || {}),
+                                  studio: e.target.value
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:border-orange-500 text-slate-800 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Room Category Image */}
+                      <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-[11px] text-slate-800 uppercase block mb-1.5">2. Chambres Classiques</span>
+                          <div className="h-28 rounded-xl overflow-hidden relative border border-slate-100 bg-slate-50 mb-2.5">
+                            <img 
+                              src={localSettings.categoryImages?.room || 'https://images.unsplash.com/photo-1611891405110-5a30d32b1200?auto=format&fit=crop&w=300&q=80'} 
+                              alt="Chambre default" 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-[8px] text-white font-extrabold uppercase rounded-md backdrop-blur-xs">Aperçu</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-500 font-bold block">URL de l'image</label>
+                          <input
+                            type="url"
+                            placeholder="Saisissez l'URL d'image pour Chambre..."
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.categoryImages?.room || ''}
+                            onChange={(e) => {
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                categoryImages: {
+                                  ...(prev.categoryImages || {}),
+                                  room: e.target.value
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:border-orange-500 text-slate-800 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Apartment Category Image */}
+                      <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-2xs flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-[11px] text-slate-800 uppercase block mb-1.5">3. Appartements</span>
+                          <div className="h-28 rounded-xl overflow-hidden relative border border-slate-100 bg-slate-50 mb-2.5">
+                            <img 
+                              src={localSettings.categoryImages?.apartment || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=300&q=80'} 
+                              alt="Appartement default" 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-[8px] text-white font-extrabold uppercase rounded-md backdrop-blur-xs">Aperçu</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-500 font-bold block">URL de l'image</label>
+                          <input
+                            type="url"
+                            placeholder="Saisissez l'URL d'image pour Appartement..."
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.categoryImages?.apartment || ''}
+                            onChange={(e) => {
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                categoryImages: {
+                                  ...(prev.categoryImages || {}),
+                                  apartment: e.target.value
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:border-orange-500 text-slate-800 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -612,6 +776,512 @@ export default function PropertySettingsManager({
                         <span className="px-3 py-1 bg-purple-100 text-purple-800 font-extrabold rounded-lg">Desserts glacés</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 4: POLITIQUE DE PRIX */}
+              {activeSection === 'pricing' && (
+                <div className="space-y-6">
+                  <div className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl text-xs text-slate-600 leading-relaxed flex items-start gap-3">
+                    <TrendingUp className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-extrabold text-slate-800 uppercase block mb-1">Règles de Yield Management (Politique de Prix)</span>
+                      Configurez vos tarifs standards de référence et vos multiplicateurs saisonniers ou de week-end. Ces tarifs seront suggérés automatiquement lors de la création d'inventaire de chambres et appliqués lors du calcul des nuitées de réservation.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                    {/* Tarifs de base par catégorie */}
+                    <div className="space-y-3 bg-slate-50 p-4 border border-slate-200 rounded-2xl md:col-span-3">
+                      <span className="font-extrabold text-[11px] text-slate-500 uppercase tracking-wide block mb-1">Tarifs Journaliers Standards de Référence</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-600 font-bold block">Chambre Classique (FCFA) *</label>
+                          <input
+                            type="number"
+                            required
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.pricingPolicy?.basePrices.room ?? 15000}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                pricingPolicy: {
+                                  ...(prev.pricingPolicy || {
+                                    basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                    weekendMultiplier: 1.10,
+                                    applyWeekendOnFri: true,
+                                    applyWeekendOnSat: true,
+                                    applyWeekendOnSun: false,
+                                    commissionRateBooking: 15,
+                                    pricingModelType: 'dynamic',
+                                    seasonalSurcharges: []
+                                  }),
+                                  basePrices: {
+                                    ...(prev.pricingPolicy?.basePrices || { room: 15000, studio: 25000, apartment: 45000 }),
+                                    room: val
+                                  }
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-orange-500 text-slate-800 font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-600 font-bold block">Studio (ch + salon) (FCFA) *</label>
+                          <input
+                            type="number"
+                            required
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.pricingPolicy?.basePrices.studio ?? 25000}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                pricingPolicy: {
+                                  ...(prev.pricingPolicy || {
+                                    basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                    weekendMultiplier: 1.10,
+                                    applyWeekendOnFri: true,
+                                    applyWeekendOnSat: true,
+                                    applyWeekendOnSun: false,
+                                    commissionRateBooking: 15,
+                                    pricingModelType: 'dynamic',
+                                    seasonalSurcharges: []
+                                  }),
+                                  basePrices: {
+                                    ...(prev.pricingPolicy?.basePrices || { room: 15000, studio: 25000, apartment: 45000 }),
+                                    studio: val
+                                  }
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-orange-500 text-slate-800 font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-600 font-bold block">Appartement F2/F3 (FCFA) *</label>
+                          <input
+                            type="number"
+                            required
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.pricingPolicy?.basePrices.apartment ?? 45000}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                pricingPolicy: {
+                                  ...(prev.pricingPolicy || {
+                                    basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                    weekendMultiplier: 1.10,
+                                    applyWeekendOnFri: true,
+                                    applyWeekendOnSat: true,
+                                    applyWeekendOnSun: false,
+                                    commissionRateBooking: 15,
+                                    pricingModelType: 'dynamic',
+                                    seasonalSurcharges: []
+                                  }),
+                                  basePrices: {
+                                    ...(prev.pricingPolicy?.basePrices || { room: 15000, studio: 25000, apartment: 45000 }),
+                                    apartment: val
+                                  }
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-orange-500 text-slate-800 font-bold"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modèle de tarification & Commission OTA */}
+                    <div className="space-y-3 p-4 bg-white border border-slate-200 rounded-2xl flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-[11px] text-slate-800 uppercase block mb-1">Type d'Algorithme Tarifaire</span>
+                        <p className="text-[10px] text-slate-400 mb-2">Choisissez comment le système ajuste les tarifs.</p>
+                        <select
+                          disabled={selectedBranch !== 'CI-BKE-01'}
+                          value={localSettings.pricingPolicy?.pricingModelType || 'dynamic'}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setLocalSettings(prev => ({
+                              ...prev,
+                              pricingPolicy: {
+                                ...(prev.pricingPolicy || {
+                                  basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                  weekendMultiplier: 1.10,
+                                  applyWeekendOnFri: true,
+                                  applyWeekendOnSat: true,
+                                  applyWeekendOnSun: false,
+                                  commissionRateBooking: 15,
+                                  pricingModelType: 'dynamic',
+                                  seasonalSurcharges: []
+                                }),
+                                pricingModelType: val
+                              }
+                            }));
+                            setIsSaved(false);
+                          }}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
+                        >
+                          <option value="fixed">Prix Fixe (Aucun ajustement automatique)</option>
+                          <option value="dynamic">Tarification Dynamique (Weekend & Saisons)</option>
+                          <option value="occupancy_based">Basé sur le Remplissage (+15% si &gt;75% d'occupation)</option>
+                        </select>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 mt-2">
+                        <label className="text-[10px] text-slate-600 font-bold block mb-1">Taux de Commission Booking/OTAs (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="50"
+                          disabled={selectedBranch !== 'CI-BKE-01'}
+                          value={localSettings.pricingPolicy?.commissionRateBooking ?? 15}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setLocalSettings(prev => ({
+                              ...prev,
+                              pricingPolicy: {
+                                ...(prev.pricingPolicy || {
+                                  basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                  weekendMultiplier: 1.10,
+                                  applyWeekendOnFri: true,
+                                  applyWeekendOnSat: true,
+                                  applyWeekendOnSun: false,
+                                  commissionRateBooking: 15,
+                                  pricingModelType: 'dynamic',
+                                  seasonalSurcharges: []
+                                }),
+                                commissionRateBooking: val
+                              }
+                            }));
+                            setIsSaved(false);
+                          }}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 font-bold focus:outline-none focus:border-orange-500"
+                        />
+                        <span className="text-[9px] text-slate-400 block mt-1">Calculera la marge nette et le versement Booking net sur les folios.</span>
+                      </div>
+                    </div>
+
+                    {/* Surcharge Week-end */}
+                    <div className="space-y-3 p-4 bg-white border border-slate-200 rounded-2xl md:col-span-2">
+                      <span className="font-extrabold text-[11px] text-slate-800 uppercase block mb-1">Majoration Spécifique de Week-end</span>
+                      <p className="text-[10px] text-slate-400">Configurez une tarification incitative de fin de semaine pour optimiser le taux de remplissage.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-slate-600 font-bold block">Surcharge Multiplicatrice (Ex: 1.10 = +10%)</label>
+                          <input
+                            type="number"
+                            step="0.05"
+                            min="1.00"
+                            max="2.00"
+                            disabled={selectedBranch !== 'CI-BKE-01'}
+                            value={localSettings.pricingPolicy?.weekendMultiplier ?? 1.10}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 1.0;
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                pricingPolicy: {
+                                  ...(prev.pricingPolicy || {
+                                    basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                    weekendMultiplier: 1.10,
+                                    applyWeekendOnFri: true,
+                                    applyWeekendOnSat: true,
+                                    applyWeekendOnSun: false,
+                                    commissionRateBooking: 15,
+                                    pricingModelType: 'dynamic',
+                                    seasonalSurcharges: []
+                                  }),
+                                  weekendMultiplier: val
+                                }
+                              }));
+                              setIsSaved(false);
+                            }}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 font-bold focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] text-slate-600 font-bold block">Jours d'application du Week-end :</label>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-2 cursor-pointer text-[10px] select-none font-bold">
+                              <input
+                                type="checkbox"
+                                disabled={selectedBranch !== 'CI-BKE-01'}
+                                checked={localSettings.pricingPolicy?.applyWeekendOnFri ?? false}
+                                onChange={(e) => {
+                                  const val = e.target.checked;
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    pricingPolicy: {
+                                      ...(prev.pricingPolicy || {
+                                        basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                        weekendMultiplier: 1.10,
+                                        applyWeekendOnFri: true,
+                                        applyWeekendOnSat: true,
+                                        applyWeekendOnSun: false,
+                                        commissionRateBooking: 15,
+                                        pricingModelType: 'dynamic',
+                                        seasonalSurcharges: []
+                                      }),
+                                      applyWeekendOnFri: val
+                                    }
+                                  }));
+                                  setIsSaved(false);
+                                }}
+                                className="accent-orange-500 cursor-pointer"
+                              />
+                              <span>Vendredi</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-[10px] select-none font-bold">
+                              <input
+                                type="checkbox"
+                                disabled={selectedBranch !== 'CI-BKE-01'}
+                                checked={localSettings.pricingPolicy?.applyWeekendOnSat ?? false}
+                                onChange={(e) => {
+                                  const val = e.target.checked;
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    pricingPolicy: {
+                                      ...(prev.pricingPolicy || {
+                                        basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                        weekendMultiplier: 1.10,
+                                        applyWeekendOnFri: true,
+                                        applyWeekendOnSat: true,
+                                        applyWeekendOnSun: false,
+                                        commissionRateBooking: 15,
+                                        pricingModelType: 'dynamic',
+                                        seasonalSurcharges: []
+                                      }),
+                                      applyWeekendOnSat: val
+                                    }
+                                  }));
+                                  setIsSaved(false);
+                                }}
+                                className="accent-orange-500 cursor-pointer"
+                              />
+                              <span>Samedi</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-[10px] select-none font-bold">
+                              <input
+                                type="checkbox"
+                                disabled={selectedBranch !== 'CI-BKE-01'}
+                                checked={localSettings.pricingPolicy?.applyWeekendOnSun ?? false}
+                                onChange={(e) => {
+                                  const val = e.target.checked;
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    pricingPolicy: {
+                                      ...(prev.pricingPolicy || {
+                                        basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                        weekendMultiplier: 1.10,
+                                        applyWeekendOnFri: true,
+                                        applyWeekendOnSat: true,
+                                        applyWeekendOnSun: false,
+                                        commissionRateBooking: 15,
+                                        pricingModelType: 'dynamic',
+                                        seasonalSurcharges: []
+                                      }),
+                                      applyWeekendOnSun: val
+                                    }
+                                  }));
+                                  setIsSaved(false);
+                                }}
+                                className="accent-orange-500 cursor-pointer"
+                              />
+                              <span>Dimanche</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Surcharges Saisonnières / Fêtes */}
+                    <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl md:col-span-3">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-extrabold text-[11px] text-slate-800 uppercase block">Grille des Surcharges Saisonnières Spéciales</span>
+                          <p className="text-[10px] text-slate-450 leading-tight">Surcharges appliquées automatiquement selon le mois de séjour.</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={selectedBranch !== 'CI-BKE-01'}
+                          onClick={() => {
+                            const newSurcharge = {
+                              id: 's-' + Date.now(),
+                              name: 'Nouvelle Période Spéciale',
+                              startMonth: 6,
+                              endMonth: 8,
+                              percentage: 10,
+                              active: true
+                            };
+                            const currentSurcharges = localSettings.pricingPolicy?.seasonalSurcharges || [];
+                            setLocalSettings(prev => ({
+                              ...prev,
+                              pricingPolicy: {
+                                ...(prev.pricingPolicy || {
+                                  basePrices: { room: 15000, studio: 25000, apartment: 45000 },
+                                  weekendMultiplier: 1.10,
+                                  applyWeekendOnFri: true,
+                                  applyWeekendOnSat: true,
+                                  applyWeekendOnSun: false,
+                                  commissionRateBooking: 15,
+                                  pricingModelType: 'dynamic',
+                                  seasonalSurcharges: []
+                                }),
+                                seasonalSurcharges: [...currentSurcharges, newSurcharge]
+                              }
+                            }));
+                            setIsSaved(false);
+                          }}
+                          className="px-2.5 py-1.5 bg-orange-500 text-white font-extrabold text-[9px] uppercase rounded-lg flex items-center gap-1 cursor-pointer hover:bg-orange-600 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Ajouter Période</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {(!localSettings.pricingPolicy?.seasonalSurcharges || localSettings.pricingPolicy.seasonalSurcharges.length === 0) ? (
+                          <p className="text-[10px] text-slate-400 italic py-2">Aucune surcharge saisonnière configurée.</p>
+                        ) : (
+                          localSettings.pricingPolicy.seasonalSurcharges.map((s, idx) => (
+                            <div key={s.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 bg-white border border-slate-200 rounded-xl">
+                              <div className="flex-1 space-y-1">
+                                <label className="text-[9px] text-slate-400 uppercase font-bold block">Nom de l'événement / période</label>
+                                <input
+                                  type="text"
+                                  required
+                                  disabled={selectedBranch !== 'CI-BKE-01'}
+                                  value={s.name}
+                                  onChange={(e) => {
+                                    const list = [...localSettings.pricingPolicy!.seasonalSurcharges];
+                                    list[idx].name = e.target.value;
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                    }));
+                                    setIsSaved(false);
+                                  }}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+                                />
+                              </div>
+
+                              <div className="w-24 space-y-1">
+                                <label className="text-[9px] text-slate-400 uppercase font-bold block">Mois Début</label>
+                                <select
+                                  disabled={selectedBranch !== 'CI-BKE-01'}
+                                  value={s.startMonth}
+                                  onChange={(e) => {
+                                    const list = [...localSettings.pricingPolicy!.seasonalSurcharges];
+                                    list[idx].startMonth = parseInt(e.target.value);
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                    }));
+                                    setIsSaved(false);
+                                  }}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs"
+                                >
+                                  {[...Array(12)].map((_, i) => (
+                                    <option key={i+1} value={i+1}>{new Date(2026, i).toLocaleString('fr-FR', { month: 'long' })}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="w-24 space-y-1">
+                                <label className="text-[9px] text-slate-400 uppercase font-bold block">Mois Fin</label>
+                                <select
+                                  disabled={selectedBranch !== 'CI-BKE-01'}
+                                  value={s.endMonth}
+                                  onChange={(e) => {
+                                    const list = [...localSettings.pricingPolicy!.seasonalSurcharges];
+                                    list[idx].endMonth = parseInt(e.target.value);
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                    }));
+                                    setIsSaved(false);
+                                  }}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs"
+                                >
+                                  {[...Array(12)].map((_, i) => (
+                                    <option key={i+1} value={i+1}>{new Date(2026, i).toLocaleString('fr-FR', { month: 'long' })}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="w-24 space-y-1">
+                                <label className="text-[9px] text-slate-400 uppercase font-bold block">Surcharge (%)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  max="100"
+                                  disabled={selectedBranch !== 'CI-BKE-01'}
+                                  value={s.percentage}
+                                  onChange={(e) => {
+                                    const list = [...localSettings.pricingPolicy!.seasonalSurcharges];
+                                    list[idx].percentage = parseInt(e.target.value) || 0;
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                    }));
+                                    setIsSaved(false);
+                                  }}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs font-mono font-bold"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-3 pt-4 shrink-0 justify-end">
+                                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold select-none">
+                                  <input
+                                    type="checkbox"
+                                    disabled={selectedBranch !== 'CI-BKE-01'}
+                                    checked={s.active}
+                                    onChange={(e) => {
+                                      const list = [...localSettings.pricingPolicy!.seasonalSurcharges];
+                                      list[idx].active = e.target.checked;
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                      }));
+                                      setIsSaved(false);
+                                    }}
+                                    className="accent-orange-500 cursor-pointer"
+                                  />
+                                  <span>Actif</span>
+                                </label>
+
+                                <button
+                                  type="button"
+                                  disabled={selectedBranch !== 'CI-BKE-01'}
+                                  onClick={() => {
+                                    const list = localSettings.pricingPolicy!.seasonalSurcharges.filter(item => item.id !== s.id);
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      pricingPolicy: { ...prev.pricingPolicy!, seasonalSurcharges: list }
+                                    }));
+                                    setIsSaved(false);
+                                  }}
+                                  className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                                  title="Supprimer cette saison"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}

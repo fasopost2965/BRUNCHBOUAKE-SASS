@@ -24,7 +24,9 @@ import {
   CheckCircle,
   Palette,
   Activity,
-  Calendar
+  Calendar,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 
 // Seed data
@@ -35,7 +37,8 @@ import {
   INITIAL_MENU, 
   INITIAL_STAFF, 
   INITIAL_TASKS, 
-  INITIAL_TRANSACTIONS 
+  INITIAL_TRANSACTIONS,
+  INITIAL_ROOM_HISTORY_LOGS
 } from './data';
 
 // Custom components
@@ -56,7 +59,7 @@ import HRManager from './components/HRManager';
 import OnboardingTour, { ONBOARDING_STEPS } from './components/OnboardingTour';
 import GuidedTourPage from './components/GuidedTourPage';
 
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir, RoomHistoryLog } from './types';
 
 import { PaymentOrchestrator } from './services/paymentService';
 import { DEFAULT_PROPERTY_SETTINGS } from './data';
@@ -358,8 +361,20 @@ export default function App() {
     ];
   });
 
+  const [roomHistoryLogs, setRoomHistoryLogs] = useState<RoomHistoryLog[]>(() => {
+    const saved = localStorage.getItem('bb_room_history_logs');
+    return saved ? JSON.parse(saved) : INITIAL_ROOM_HISTORY_LOGS;
+  });
+
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState<string>('');
+
+  // Production transition / data wipe states
+  const [isProductionModalOpen, setIsProductionModalOpen] = useState(false);
+  const [productionConfirmInput, setProductionConfirmInput] = useState('');
+  const [generatedConfirmCode, setGeneratedConfirmCode] = useState('');
+  const [productionError, setProductionError] = useState('');
+  const [productionSuccess, setProductionSuccess] = useState(false);
 
   const effectiveOnlineStatus = isOnline && !isOfflineModeSimulated;
 
@@ -633,6 +648,10 @@ export default function App() {
     localStorage.setItem('bb_customer_avoirs', JSON.stringify(customerAvoirs));
   }, [customerAvoirs]);
 
+  useEffect(() => {
+    localStorage.setItem('bb_room_history_logs', JSON.stringify(roomHistoryLogs));
+  }, [roomHistoryLogs]);
+
   // Global modifiers passed down to components
   const handleAddTransaction = (newT: Transaction) => {
     // 1. Instantly update local state (Offline-First)
@@ -768,6 +787,59 @@ export default function App() {
       setSettings(DEFAULT_PROPERTY_SETTINGS);
       setActiveTab('dashboard');
     }
+  };
+
+  const handleSwitchToProduction = () => {
+    // 1. Wipe all transactional/customer data
+    setReservations([]);
+    setTransactions([]);
+    setGuests([]);
+    setInvoices([]);
+    setCustomerAvoirs([]);
+    setActiveOrders([]);
+    setPaymentIntents([]);
+    setPaymentTransactions([]);
+    setWebhookEvents([]);
+    setProcessedEvents([]);
+    setTasks([]);
+    setSyncQueue([]);
+    setStockMovements([]);
+    setStockItems([]); // Empty raw stock to let them create their own clean items
+
+    // 2. Clear menu or allow them to keep a clean slate? Let's clear menu, except they can keep the template if they want, but let's clear it so they can register their actual menu items. Wait, let's empty the menu so it's a real clean state!
+    setMenu([]);
+
+    // 3. Reset room states to clean/available, keep physical room assets
+    setRooms(prev => prev.map(r => ({
+      ...r,
+      status: 'available',
+      currentGuestId: undefined,
+      currentReservationId: undefined
+    })));
+
+    // 4. Clean up localStorage
+    localStorage.removeItem('bb_reservations');
+    localStorage.removeItem('bb_transactions');
+    localStorage.removeItem('bb_guests');
+    localStorage.removeItem('bb_invoices');
+    localStorage.removeItem('bb_customer_avoirs');
+    localStorage.removeItem('bb_active_orders');
+    localStorage.removeItem('bb_payment_intents');
+    localStorage.removeItem('bb_payment_transactions');
+    localStorage.removeItem('bb_webhook_events');
+    localStorage.removeItem('bb_processed_events');
+    localStorage.removeItem('bb_tasks');
+    localStorage.removeItem('bb_sync_queue');
+    localStorage.removeItem('bb_stock_items');
+    localStorage.removeItem('bb_stock_movements');
+    localStorage.removeItem('bb_menu');
+
+    // Save cleaned collections (rooms and active users)
+    localStorage.setItem('bb_rooms', JSON.stringify(rooms.map(r => ({ ...r, status: 'available', currentGuestId: undefined, currentReservationId: undefined }))));
+    localStorage.setItem('bb_users', JSON.stringify(users));
+
+    setProductionSuccess(true);
+    setActiveTab('dashboard');
   };
 
   if (currentUser === null) {
@@ -1114,12 +1186,13 @@ export default function App() {
         <div className="p-5 border-b border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-extrabold text-md shadow-sm">
-                B
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400 rounded-xl flex items-center justify-center text-white shadow-md shadow-orange-500/20 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <UtensilsCrossed className="w-4.5 h-4.5 text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.15)]" />
               </div>
               <div>
-                <h1 className="text-white font-bold text-base tracking-tight leading-none">Brunch Bouaké</h1>
-                <p className="text-[9px] text-slate-500 font-bold tracking-wider uppercase mt-1 font-mono">PMS & POS Hybride</p>
+                <h1 className="text-white font-black text-sm tracking-tight leading-none uppercase">Brunch Bouaké</h1>
+                <p className="text-[8px] text-orange-400 font-extrabold tracking-widest uppercase mt-1 font-mono">Hôtel & Resto</p>
               </div>
             </div>
             
@@ -1486,7 +1559,7 @@ export default function App() {
         </nav>
 
         {/* Onboarding Restart Button */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/10">
+        <div className="p-4 border-t border-slate-800 bg-slate-950/10 space-y-2">
           <button
             onClick={() => setActiveTab('tour')}
             className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer shadow-xs ${
@@ -1497,6 +1570,21 @@ export default function App() {
           >
             <Sparkles className="w-4 h-4 text-orange-400 animate-pulse" />
             <span>Guide d'Intégration</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+              setGeneratedConfirmCode(randomCode);
+              setProductionConfirmInput('');
+              setProductionError('');
+              setProductionSuccess(false);
+              setIsProductionModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-xs font-extrabold transition-all cursor-pointer shadow-xs"
+          >
+            <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>Démarrage Production</span>
           </button>
         </div>
 
@@ -1740,6 +1828,8 @@ export default function App() {
                   settings={settings}
                   activeSubTab={pmsActiveSubTab}
                   onActiveSubTabChange={setPmsActiveSubTab}
+                  roomHistoryLogs={roomHistoryLogs}
+                  onUpdateRoomHistoryLogs={setRoomHistoryLogs}
                 />
               )}
 
@@ -1784,6 +1874,7 @@ export default function App() {
                   stockMovements={stockMovements}
                   onAddStockMovement={(mov) => setStockMovements(prev => [...prev, mov])}
                   currentUser={currentUser}
+                  rooms={rooms}
                 />
               )}
 
@@ -1916,6 +2007,105 @@ export default function App() {
           onSetTab={setActiveTab}
           establishmentName={settings.establishmentName}
         />
+      )}
+
+      {/* Switch to Production Modal */}
+      {isProductionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <span className="p-2.5 bg-rose-100 text-rose-600 rounded-2xl">
+                <Trash2 className="w-6 h-6 animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">🧹 Passage en Mode Production</h3>
+                <p className="text-xs text-slate-400 font-medium">Préparez Brunch Bouaké pour vos données réelles.</p>
+              </div>
+            </div>
+
+            {!productionSuccess ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl space-y-2">
+                  <div className="flex gap-2 text-rose-800 font-black text-xs uppercase items-center">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Avertissement Critique</span>
+                  </div>
+                  <p className="text-xs text-rose-700 leading-relaxed font-semibold">
+                    Cette action est irréversible et va vider l'ensemble des données fictives et de démonstration du système :
+                  </p>
+                  <ul className="text-[11px] text-rose-600 space-y-1 list-disc pl-5 font-bold">
+                    <li>Toutes les réservations et historiques de séjour</li>
+                    <li>Toutes les fiches clients (CRM)</li>
+                    <li>Toutes les transactions financières, dépenses et recettes</li>
+                    <li>Toutes les ventes en cours et tickets de caisse (POS)</li>
+                    <li>Toutes les factures et avoirs enregistrés</li>
+                    <li>Tous les stocks de nourriture, boissons et matériels</li>
+                  </ul>
+                  <p className="text-[11px] text-slate-500 font-medium pt-1">
+                    <strong className="text-slate-700">Seront conservés :</strong> Les configurations de base des chambres, vos profils d'utilisateurs/administrateurs pour éviter tout verrouillage d'accès, et les paramètres généraux.
+                  </p>
+                </div>
+
+                {productionError && (
+                  <div className="p-3 bg-rose-100 text-rose-800 rounded-xl text-xs font-black flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{productionError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-slate-600 text-xs font-black uppercase">
+                    Saisissez le code de sécurité <span className="px-2 py-0.5 bg-slate-900 text-white font-mono rounded select-all font-black text-sm tracking-wider">{generatedConfirmCode}</span> pour valider :
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Entrez le code ici..."
+                    value={productionConfirmInput}
+                    onChange={(e) => setProductionConfirmInput(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-rose-500 focus:outline-none text-center font-mono font-black text-md text-slate-800 placeholder-slate-400 tracking-widest uppercase"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setIsProductionModalOpen(false)}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (productionConfirmInput.trim() !== generatedConfirmCode) {
+                        setProductionError("Le code de confirmation est incorrect.");
+                        return;
+                      }
+                      handleSwitchToProduction();
+                    }}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/10 transition-all cursor-pointer"
+                  >
+                    Confirmer et Tout Vider
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 text-center py-4">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2 animate-bounce">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h4 className="text-md font-black text-slate-900">🎉 Passage en production réussi !</h4>
+                <p className="text-xs text-slate-500 leading-relaxed px-4">
+                  Le système a été réinitialisé à blanc avec succès. Toutes les données de démonstration ont été purgées. Vous pouvez maintenant commencer à saisir vos clients, réservations réelles et approvisionnements en toute sécurité.
+                </p>
+                <button
+                  onClick={() => setIsProductionModalOpen(false)}
+                  className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer inline-block"
+                >
+                  Accéder au Tableau de Bord
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

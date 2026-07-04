@@ -9,6 +9,19 @@ export interface Room {
   status: RoomStatus;
   maxGuests: number;
   features: string[];
+  image?: string;
+  images?: string[]; // Multiple photos (3 to 5) for visual recognition
+}
+
+export interface RoomHistoryLog {
+  id: string;
+  roomId: string;
+  date: string;
+  type: 'reservation' | 'cleaning' | 'maintenance' | 'custom';
+  title: string;
+  description: string;
+  staffName?: string;
+  amount?: number;
 }
 
 export interface Reservation {
@@ -56,9 +69,9 @@ export interface MenuItem {
 export interface StockItem {
   id: string;
   name: string;
-  category: 'boisson' | 'nourriture' | 'ingredient' | 'autre';
+  category: 'boisson' | 'nourriture' | 'ingredient' | 'lingerie' | 'autre';
   quantity: number;
-  unit: 'bouteille' | 'casier' | 'kg' | 'portion' | 'litre' | 'unité' | 'sac';
+  unit: 'bouteille' | 'casier' | 'kg' | 'portion' | 'litre' | 'unité' | 'sac' | 'paquet';
   minQuantity: number;
   pricePurchase: number; // Cost price in XOF
   lastRestocked?: string;
@@ -187,6 +200,28 @@ export interface ProcessedEvent {
   paymentIntentId: string;
 }
 
+export interface PricingPolicy {
+  basePrices: {
+    room: number;
+    studio: number;
+    apartment: number;
+  };
+  weekendMultiplier: number; // e.g. 1.10 for +10%
+  applyWeekendOnFri: boolean;
+  applyWeekendOnSat: boolean;
+  applyWeekendOnSun: boolean;
+  commissionRateBooking: number; // e.g. 15 for 15%
+  pricingModelType: 'fixed' | 'dynamic' | 'occupancy_based';
+  seasonalSurcharges: {
+    id: string;
+    name: string;
+    startMonth: number; // 1-12 (January to December)
+    endMonth: number; // 1-12
+    percentage: number; // e.g. 15 for +15%
+    active: boolean;
+  }[];
+}
+
 export interface PropertySettings {
   establishmentName: string;
   brandLogoText: string;
@@ -220,6 +255,12 @@ export interface PropertySettings {
     smsOnCheckout: boolean;
     emailOnHighExpense: boolean;
   };
+  categoryImages?: {
+    studio?: string;
+    room?: string;
+    apartment?: string;
+  };
+  pricingPolicy?: PricingPolicy;
 }
 
 export type UserRole = 'admin' | 'receptionist' | 'waiter' | 'manager' | 'housekeeper' | 'accountant';
