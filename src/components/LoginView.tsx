@@ -49,6 +49,10 @@ export default function LoginView({
                          !window.location.hostname.includes('ais-pre') &&
                          !window.location.hostname.includes('run.app')
                        ));
+
+  const showDemoParam = typeof window !== 'undefined' && 
+                        new URLSearchParams(window.location.search).get('demo') === 'true';
+
   const [screen, setScreen] = useState<AuthScreen>('login');
   
   // Credentials input
@@ -361,7 +365,7 @@ export default function LoginView({
               </form>
 
               {/* DEMO ACCORDION BYPASS TRIGGER */}
-              {!isProduction && (
+              {!isProduction && showDemoParam && (
                 <div className="pt-4 border-t border-slate-800 text-center space-y-2">
                   <div className="relative">
                     <button
@@ -575,7 +579,7 @@ export default function LoginView({
                   </button>
 
                   {/* QUICK DEMO ASSIST: LIST REGISTERED EMAILS TO EXPEDITE TESTING */}
-                  {!isProduction && (
+                  {!isProduction && showDemoParam && (
                     <div className="pt-4 border-t border-slate-800/80">
                       <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
                         Emails enregistrés pour la démo :

@@ -155,85 +155,80 @@ function AccessDenied({ currentRole, activeTab, onBackToDashboard }: { currentRo
   );
 }
 
+function safeJSONParse<T>(key: string, fallback: T): T {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) as T : fallback;
+  } catch (error) {
+    console.error(`Error parsing localStorage key "${key}":`, error);
+    return fallback;
+  }
+}
+
 export default function App() {
   
   // 1. STATE WITH LOCAL STORAGE PERSISTENCE
   const [rooms, setRooms] = useState<Room[]>(() => {
-    const saved = localStorage.getItem('bb_rooms');
-    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
+    return safeJSONParse('bb_rooms', INITIAL_ROOMS);
   });
 
   const [guests, setGuests] = useState<GuestRecord[]>(() => {
-    const saved = localStorage.getItem('bb_guests');
-    return saved ? JSON.parse(saved) : INITIAL_GUESTS;
+    return safeJSONParse('bb_guests', INITIAL_GUESTS);
   });
 
   const [reservations, setReservations] = useState<Reservation[]>(() => {
-    const saved = localStorage.getItem('bb_reservations');
-    return saved ? JSON.parse(saved) : INITIAL_RESERVATIONS;
+    return safeJSONParse('bb_reservations', INITIAL_RESERVATIONS);
   });
 
   const [menu, setMenu] = useState<MenuItem[]>(() => {
-    const saved = localStorage.getItem('bb_menu');
-    return saved ? JSON.parse(saved) : INITIAL_MENU;
+    return safeJSONParse('bb_menu', INITIAL_MENU);
   });
 
   const [staff, setStaff] = useState<StaffMember[]>(() => {
-    const saved = localStorage.getItem('bb_staff');
-    return saved ? JSON.parse(saved) : INITIAL_STAFF;
+    return safeJSONParse('bb_staff', INITIAL_STAFF);
   });
 
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('bb_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    return safeJSONParse('bb_tasks', INITIAL_TASKS);
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('bb_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    return safeJSONParse('bb_transactions', INITIAL_TRANSACTIONS);
   });
 
   const [activeOrders, setActiveOrders] = useState<TableOrder[]>(() => {
-    const saved = localStorage.getItem('bb_active_orders');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_active_orders', []);
   });
 
   // Mobile Money Unified Payment States
   const [paymentIntents, setPaymentIntents] = useState<PaymentIntent[]>(() => {
-    const saved = localStorage.getItem('bb_payment_intents');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_payment_intents', []);
   });
 
   const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>(() => {
-    const saved = localStorage.getItem('bb_payment_transactions');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_payment_transactions', []);
   });
 
   const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>(() => {
-    const saved = localStorage.getItem('bb_webhook_events');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_webhook_events', []);
   });
 
   const [processedEvents, setProcessedEvents] = useState<ProcessedEvent[]>(() => {
-    const saved = localStorage.getItem('bb_processed_events');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_processed_events', []);
   });
 
   // Property Settings state with local storage persistence
   const [settings, setSettings] = useState<PropertySettings>(() => {
-    const saved = localStorage.getItem('bb_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_PROPERTY_SETTINGS;
+    return safeJSONParse('bb_settings', DEFAULT_PROPERTY_SETTINGS);
   });
 
   // Stock and Inventory state management
   const [stockItems, setStockItems] = useState<StockItem[]>(() => {
-    const saved = localStorage.getItem('bb_stock_items');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_stock_items', []);
   });
 
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => {
-    const saved = localStorage.getItem('bb_stock_movements');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_stock_movements', []);
   });
 
   // Offline / Synchronisation Queue state variables
@@ -247,15 +242,12 @@ export default function App() {
   });
 
   const [syncQueue, setSyncQueue] = useState<OfflineSyncItem[]>(() => {
-    const saved = localStorage.getItem('bb_sync_queue');
-    return saved ? JSON.parse(saved) : [];
+    return safeJSONParse('bb_sync_queue', []);
   });
 
   // ERP Invoices & Customer Avoirs States
   const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    const saved = localStorage.getItem('bb_invoices');
-    if (saved) return JSON.parse(saved);
-    return [
+    const defaultInvoices = [
       {
         id: 'FAC-2026-0001',
         clientName: 'Koffi Anderson',
@@ -309,12 +301,11 @@ export default function App() {
         notes: 'Facture VIP soldée par Wave CI'
       }
     ];
+    return safeJSONParse('bb_invoices', defaultInvoices);
   });
 
   const [customerAvoirs, setCustomerAvoirs] = useState<CustomerAvoir[]>(() => {
-    const saved = localStorage.getItem('bb_customer_avoirs');
-    if (saved) return JSON.parse(saved);
-    return [
+    const defaultAvoirs = [
       {
         id: 'AVO-001',
         clientName: 'Amadou Coulibaly (Client Fidèle)',
@@ -359,11 +350,11 @@ export default function App() {
         ]
       }
     ];
+    return safeJSONParse('bb_customer_avoirs', defaultAvoirs);
   });
 
   const [roomHistoryLogs, setRoomHistoryLogs] = useState<RoomHistoryLog[]>(() => {
-    const saved = localStorage.getItem('bb_room_history_logs');
-    return saved ? JSON.parse(saved) : INITIAL_ROOM_HISTORY_LOGS;
+    return safeJSONParse('bb_room_history_logs', INITIAL_ROOM_HISTORY_LOGS);
   });
 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
@@ -375,6 +366,60 @@ export default function App() {
   const [generatedConfirmCode, setGeneratedConfirmCode] = useState('');
   const [productionError, setProductionError] = useState('');
   const [productionSuccess, setProductionSuccess] = useState(false);
+
+  // Admin Reset states
+  const [isAdminResetModalOpen, setIsAdminResetModalOpen] = useState(false);
+  const [adminResetConfirmInput, setAdminResetConfirmInput] = useState('');
+  const [adminResetGeneratedCode, setAdminResetGeneratedCode] = useState('');
+  const [adminResetError, setAdminResetError] = useState('');
+
+  // Custom stylish Notifications & Modals (avoid iframe-breaking window.alert/window.confirm)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: 'Confirmer',
+      cancelText: 'Annuler',
+      onConfirm: () => {
+        onConfirm();
+        setDialog(null);
+      },
+      onCancel: () => {
+        if (onCancel) onCancel();
+        setDialog(null);
+      }
+    });
+  };
+
+  const showAlert = (title: string, message: string, onConfirm?: () => void) => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: "D'accord",
+      onConfirm: () => {
+        if (onConfirm) onConfirm();
+        setDialog(null);
+      }
+    });
+  };
 
   const effectiveOnlineStatus = isOnline && !isOfflineModeSimulated;
 
@@ -443,9 +488,7 @@ export default function App() {
 
   // 2. USER AUTHENTICATION AND PERSISTENCE STATES
   const [users, setUsers] = useState<UserAccount[]>(() => {
-    const saved = localStorage.getItem('bb_users');
-    if (saved) return JSON.parse(saved);
-    return [
+    const defaultUsers = [
       {
         id: 'usr-admin',
         name: 'Jean Dupont (Directeur)',
@@ -525,11 +568,11 @@ export default function App() {
         branch: 'Quartier Kennedy'
       }
     ];
+    return safeJSONParse('bb_users', defaultUsers);
   });
 
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    const saved = localStorage.getItem('bb_current_user');
-    return saved ? JSON.parse(saved) : null;
+    return safeJSONParse<UserAccount | null>('bb_current_user', null);
   });
 
   const [isProductionMode, setIsProductionMode] = useState<boolean>(() => {
@@ -553,10 +596,9 @@ export default function App() {
   
   // Simulation role-based selector
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
-    const savedUser = localStorage.getItem('bb_current_user');
+    const savedUser = safeJSONParse<UserAccount | null>('bb_current_user', null);
     if (savedUser) {
-      const u = JSON.parse(savedUser) as UserAccount;
-      return u.role;
+      return savedUser.role;
     }
     return 'admin';
   });
@@ -790,70 +832,80 @@ export default function App() {
 
   const handleResetData = () => {
     if (currentRole !== 'admin') {
-      alert("Action non autorisée. Seul l'administrateur système (Directeur) peut réinitialiser l'application.");
+      showAlert("Non autorisé", "Seul l'administrateur système (Directeur) peut réinitialiser l'application.");
       return;
     }
 
     if (isProductionMode) {
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
-      const input = prompt(
-        `⚠️ OPTION DE RÉINITIALISATION DE PRODUCTION (RÉSERVÉ À L'ADMINISTRATEUR)\n\nLa réinitialisation supprimera définitivement TOUTES vos données d'activité réelles (réservations, fiches clients, factures, transactions, ventes, stocks).\nCette action est irréversible !\n\nVos comptes d'utilisateurs et la liste des chambres seront conservés.\n\nPour confirmer la réinitialisation complète usine, saisissez le code de contrôle : ${code}`
-      );
-      if (input !== code) {
-        alert("Code de sécurité incorrect. Réinitialisation usine annulée.");
-        return;
-      }
-      
-      // Wipe everything
-      setReservations([]);
-      setTransactions([]);
-      setGuests([]);
-      setInvoices([]);
-      setCustomerAvoirs([]);
-      setActiveOrders([]);
-      setPaymentIntents([]);
-      setPaymentTransactions([]);
-      setWebhookEvents([]);
-      setProcessedEvents([]);
-      setTasks([]);
-      setSyncQueue([]);
-      setStockMovements([]);
-      setStockItems([]);
-      setMenu([]);
-      setRooms(prev => prev.map(r => ({
-        ...r,
-        status: 'available',
-        currentGuestId: undefined,
-        currentReservationId: undefined
-      })));
-
-      localStorage.clear();
-      // Re-save production flag
-      localStorage.setItem('bb_is_production', 'true');
-      setIsProductionMode(true);
-      // Re-save users
-      localStorage.setItem('bb_users', JSON.stringify(users));
-      // Re-save current user
-      localStorage.setItem('bb_current_user', JSON.stringify(currentUser));
-      
-      setActiveTab('dashboard');
-      alert("L'application a été réinitialisée avec succès aux données d'usine (mode production maintenu).");
+      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+      setAdminResetGeneratedCode(randomCode);
+      setAdminResetConfirmInput('');
+      setAdminResetError('');
+      setIsAdminResetModalOpen(true);
       return;
     }
 
-    if (confirm("Voulez-vous réinitialiser toutes les données de simulation de Brunch Bouaké aux données de démonstration initiales ?")) {
-      localStorage.clear();
-      setRooms(INITIAL_ROOMS);
-      setGuests(INITIAL_GUESTS);
-      setReservations(INITIAL_RESERVATIONS);
-      setMenu(INITIAL_MENU);
-      setStaff(INITIAL_STAFF);
-      setTasks(INITIAL_TASKS);
-      setTransactions(INITIAL_TRANSACTIONS);
-      setActiveOrders([]);
-      setSettings(DEFAULT_PROPERTY_SETTINGS);
-      setActiveTab('dashboard');
+    showConfirm(
+      "Réinitialiser la Démo",
+      "Voulez-vous réinitialiser toutes les données de simulation de Brunch Bouaké aux données de démonstration initiales ?",
+      () => {
+        localStorage.clear();
+        setRooms(INITIAL_ROOMS);
+        setGuests(INITIAL_GUESTS);
+        setReservations(INITIAL_RESERVATIONS);
+        setMenu(INITIAL_MENU);
+        setStaff(INITIAL_STAFF);
+        setTasks(INITIAL_TASKS);
+        setTransactions(INITIAL_TRANSACTIONS);
+        setActiveOrders([]);
+        setSettings(DEFAULT_PROPERTY_SETTINGS);
+        setActiveTab('dashboard');
+        showToast("L'application a été réinitialisée aux données de démonstration.", "success");
+      }
+    );
+  };
+
+  const handleAdminResetSubmit = () => {
+    if (adminResetConfirmInput.trim() !== adminResetGeneratedCode) {
+      setAdminResetError("Le code de sécurité est incorrect.");
+      return;
     }
+
+    // Wipe everything
+    setReservations([]);
+    setTransactions([]);
+    setGuests([]);
+    setInvoices([]);
+    setCustomerAvoirs([]);
+    setActiveOrders([]);
+    setPaymentIntents([]);
+    setPaymentTransactions([]);
+    setWebhookEvents([]);
+    setProcessedEvents([]);
+    setTasks([]);
+    setSyncQueue([]);
+    setStockMovements([]);
+    setStockItems([]);
+    setMenu([]);
+    setRooms(prev => prev.map(r => ({
+      ...r,
+      status: 'available',
+      currentGuestId: undefined,
+      currentReservationId: undefined
+    })));
+
+    localStorage.clear();
+    // Re-save production flag
+    localStorage.setItem('bb_is_production', 'true');
+    setIsProductionMode(true);
+    // Re-save users
+    localStorage.setItem('bb_users', JSON.stringify(users));
+    // Re-save current user
+    localStorage.setItem('bb_current_user', JSON.stringify(currentUser));
+    
+    setIsAdminResetModalOpen(false);
+    setActiveTab('dashboard');
+    showToast("Réinitialisation usine effectuée avec succès (mode production maintenu).", "success");
   };
 
   const handleResetToDemo = () => {
@@ -2319,6 +2371,114 @@ export default function App() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Admin Reset Modal */}
+      {isAdminResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <span className="p-2.5 bg-rose-100 text-rose-600 rounded-2xl">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">⚠️ Réinitialisation Complète Usine (Données Réelles)</h3>
+                <p className="text-xs text-slate-400 font-medium">Option d'administration réservée uniquement au Directeur.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl space-y-2">
+                <div className="flex gap-2 text-rose-800 font-black text-xs uppercase items-center">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Avertissement Destructif</span>
+                </div>
+                <p className="text-xs text-rose-700 leading-relaxed font-semibold">
+                  Cette action supprimera définitivement TOUTES vos données réelles d'activité (réservations, fiches clients, factures, transactions de caisse, ventes, stocks).
+                  Cette action est absolument irréversible !
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium pt-1">
+                  <strong className="text-slate-700">Seront conservés :</strong> Les configurations de base des chambres, vos profils d'utilisateurs et administrateurs ainsi que vos thèmes de personnalisation.
+                </p>
+              </div>
+
+              {adminResetError && (
+                <div className="p-3 bg-rose-100 text-rose-800 rounded-xl text-xs font-black flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{adminResetError}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="block text-slate-600 text-xs font-black uppercase">
+                  Saisissez le code de contrôle <span className="px-2 py-0.5 bg-slate-900 text-white font-mono rounded select-all font-black text-sm tracking-wider">{adminResetGeneratedCode}</span> pour confirmer :
+                </label>
+                <input
+                  type="text"
+                  placeholder="Entrez le code ici..."
+                  value={adminResetConfirmInput}
+                  onChange={(e) => setAdminResetConfirmInput(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-rose-500 focus:outline-none text-center font-mono font-black text-md text-slate-800 placeholder-slate-400 tracking-widest uppercase"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setIsAdminResetModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleAdminResetSubmit}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/10 transition-all cursor-pointer"
+                >
+                  Confirmer et Réinitialiser Usine
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Dialog overlay (Alert/Confirm) */}
+      {dialog && dialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl max-w-md w-full space-y-4">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">{dialog.title}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">{dialog.message}</p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              {dialog.cancelText && (
+                <button
+                  onClick={dialog.onCancel}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {dialog.cancelText}
+                </button>
+              )}
+              <button
+                onClick={dialog.onConfirm}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+              >
+                {dialog.confirmText || "D'accord"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Toast Notification banner */}
+      {toast && (
+        <div className="fixed bottom-12 right-6 z-[100] p-4 rounded-2xl shadow-xl flex items-center gap-3 border animate-slide-in bg-white border-slate-200 max-w-sm">
+          <span className={`p-1.5 rounded-xl ${
+            toast.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
+            toast.type === 'error' ? 'bg-rose-50 text-rose-600' :
+            'bg-blue-50 text-blue-600'
+          }`}>
+            <Info className="w-4 h-4" />
+          </span>
+          <p className="text-xs font-semibold text-slate-700">{toast.message}</p>
         </div>
       )}
     </div>
