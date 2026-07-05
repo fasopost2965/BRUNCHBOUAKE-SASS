@@ -1,4 +1,4 @@
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings, RoomHistoryLog, Invoice, CustomerAvoir } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings, RoomHistoryLog, Invoice, CustomerAvoir, HREmployee, Payslip, HRContract } from './types';
 
 export const INITIAL_ROOMS: Room[] = [
   {
@@ -542,6 +542,149 @@ export const INITIAL_CUSTOMER_AVOIRS: CustomerAvoir[] = [
         paymentMethod: 'cash'
       }
     ]
+  }
+];
+
+export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
+  {
+    id: 'emp-1',
+    name: 'Zadi Richard',
+    customStatus: 'Manager Général Établissement',
+    phone: '+225 07 44 55 66 77',
+    email: 'r.zadi@brunchbouake.com',
+    hireDate: '2023-01-15',
+    baseSalary: 450000,
+    contractType: 'CDI',
+    department: 'Administration',
+    cnpsNumber: 'CNPS-9823748-A',
+    status: 'active'
+  },
+  {
+    id: 'emp-2',
+    name: 'Yao Amenan Chantal',
+    customStatus: 'Chef Comptable & Caissière Principal',
+    phone: '+225 07 11 22 33 44',
+    email: 'c.yao@brunchbouake.com',
+    hireDate: '2024-03-10',
+    baseSalary: 280000,
+    contractType: 'CDI',
+    department: 'Comptabilité',
+    cnpsNumber: 'CNPS-1029384-B',
+    status: 'active'
+  },
+  {
+    id: 'emp-3',
+    name: 'Kouassi Kouamé Jean',
+    customStatus: 'Maître d\'Hôtel & Chef de Rang',
+    phone: '+225 05 99 88 77 66',
+    email: 'k.jean@brunchbouake.com',
+    hireDate: '2024-05-20',
+    baseSalary: 180000,
+    contractType: 'CDI',
+    department: 'Restauration',
+    cnpsNumber: 'CNPS-2039482-C',
+    status: 'active'
+  },
+  {
+    id: 'emp-4',
+    name: 'Aka Florence',
+    customStatus: 'Gouvernante Principale des Appartements',
+    phone: '+225 01 22 33 44 55',
+    email: 'f.aka@brunchbouake.com',
+    hireDate: '2025-02-01',
+    baseSalary: 140000,
+    contractType: 'CDD',
+    contractDuration: '12 mois',
+    department: 'Hébergement',
+    cnpsNumber: 'CNPS-3049581-D',
+    status: 'active'
+  },
+  {
+    id: 'emp-5',
+    name: 'Traoré Bakary',
+    customStatus: 'Braiseur de Choukouya & Viandes',
+    phone: '+225 07 88 12 34 56',
+    email: 'b.traore@brunchbouake.com',
+    hireDate: '2025-11-01',
+    baseSalary: 220000,
+    contractType: 'CDD',
+    contractDuration: '6 mois',
+    department: 'Restauration',
+    cnpsNumber: 'CNPS-4059682-E',
+    status: 'active'
+  }
+];
+
+export const INITIAL_HR_PAYSLIPS: Payslip[] = [
+  {
+    id: 'slip-101',
+    employeeId: 'emp-3',
+    employeeName: 'Kouassi Kouamé Jean',
+    period: 'Juin 2026',
+    baseSalary: 180000,
+    seniorityYears: 2,
+    seniorityAmount: 7200,
+    includeSeniority: true,
+    bonusAmount: 15000,
+    includeBonus: true,
+    transportAllowance: 20000,
+    includeTransport: true,
+    socialSecurityDeduction: 11340,
+    includeSocialSecurity: true,
+    taxDeduction: 9000,
+    includeTax: true,
+    netSalary: 201860,
+    dateGenerated: '2026-06-28',
+    status: 'paid',
+    notes: 'Paiement régulier de salaire du mois. Virement Wave effectué.'
+  },
+  {
+    id: 'slip-102',
+    employeeId: 'emp-4',
+    employeeName: 'Aka Florence',
+    period: 'Juin 2026',
+    baseSalary: 140000,
+    seniorityYears: 1,
+    seniorityAmount: 2800,
+    includeSeniority: true,
+    bonusAmount: 0,
+    includeBonus: false,
+    transportAllowance: 20000,
+    includeTransport: true,
+    socialSecurityDeduction: 8820,
+    includeSocialSecurity: true,
+    taxDeduction: 7000,
+    includeTax: true,
+    netSalary: 146980,
+    dateGenerated: '2026-06-29',
+    status: 'paid',
+    notes: 'Paiement régulier par chèque.'
+  }
+];
+
+export const INITIAL_HR_CONTRACTS: HRContract[] = [
+  {
+    id: 'contr-201',
+    employeeId: 'emp-1',
+    employeeName: 'Zadi Richard',
+    type: 'CDI',
+    startDate: '2023-01-15',
+    salary: 450000,
+    status: 'active',
+    terms: 'Le présent contrat régit les fonctions de Manager Général au sein de Brunch Bouaké Hospitality. Le titulaire s\'engage à gérer l\'ensemble des opérations d\'hébergement et de restauration maquis de l\'établissement de Kennedy.',
+    dateGenerated: '2023-01-12'
+  },
+  {
+    id: 'contr-202',
+    employeeId: 'emp-5',
+    employeeName: 'Traoré Bakary',
+    type: 'CDD',
+    startDate: '2025-11-01',
+    endDate: '2026-05-01',
+    salary: 220000,
+    status: 'completed',
+    terms: 'Contrat à durée déterminée de 6 mois renouvelable pour le poste de Chef Braiseur de Choukouya. Logement et restauration partielle sur place autorisés.',
+    dateGenerated: '2025-10-28'
   }
 ];
 

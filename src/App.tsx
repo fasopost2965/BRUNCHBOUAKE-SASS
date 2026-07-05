@@ -40,7 +40,10 @@ import {
   INITIAL_TRANSACTIONS,
   INITIAL_ROOM_HISTORY_LOGS,
   INITIAL_INVOICES,
-  INITIAL_CUSTOMER_AVOIRS
+  INITIAL_CUSTOMER_AVOIRS,
+  INITIAL_HR_EMPLOYEES,
+  INITIAL_HR_PAYSLIPS,
+  INITIAL_HR_CONTRACTS
 } from './data';
 
 import { lazy, Suspense } from 'react';
@@ -64,7 +67,7 @@ const ReportsManager = lazy(() => import('./components/ReportsManager'));
 const HRManager = lazy(() => import('./components/HRManager'));
 const GuidedTourPage = lazy(() => import('./components/GuidedTourPage'));
 
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir, RoomHistoryLog } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir, RoomHistoryLog, HREmployee, Payslip, HRContract } from './types';
 
 import { PaymentOrchestrator } from './services/paymentService';
 import { DEFAULT_PROPERTY_SETTINGS } from './data';
@@ -256,6 +259,18 @@ export default function App() {
 
   const [customerAvoirs, setCustomerAvoirs] = useState<CustomerAvoir[]>(() => {
     return safeJSONParse('bb_customer_avoirs', INITIAL_CUSTOMER_AVOIRS);
+  });
+
+  const [hrEmployees, setHrEmployees] = useState<HREmployee[]>(() => {
+    return safeJSONParse('bb_hr_employees', INITIAL_HR_EMPLOYEES);
+  });
+
+  const [hrPayslips, setHrPayslips] = useState<Payslip[]>(() => {
+    return safeJSONParse('bb_hr_payslips', INITIAL_HR_PAYSLIPS);
+  });
+
+  const [hrContracts, setHrContracts] = useState<HRContract[]>(() => {
+    return safeJSONParse('bb_hr_contracts', INITIAL_HR_CONTRACTS);
   });
 
   const [roomHistoryLogs, setRoomHistoryLogs] = useState<RoomHistoryLog[]>(() => {
@@ -630,6 +645,18 @@ export default function App() {
   }, [customerAvoirs]);
 
   useEffect(() => {
+    localStorage.setItem('bb_hr_employees', JSON.stringify(hrEmployees));
+  }, [hrEmployees]);
+
+  useEffect(() => {
+    localStorage.setItem('bb_hr_payslips', JSON.stringify(hrPayslips));
+  }, [hrPayslips]);
+
+  useEffect(() => {
+    localStorage.setItem('bb_hr_contracts', JSON.stringify(hrContracts));
+  }, [hrContracts]);
+
+  useEffect(() => {
     localStorage.setItem('bb_room_history_logs', JSON.stringify(roomHistoryLogs));
   }, [roomHistoryLogs]);
 
@@ -773,7 +800,19 @@ export default function App() {
       "Réinitialiser la Démo",
       "Voulez-vous réinitialiser toutes les données de simulation de Brunch Bouaké aux données de démonstration initiales ?",
       () => {
+        const savedUsers = localStorage.getItem('bb_users');
+        const savedCurrentUser = localStorage.getItem('bb_current_user');
+        const savedTheme = localStorage.getItem('bb_app_theme');
+        const savedPin = localStorage.getItem('bb_security_pin');
+
         localStorage.clear();
+
+        if (savedUsers) localStorage.setItem('bb_users', savedUsers);
+        if (savedCurrentUser) localStorage.setItem('bb_current_user', savedCurrentUser);
+        if (savedTheme) localStorage.setItem('bb_app_theme', savedTheme);
+        if (savedPin) localStorage.setItem('bb_security_pin', savedPin);
+        localStorage.setItem('bb_is_production', 'false');
+
         setRooms(INITIAL_ROOMS);
         setGuests(INITIAL_GUESTS);
         setReservations(INITIAL_RESERVATIONS);
@@ -783,6 +822,15 @@ export default function App() {
         setTransactions(INITIAL_TRANSACTIONS);
         setActiveOrders([]);
         setSettings(DEFAULT_PROPERTY_SETTINGS);
+
+        // Reset HR demo data
+        setHrEmployees(INITIAL_HR_EMPLOYEES);
+        setHrPayslips(INITIAL_HR_PAYSLIPS);
+        setHrContracts(INITIAL_HR_CONTRACTS);
+        localStorage.setItem('bb_hr_employees', JSON.stringify(INITIAL_HR_EMPLOYEES));
+        localStorage.setItem('bb_hr_payslips', JSON.stringify(INITIAL_HR_PAYSLIPS));
+        localStorage.setItem('bb_hr_contracts', JSON.stringify(INITIAL_HR_CONTRACTS));
+
         setActiveTab('dashboard');
         showToast("L'application a été réinitialisée aux données de démonstration.", "success");
       }
@@ -818,14 +866,38 @@ export default function App() {
       currentReservationId: undefined
     })));
 
+    // Reset HR to clean slate
+    setHrEmployees([]);
+    setHrPayslips([]);
+    setHrContracts([]);
+
+    const savedUsers = localStorage.getItem('bb_users');
+    const savedCurrentUser = localStorage.getItem('bb_current_user');
+    const savedTheme = localStorage.getItem('bb_app_theme');
+    const savedPin = localStorage.getItem('bb_security_pin');
+
     localStorage.clear();
     // Re-save production flag
     localStorage.setItem('bb_is_production', 'true');
     setIsProductionMode(true);
-    // Re-save users
-    localStorage.setItem('bb_users', JSON.stringify(users));
-    // Re-save current user
-    localStorage.setItem('bb_current_user', JSON.stringify(currentUser));
+    // Re-save critical keys
+    if (savedUsers) {
+      localStorage.setItem('bb_users', savedUsers);
+    } else {
+      localStorage.setItem('bb_users', JSON.stringify(users));
+    }
+    if (savedCurrentUser) {
+      localStorage.setItem('bb_current_user', savedCurrentUser);
+    } else if (currentUser) {
+      localStorage.setItem('bb_current_user', JSON.stringify(currentUser));
+    }
+    if (savedTheme) localStorage.setItem('bb_app_theme', savedTheme);
+    if (savedPin) localStorage.setItem('bb_security_pin', savedPin);
+
+    // Explicitly write clean HR states
+    localStorage.setItem('bb_hr_employees', JSON.stringify([]));
+    localStorage.setItem('bb_hr_payslips', JSON.stringify([]));
+    localStorage.setItem('bb_hr_contracts', JSON.stringify([]));
     
     setIsAdminResetModalOpen(false);
     setActiveTab('dashboard');
@@ -833,7 +905,19 @@ export default function App() {
   };
 
   const handleResetToDemo = () => {
+    const savedUsers = localStorage.getItem('bb_users');
+    const savedCurrentUser = localStorage.getItem('bb_current_user');
+    const savedTheme = localStorage.getItem('bb_app_theme');
+    const savedPin = localStorage.getItem('bb_security_pin');
+
     localStorage.clear();
+
+    if (savedUsers) localStorage.setItem('bb_users', savedUsers);
+    if (savedCurrentUser) localStorage.setItem('bb_current_user', savedCurrentUser);
+    if (savedTheme) localStorage.setItem('bb_app_theme', savedTheme);
+    if (savedPin) localStorage.setItem('bb_security_pin', savedPin);
+    localStorage.setItem('bb_is_production', 'false');
+
     setRooms(INITIAL_ROOMS);
     setGuests(INITIAL_GUESTS);
     setReservations(INITIAL_RESERVATIONS);
@@ -904,8 +988,16 @@ export default function App() {
     setProcessedEvents([]);
     setSyncQueue([]);
     setStockMovements([]);
+
+    // Restore HR demo data
+    setHrEmployees(INITIAL_HR_EMPLOYEES);
+    setHrPayslips(INITIAL_HR_PAYSLIPS);
+    setHrContracts(INITIAL_HR_CONTRACTS);
+    localStorage.setItem('bb_hr_employees', JSON.stringify(INITIAL_HR_EMPLOYEES));
+    localStorage.setItem('bb_hr_payslips', JSON.stringify(INITIAL_HR_PAYSLIPS));
+    localStorage.setItem('bb_hr_contracts', JSON.stringify(INITIAL_HR_CONTRACTS));
+
     setIsProductionMode(false);
-    localStorage.setItem('bb_is_production', 'false');
     setActiveTab('dashboard');
   };
 
@@ -933,6 +1025,11 @@ export default function App() {
       currentReservationId: undefined
     })));
 
+    // Clean HR data for a clean production slate
+    setHrEmployees([]);
+    setHrPayslips([]);
+    setHrContracts([]);
+
     localStorage.removeItem('bb_reservations');
     localStorage.removeItem('bb_transactions');
     localStorage.removeItem('bb_guests');
@@ -948,6 +1045,11 @@ export default function App() {
     localStorage.removeItem('bb_stock_items');
     localStorage.removeItem('bb_stock_movements');
     localStorage.removeItem('bb_menu');
+
+    // Clean HR keys
+    localStorage.removeItem('bb_hr_employees');
+    localStorage.removeItem('bb_hr_payslips');
+    localStorage.removeItem('bb_hr_contracts');
 
     localStorage.setItem('bb_rooms', JSON.stringify(rooms.map(r => ({ ...r, status: 'available', currentGuestId: undefined, currentReservationId: undefined }))));
     localStorage.setItem('bb_users', JSON.stringify(users));
@@ -984,6 +1086,11 @@ export default function App() {
       currentReservationId: undefined
     })));
 
+    // Clean HR data for a clean production slate
+    setHrEmployees([]);
+    setHrPayslips([]);
+    setHrContracts([]);
+
     // 4. Clean up localStorage
     localStorage.removeItem('bb_reservations');
     localStorage.removeItem('bb_transactions');
@@ -1000,6 +1107,11 @@ export default function App() {
     localStorage.removeItem('bb_stock_items');
     localStorage.removeItem('bb_stock_movements');
     localStorage.removeItem('bb_menu');
+
+    // Clean HR keys
+    localStorage.removeItem('bb_hr_employees');
+    localStorage.removeItem('bb_hr_payslips');
+    localStorage.removeItem('bb_hr_contracts');
 
     // Save cleaned collections (rooms and active users)
     localStorage.setItem('bb_rooms', JSON.stringify(rooms.map(r => ({ ...r, status: 'available', currentGuestId: undefined, currentReservationId: undefined }))));
@@ -1795,6 +1907,12 @@ export default function App() {
               {activeTab === 'hr' && (
                 <HRManager 
                   currentUser={currentUser}
+                  employees={hrEmployees}
+                  setEmployees={setHrEmployees}
+                  payslips={hrPayslips}
+                  setPayslips={setHrPayslips}
+                  contracts={hrContracts}
+                  setContracts={setHrContracts}
                 />
               )}
 
