@@ -20,6 +20,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { UserAccount, UserRole } from '../types';
+import { hashPassword } from '../utils/crypto';
 
 interface UserManagerProps {
   users: UserAccount[];
@@ -174,7 +175,7 @@ export default function UserManager({
     setTimeout(() => setSuccessMessage(''), 4000);
   };
 
-  const handleCreateUserSubmit = (e: React.FormEvent) => {
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -199,6 +200,8 @@ export default function UserManager({
       }
     }
 
+    const hashedPasswordValue = await hashPassword(password);
+
     const newUser: UserAccount = {
       id: `usr-${Date.now().toString().slice(-4)}`,
       name: fullName.trim(),
@@ -207,7 +210,7 @@ export default function UserManager({
       phone: phone.trim(),
       role,
       status,
-      passwordHash: password,
+      passwordHash: hashedPasswordValue,
       isTemporaryPassword: isTemporary,
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Administrateur',

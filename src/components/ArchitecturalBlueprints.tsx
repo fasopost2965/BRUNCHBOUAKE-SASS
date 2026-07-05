@@ -1,8 +1,29 @@
 import React, { useState } from 'react';
-import { Database, GitBranch, LayoutGrid, Smartphone, Palette, ShieldCheck, CheckSquare, Layers, UserCheck } from 'lucide-react';
+import { 
+  Database, 
+  GitBranch, 
+  LayoutGrid, 
+  Smartphone, 
+  Palette, 
+  ShieldCheck, 
+  CheckSquare, 
+  Layers, 
+  UserCheck,
+  Clipboard,
+  FileText,
+  CheckCircle2,
+  FolderTree,
+  ChevronRight,
+  ShieldAlert,
+  Code,
+  Sparkles,
+  BookOpen
+} from 'lucide-react';
 
 export default function ArchitecturalBlueprints() {
-  const [activeSec, setActiveSec] = useState<'ia' | 'flows' | 'screens' | 'mobile' | 'design'>('ia');
+  const [activeSec, setActiveSec] = useState<'ia' | 'flows' | 'screens' | 'mobile' | 'design' | 'exploitation'>('ia');
+  const [activeSchemaTab, setActiveSchemaTab] = useState<'audit' | 'shift' | 'recipes'>('audit');
+  const [activeRoadmapPhase, setActiveRoadmapPhase] = useState<1 | 2 | 3 | 4>(1);
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 overflow-hidden">
@@ -65,6 +86,15 @@ export default function ArchitecturalBlueprints() {
           >
             <Palette className="w-3.5 h-3.5" />
             5. Design UI
+          </button>
+          <button
+            onClick={() => setActiveSec('exploitation')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+              activeSec === 'exploitation' ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100 bg-emerald-50/50' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            6. Exploitation & SaaS Terrain
           </button>
         </div>
       </div>
@@ -340,6 +370,494 @@ export default function ArchitecturalBlueprints() {
                 <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                   <strong>Éléments tactiles :</strong> Ombres douces, coins arrondis en <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded text-slate-800">rounded-2xl</code> pour donner un aspect convivial mais ultra-professionnel.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 6: SAAS EXPLOITATION ET TERRAIN */}
+        {activeSec === 'exploitation' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Intro Hero banner */}
+            <div className="p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white rounded-2xl border border-emerald-500/20 shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              <div className="relative z-10">
+                <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-[10px] font-bold rounded-full uppercase tracking-wider">
+                  Ingénierie de Production
+                </span>
+                <h3 className="text-xl font-extrabold text-white mt-3 leading-snug tracking-tight">
+                  Architecture d'Exploitation Réelle — Brunch Bouaké
+                </h3>
+                <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                  Spécifications d'exploitation pour le déploiement sur le terrain en Afrique de l'Ouest. Ce guide définit les modèles de données immuables, l'organisation modulaire du code hors-ligne (local-first) et la planification du go-live.
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-navigation inside Exploitation */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Index of subtopics */}
+              <div className="space-y-4 lg:col-span-1">
+                <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 space-y-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 pb-1 border-b border-slate-200/60 font-mono">
+                    Volets Techniques
+                  </div>
+                  
+                  <button
+                    onClick={() => setActiveSchemaTab('audit')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'audit'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Code className="w-3.5 h-3.5" />
+                      <span>1. Schémas de Données Réels</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSchemaTab('shift')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'shift'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FolderTree className="w-3.5 h-3.5" />
+                      <span>2. Architecture & Hooks/Contexts</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSchemaTab('recipes')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'recipes'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-3.5 h-3.5" />
+                      <span>3. Roadmap terrain 12 Semaines</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+                </div>
+
+                {/* Info Card Regional Specifics */}
+                <div className="bg-amber-50/50 border border-amber-200/70 rounded-2xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                    <ShieldAlert className="w-4 h-4 text-amber-700" />
+                    Spécificités Afrique Francophone
+                  </h4>
+                  <ul className="space-y-2 text-[11px] text-amber-900/90 leading-relaxed pl-1">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-700 font-bold mt-0.5">•</span>
+                      <span><strong>Arrondis financiers stricts :</strong> Pas de décimales sur le FCFA (XOF). La monnaie est indivisible au détail.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-700 font-bold mt-0.5">•</span>
+                      <span><strong>Mobile Money souverain :</strong> Saisie obligatoire de l'ID de transaction (Wave, Orange, MTN) à la caisse pour lutter contre la fraude de double saisie.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-700 font-bold mt-0.5">•</span>
+                      <span><strong>Réseau hautement instable :</strong> Stockage local immuable sur le téléphone avec file d'attente d'impression (ESC/POS Bluetooth ou IP) résiliente.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Right Column: Display area */}
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* SUBTAB 1: SCHEMAS DE DONNEES */}
+                {activeSchemaTab === 'audit' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6 animate-in fade-in duration-250">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <Database className="w-4 h-4 text-emerald-600" />
+                        Structures de Données SQL d'Exploitation Réelle
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Schémas relationnels SQL (compatibles PostgreSQL / CockroachDB / Cloud SQL) requis pour assurer la traçabilité financière et anti-fraude.
+                      </p>
+                    </div>
+
+                    {/* Schemas breakdown */}
+                    <div className="space-y-6">
+                      
+                      {/* Audit Log Table Schema */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
+                            1. Table: audit_logs (Journal Immuable)
+                          </span>
+                          <span className="text-[10px] text-rose-600 font-semibold uppercase font-mono bg-rose-50 px-2 py-0.5 rounded">
+                            Anti-fraude interne
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Enregistre de manière définitive toute opération sensible (remise, annulation, modification tarifaire) avec obligation de justifier d'un motif (`reason`). Un système de chaînage cryptographique (`hash` et `prev_hash`) garantit l'intégrité de la table de logs en base de données.
+                        </p>
+                        <pre className="p-3.5 bg-slate-950 text-emerald-400 rounded-xl text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 shadow-inner max-h-[220px]">
+{`CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    username VARCHAR(100) NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    device_fingerprint VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    action_type VARCHAR(100) NOT NULL, -- e.g. 'POS_DISCOUNT', 'RESERVATION_CANCEL'
+    module VARCHAR(50) NOT NULL, -- 'POS', 'PMS', 'STOCKS', 'CASH'
+    payload_before JSONB, -- État de l'enregistrement avant modif
+    payload_after JSONB,  -- État de l'enregistrement après modif
+    reason TEXT NOT NULL, -- Motif obligatoire !
+    hash VARCHAR(64) NOT NULL, -- Hash SHA-256 (prev_hash + user_id + timestamp + payload_after)
+    prev_hash VARCHAR(64)
+);
+
+CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, timestamp);`}
+                        </pre>
+                      </div>
+
+                      {/* Cash Shift Table Schema */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
+                            2. Table: cash_shifts (Flux & Clôture de Caisse)
+                          </span>
+                          <span className="text-[10px] text-amber-600 font-semibold uppercase font-mono bg-amber-50 px-2 py-0.5 rounded">
+                            Contrôle de Caisse Strict
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Gère le cycle de vie financier des rotations d'équipes (shifts). Le gérant ouvre la caisse avec un fonds initial, le système cumule les ventes théoriques par canal (Espèces, Wave, Orange Money, MTN), et à la fermeture le caissier déclare le comptage physique réel.
+                        </p>
+                        <pre className="p-3.5 bg-slate-950 text-emerald-400 rounded-xl text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 shadow-inner max-h-[220px]">
+{`CREATE TYPE shift_status AS ENUM ('open', 'closed', 'validated');
+
+CREATE TABLE cash_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id), -- Caissier responsable
+    opened_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    closed_at TIMESTAMP WITH TIME ZONE,
+    status shift_status DEFAULT 'open' NOT NULL,
+    initial_cash DECIMAL(12,2) NOT NULL, -- Fonds de caisse en XOF
+    
+    -- Valeurs calculées par le système (Théorique)
+    expected_cash DECIMAL(12,2) DEFAULT 0.00,
+    expected_wave DECIMAL(12,2) DEFAULT 0.00,
+    expected_orange DECIMAL(12,2) DEFAULT 0.00,
+    expected_mtn DECIMAL(12,2) DEFAULT 0.00,
+    
+    -- Saisie réelle déclarée lors du comptage physique
+    actual_cash DECIMAL(12,2) DEFAULT 0.00,
+    actual_wave DECIMAL(12,2) DEFAULT 0.00,
+    actual_orange DECIMAL(12,2) DEFAULT 0.00,
+    actual_mtn DECIMAL(12,2) DEFAULT 0.00,
+    
+    total_expenses DECIMAL(12,2) DEFAULT 0.00, -- Petites dépenses sorties de caisse
+    discrepancy_amount DECIMAL(12,2) DEFAULT 0.00, -- Écarts constatés
+    discrepancy_reason TEXT,
+    
+    validated_by UUID REFERENCES users(id), -- Manager sur-validateur
+    validated_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT
+);`}
+                        </pre>
+                      </div>
+
+                      {/* Recipe & Stock Multi-Unit Schema */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
+                            3. Table: fiches_techniques & Multi-unités (Stocks F&B)
+                          </span>
+                          <span className="text-[10px] text-blue-600 font-semibold uppercase font-mono bg-blue-50 px-2 py-0.5 rounded">
+                            Logistique & Coût de Revient
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Permet de lier chaque plat vendu au POS à ses ingrédients pour décrémenter automatiquement le stock. Gère la conversion entre l'unité d'achat en gros (ex: Sac de riz 50kg, Carton de bière) et l'unité de consommation (ex: g, cl, bouteille).
+                        </p>
+                        <pre className="p-3.5 bg-slate-950 text-emerald-400 rounded-xl text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 shadow-inner max-h-[220px]">
+{`CREATE TABLE recipes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    menu_item_id VARCHAR(100) NOT NULL, -- Lien avec l'ID du plat/boisson du POS
+    name VARCHAR(255) NOT NULL,
+    portions INTEGER DEFAULT 1 NOT NULL,
+    cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00, -- Calculé via ingrédients
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE recipe_ingredients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    stock_item_id UUID NOT NULL REFERENCES stock_items(id),
+    quantity_required DECIMAL(12,3) NOT NULL, -- En unité de détail (ex: cl pour le lait, g pour le riz)
+    waste_percentage DECIMAL(5,2) DEFAULT 0.00 -- Perte technique d'épluchage/cuisson (ex: 15%)
+);`}
+                        </pre>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* SUBTAB 2: ARCHITECTURE DE DOSSIERS ET HOOKS */}
+                {activeSchemaTab === 'shift' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6 animate-in fade-in duration-250">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <FolderTree className="w-4 h-4 text-emerald-600" />
+                        Architecture Logicielle Local-First & Stratégie React
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Pour éviter de créer un monolithe monolithique et garantir un fonctionnement 100% autonome hors-ligne (résilience réseau PWA), les fonctionnalités d'exploitation sont isolées par modules étanches.
+                      </p>
+                    </div>
+
+                    {/* Folder tree display */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 font-mono text-[11px] leading-relaxed overflow-x-auto shadow-inner">
+                        <div className="text-emerald-400 font-bold mb-2">// Structure des fichiers d'exploitation</div>
+                        <div>src/</div>
+                        <div>├── <span className="text-amber-300">contexts/</span> <span className="text-slate-500">// États isolés par contexte</span></div>
+                        <div>│   ├── AuditContext.tsx</div>
+                        <div>│   ├── CashShiftContext.tsx</div>
+                        <div>│   └── StockContext.tsx</div>
+                        <div>├── <span className="text-amber-300">hooks/</span> <span className="text-slate-500">// Logique métier pure (hooks)</span></div>
+                        <div>│   ├── useAuditTrail.ts</div>
+                        <div>│   ├── useCashShift.ts</div>
+                        <div>│   └── useRecipes.ts</div>
+                        <div>├── <span className="text-amber-300">components/</span> <span className="text-slate-500">// UI composants modulaires</span></div>
+                        <div>│   ├── <span className="text-blue-400">Audit/</span></div>
+                        <div>│   │   ├── AuditLogTable.tsx</div>
+                        <div>│   │   └── ReasonModal.tsx</div>
+                        <div>│   ├── <span className="text-blue-400">Cash/</span></div>
+                        <div>│   │   ├── ShiftStatusWidget.tsx</div>
+                        <div>│   │   └── CloseShiftDialog.tsx</div>
+                        <div>│   └── <span className="text-blue-400">Recipes/</span></div>
+                        <div>│   │   ├── RecipeEditor.tsx</div>
+                        <div>│   │   └── IngredientDeductor.tsx</div>
+                        <div>├── <span className="text-amber-300">types/</span></div>
+                        <div>│   └── index.ts <span className="text-slate-500">// Types d'exploitation d'Afrique de l'Ouest</span></div>
+                        <div>└── <span className="text-amber-300">utils/</span></div>
+                        <div>    └── hash.ts <span className="text-slate-500">// Signature locale de sécurité d'Audit</span></div>
+                      </div>
+
+                      {/* Hooks design specs */}
+                      <div className="space-y-4">
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                          <h5 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-mono">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Hook: useAuditTrail
+                          </h5>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Encapsule l'écriture des données. Toute action sensible passe par ce hook qui : 1. Ouvre un modal d'explication obligatoire, 2. Calcule le hash cryptographique, 3. Enregistre dans IndexedDB (locale) pour synchronisation future.
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                          <h5 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-mono">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Hook: useCashShift
+                          </h5>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Bloque le Point de Vente (POS) et l'accès PMS si aucun shift n'est ouvert par l'utilisateur. Permet de déclarer les dépenses d'exploitation quotidiennes en espèces et de gérer les écarts de caisse en forçant la validation managériale par code PIN en cas de dépassement du seuil de tolérance.
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                          <h5 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-mono">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Hook: useRecipes
+                          </h5>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Lie le Point de Vente aux fiches techniques de cuisine et au stock de boissons. Lors de la validation d'une table, il extrait récursivement les ingrédients en appliquant le taux de perte de cuisson, convertit les grammes et cl en unités de stockage et décrémente l'inventaire physique.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUBTAB 3: ROADMAP 12 SEMAINES */}
+                {activeSchemaTab === 'recipes' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6 animate-in fade-in duration-250">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <GitBranch className="w-4 h-4 text-emerald-600" />
+                        Roadmap d'Implémentation & Plan de Déploiement Réel (12 Semaines)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Le planning logique d'unification pour transformer la démonstration en un produit opérationnel, sécurisé, et adapté à la réalité ouest-africaine.
+                      </p>
+                    </div>
+
+                    {/* Timeline switcher */}
+                    <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                      {[1, 2, 3, 4].map((phaseNum) => (
+                        <button
+                          key={phaseNum}
+                          onClick={() => setActiveRoadmapPhase(phaseNum as any)}
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            activeRoadmapPhase === phaseNum
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Phase {phaseNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Timeline active Phase details */}
+                    <div className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 space-y-4">
+                      {activeRoadmapPhase === 1 && (
+                        <div className="space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase font-mono">
+                              Semaines 1 à 3 — Solidification Technique & Sécurité Client
+                            </span>
+                            <span className="text-xs text-slate-500 font-semibold">Masse critique de confiance</span>
+                          </div>
+                          <h5 className="font-extrabold text-slate-950 text-sm">
+                            Mise en place de l'Audit Log et durcissement anti-fraude
+                          </h5>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            L'objectif principal est de sanctuariser les écritures financières. Nous déployons le système d'Audit Log cryptographique local, interceptons les actions sensibles au POS et PMS, et installons l'authentification rapide par code PIN à 4 chiffres à l'écran d'accueil pour le personnel de salle.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px]">
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-slate-700">Jalons clés :</div>
+                              <ul className="list-disc pl-4 text-slate-500 mt-1 space-y-1">
+                                <li>Intégration du hook global <code className="text-[10px] bg-slate-100 p-0.5 rounded">useAuditTrail</code></li>
+                                <li>Sécurisation des mots de passe en base locale (SHA-256)</li>
+                                <li>Mise en place des fiches d'explications sur les remises</li>
+                              </ul>
+                            </div>
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-amber-800">Risque & Atténuation Terrain :</div>
+                              <p className="text-slate-500 mt-1">
+                                <strong>Risque :</strong> Décalage d'horodatage des appareils mobiles si désynchronisés d'Internet. <br />
+                                <strong>Atténuation :</strong> Utilisation d'un serveur de temps NTP ou de synchronisation d'horodatage basé sur la signature du serveur principal lors de l'établissement de la connexion de caisse.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeRoadmapPhase === 2 && (
+                        <div className="space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase font-mono">
+                              Semaines 4 à 6 — Exploitation Réelle (Caisse & Mobile Money)
+                            </span>
+                            <span className="text-xs text-slate-500 font-semibold">Rigueur d'exploitation</span>
+                          </div>
+                          <h5 className="font-extrabold text-slate-950 text-sm">
+                            Shifts opérationnels, dépenses caisse et workflow Mobile Money (Wave, Orange, MTN)
+                          </h5>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            Nous bloquons l'accès au Point de Vente tant qu'un shift n'est pas ouvert par le caissier de garde. Nous implémentons le formulaire de déclaration d'écart physique à la fermeture de caisse et concevons le workflow d'authentification des références de paiement Wave/Orange pour l'Afrique de l'Ouest.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px]">
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-slate-700">Jalons clés :</div>
+                              <ul className="list-disc pl-4 text-slate-500 mt-1 space-y-1">
+                                <li>Blocage POS si <code className="text-[10px] bg-slate-100 p-0.5 rounded">CashShift</code> fermé ou non initié</li>
+                                <li>Champs <code className="text-[10px] bg-slate-100 p-0.5 rounded">transaction_reference</code> obligatoires</li>
+                                <li>Écran de réconciliation journalière théorique vs réel</li>
+                              </ul>
+                            </div>
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-amber-800">Risque & Atténuation Terrain :</div>
+                              <p className="text-slate-500 mt-1">
+                                <strong>Risque :</strong> Erreur humaine lors de la saisie manuelle des ID de transaction Mobile Money longs. <br />
+                                <strong>Atténuation :</strong> Permettre de scanner le SMS de confirmation reçu sur le téléphone de la caisse via l'appareil photo avec un OCR local ou scanner de QR Code Wave.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeRoadmapPhase === 3 && (
+                        <div className="space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase font-mono">
+                              Semaines 7 à 9 — Rentabilité (Fiches Techniques & Maintenance)
+                            </span>
+                            <span className="text-xs text-slate-500 font-semibold">Suivi de la marge brute</span>
+                          </div>
+                          <h5 className="font-extrabold text-slate-950 text-sm">
+                            Gestion logistique F&B et couplage PMS avec la maintenance
+                          </h5>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            Nous implémentons les fiches de recettes de cuisine de Brunch Bouaké (décrémentation des stocks d'ingrédients à la vente POS). Nous introduisons la typologie de démarque inconnue (casse, péremption, vol suspecté) et coupons le module de maintenance technique CMMS avec l'état PMS des chambres en cas de panne de climatiseur.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px]">
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-slate-700">Jalons clés :</div>
+                              <ul className="list-disc pl-4 text-slate-500 mt-1 space-y-1">
+                                <li>Multi-unités & conversions gros-détail automatisées</li>
+                                <li>Décrémentation de stock en temps réel lors de l'encaissement</li>
+                                <li>Bascule automatique PMS en "Indisponible" si incident technique</li>
+                              </ul>
+                            </div>
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-amber-800">Risque & Atténuation Terrain :</div>
+                              <p className="text-slate-500 mt-1">
+                                <strong>Risque :</strong> Les fiches techniques ne reflètent pas la cuisine réelle (différence de portions). <br />
+                                <strong>Atténuation :</strong> Introduire une tolérance d'inventaire de 10% sur les ingrédients consommables, ajustable lors des inventaires mensuels de contrôle.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeRoadmapPhase === 4 && (
+                        <div className="space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase font-mono">
+                              Semaines 10 à 12 — Scalabilité (Comptes Débiteurs & CRM WhatsApp)
+                            </span>
+                            <span className="text-xs text-slate-500 font-semibold">Excellence client & Go-Live</span>
+                          </div>
+                          <h5 className="font-extrabold text-slate-950 text-sm">
+                            Paiements différés d'entreprises (City Ledger) et automatisation WhatsApp
+                          </h5>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            Nous créons le module City Ledger de suivi des comptes clients débiteurs d'entreprises ivoiriennes. Nous configurons l'envoi de factures et rappels de réservation via l'intégration WhatsApp Business API et mettons en place la segmentation automatique CRM des gros dépensiers.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px]">
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-slate-700">Jalons clés :</div>
+                              <ul className="list-disc pl-4 text-slate-500 mt-1 space-y-1">
+                                <li>Mise en place de lignes de crédit d'entreprises</li>
+                                <li>Modèles de messages WhatsApp automatisés (check-in, check-out)</li>
+                                <li>Segmentation CRM d'Afrique de l'Ouest (Gros dépensiers, risques)</li>
+                              </ul>
+                            </div>
+                            <div className="p-2.5 bg-white border border-slate-150 rounded-lg">
+                              <div className="font-bold text-amber-800">Risque & Atténuation Terrain :</div>
+                              <p className="text-slate-500 mt-1">
+                                <strong>Risque :</strong> Coûts élevés de l'API officielle WhatsApp pour un petit établissement indépendant. <br />
+                                <strong>Atténuation :</strong> Fournir une alternative par clic "Partager par WhatsApp Web / Mobile" qui pré-remplit le message et ouvre l'application locale sans surcoût d'API.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>

@@ -19,6 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { UserAccount } from '../types';
+import { hashPassword } from '../utils/crypto';
 
 interface LoginViewProps {
   users: UserAccount[];
@@ -92,7 +93,7 @@ export default function LoginView({
     return () => clearInterval(interval);
   }, [forgotSuccess, timerSeconds, screen]);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -121,8 +122,13 @@ export default function LoginView({
       return;
     }
 
-    // Check password
-    if (matchedUser.passwordHash !== password) {
+    // Hash the entered password to compare with the stored hash
+    const inputHash = await hashPassword(password);
+
+    // Support both pre-hashed secure passwords and legacy plain text ones for migration
+    const isMatch = matchedUser.passwordHash === password || matchedUser.passwordHash === inputHash;
+
+    if (!isMatch) {
       setErrorMessage("Mot de passe incorrect. Veuillez vérifier la saisie ou demander une réinitialisation.");
       return;
     }
@@ -210,7 +216,7 @@ export default function LoginView({
     }, 1200);
   };
 
-  const handleResetSubmit = (e: React.FormEvent) => {
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -225,7 +231,8 @@ export default function LoginView({
     }
 
     if (userToReset) {
-      onResetPasswordDirect(userToReset.username, newPassword);
+      const secureHash = await hashPassword(newPassword);
+      onResetPasswordDirect(userToReset.username, secureHash);
       setScreen('reset-success');
     } else {
       setErrorMessage("Une erreur est survenue lors de l'identification de l'utilisateur à réinitialiser.");

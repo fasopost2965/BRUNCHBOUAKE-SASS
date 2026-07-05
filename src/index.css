@@ -1,1 +1,572 @@
 @import "tailwindcss";
+
+/* ====================================================
+   DESIGN SYSTEM & BRUNCH BOUAKÉ THEME OVERRIDES
+   ==================================================== */
+
+/* ----------------------------------------------------
+   BLUE LAGOON THEME (Midnight Lagoon Dark Mode)
+   ---------------------------------------------------- */
+.theme-lagoon {
+  background-color: #0b1120 !important;
+  color: #e2e8f0 !important;
+}
+
+.theme-lagoon .bg-white {
+  background-color: #121b2e !important;
+  color: #f1f5f9 !important;
+}
+
+.theme-lagoon .border-slate-200,
+.theme-lagoon .border-slate-100,
+.theme-lagoon .border-slate-300,
+.theme-lagoon .border-slate-200\/60,
+.theme-lagoon .border-slate-200\/40,
+.theme-lagoon .divide-slate-100,
+.theme-lagoon .divide-slate-200,
+.theme-lagoon .divide-y > * {
+  border-color: #1e293b !important;
+}
+
+.theme-lagoon .text-slate-950,
+.theme-lagoon .text-slate-900,
+.theme-lagoon .text-slate-800,
+.theme-lagoon .text-slate-700,
+.theme-lagoon .text-slate-600,
+.theme-lagoon .text-gray-950,
+.theme-lagoon .text-gray-900,
+.theme-lagoon .text-gray-800,
+.theme-lagoon .text-gray-700,
+.theme-lagoon .text-gray-600,
+.theme-lagoon .text-black {
+  color: #f1f5f9 !important;
+}
+
+.theme-lagoon .text-slate-500,
+.theme-lagoon .text-slate-400,
+.theme-lagoon .text-gray-500,
+.theme-lagoon .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+.theme-lagoon .text-slate-300,
+.theme-lagoon .text-slate-200,
+.theme-lagoon .text-slate-100,
+.theme-lagoon .text-gray-300,
+.theme-lagoon .text-gray-200,
+.theme-lagoon .text-gray-100 {
+  color: #cbd5e1 !important;
+}
+
+.theme-lagoon .hover\:bg-slate-50:hover,
+.theme-lagoon .hover\:bg-slate-50\/50:hover,
+.theme-lagoon .hover\:bg-slate-100:hover,
+.theme-lagoon .hover\:bg-slate-50:focus {
+  background-color: #1e293b !important;
+}
+
+.theme-lagoon input,
+.theme-lagoon select,
+.theme-lagoon textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.theme-lagoon input:focus,
+.theme-lagoon select:focus,
+.theme-lagoon textarea:focus {
+  border-color: #06b6d4 !important;
+}
+
+/* Semantic text coloring */
+.theme-lagoon .text-orange-500,
+.theme-lagoon .text-orange-600,
+.theme-lagoon .text-orange-700,
+.theme-lagoon .text-orange-800,
+.theme-lagoon .text-orange-950,
+.theme-lagoon .text-orange-900 {
+  color: #22d3ee !important;
+}
+
+.theme-lagoon .text-emerald-950,
+.theme-lagoon .text-emerald-900,
+.theme-lagoon .text-emerald-800,
+.theme-lagoon .text-emerald-700,
+.theme-lagoon .text-emerald-600 {
+  color: #34d399 !important;
+}
+
+.theme-lagoon .text-rose-950,
+.theme-lagoon .text-rose-900,
+.theme-lagoon .text-rose-800,
+.theme-lagoon .text-rose-700,
+.theme-lagoon .text-rose-600,
+.theme-lagoon .text-red-600,
+.theme-lagoon .text-red-700 {
+  color: #f87171 !important;
+}
+
+.theme-lagoon .text-blue-950,
+.theme-lagoon .text-blue-900,
+.theme-lagoon .text-blue-800,
+.theme-lagoon .text-blue-700,
+.theme-lagoon .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.theme-lagoon .text-amber-950,
+.theme-lagoon .text-amber-900,
+.theme-lagoon .text-amber-800,
+.theme-lagoon .text-amber-700,
+.theme-lagoon .text-amber-600,
+.theme-lagoon .text-yellow-600,
+.theme-lagoon .text-yellow-700 {
+  color: #fbbf24 !important;
+}
+
+/* Light backgrounds converted to dark translucent styles */
+.theme-lagoon .bg-orange-50,
+.theme-lagoon .bg-orange-100,
+.theme-lagoon .bg-orange-50\/50 {
+  background-color: rgba(6, 182, 212, 0.12) !important;
+  color: #22d3ee !important;
+}
+
+.theme-lagoon .bg-emerald-50,
+.theme-lagoon .bg-emerald-100,
+.theme-lagoon .bg-emerald-50\/50,
+.theme-lagoon .bg-emerald-50\/5 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #34d399 !important;
+}
+
+.theme-lagoon .bg-rose-50,
+.theme-lagoon .bg-rose-100,
+.theme-lagoon .bg-rose-500\/10,
+.theme-lagoon .bg-red-50 {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  color: #f87171 !important;
+}
+
+.theme-lagoon .bg-blue-50,
+.theme-lagoon .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+.theme-lagoon .bg-amber-50,
+.theme-lagoon .bg-amber-100,
+.theme-lagoon .bg-yellow-50,
+.theme-lagoon .bg-yellow-100 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #fbbf24 !important;
+}
+
+.theme-lagoon .bg-slate-50,
+.theme-lagoon .bg-slate-100,
+.theme-lagoon .bg-slate-200 {
+  background-color: #1e293b !important;
+}
+
+/* Interactive components buttons */
+.theme-lagoon .bg-orange-500,
+.theme-lagoon .bg-orange-600 {
+  background-color: #06b6d4 !important;
+  color: #0b1120 !important;
+}
+
+.theme-lagoon .bg-orange-500:hover,
+.theme-lagoon .bg-orange-600:hover {
+  background-color: #0891b2 !important;
+}
+
+.theme-lagoon .border-orange-500,
+.theme-lagoon .border-orange-200,
+.theme-lagoon .border-orange-100 {
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+
+.theme-lagoon aside.bg-slate-900 {
+  background-color: #070b13 !important;
+  border-color: #1e293b !important;
+}
+
+.theme-lagoon .bg-slate-950,
+.theme-lagoon .bg-slate-950\/20 {
+  background-color: #04060a !important;
+}
+
+.theme-lagoon .text-white {
+  color: #f1f5f9 !important;
+}
+
+.theme-lagoon .recharts-default-tooltip {
+  background-color: #121b2e !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.theme-lagoon .recharts-text {
+  fill: #94a3b8 !important;
+}
+
+
+/* ----------------------------------------------------
+   SACRED FOREST THEME (Eco Luxury Emerald & Gold)
+   ---------------------------------------------------- */
+.theme-forest {
+  background-color: #f4f6f0 !important;
+  color: #132a13 !important;
+}
+
+.theme-forest .bg-white {
+  background-color: #ffffff !important;
+  color: #132a13 !important;
+}
+
+.theme-forest .border-slate-200,
+.theme-forest .border-slate-100,
+.theme-forest .border-slate-300,
+.theme-forest .divide-slate-200 {
+  border-color: #e3e8db !important;
+}
+
+.theme-forest .text-slate-900,
+.theme-forest .text-slate-800,
+.theme-forest .text-slate-700 {
+  color: #132a13 !important;
+}
+
+.theme-forest .text-slate-600,
+.theme-forest .text-slate-500 {
+  color: #3f5e4d !important;
+}
+
+.theme-forest input,
+.theme-forest select,
+.theme-forest textarea {
+  background-color: #fcfdfa !important;
+  border-color: #cad2c5 !important;
+  color: #132a13 !important;
+}
+
+.theme-forest .text-orange-500,
+.theme-forest .text-orange-600,
+.theme-forest .text-orange-700,
+.theme-forest .text-orange-850,
+.theme-forest .text-orange-950,
+.theme-forest .text-orange-900 {
+  color: #2d6a4f !important;
+}
+
+.theme-forest .bg-orange-50,
+.theme-forest .bg-orange-100 {
+  background-color: #ecf3f0 !important;
+  color: #2d6a4f !important;
+}
+
+.theme-forest .bg-orange-500,
+.theme-forest .bg-orange-600 {
+  background-color: #2d6a4f !important;
+  color: #ffffff !important;
+}
+
+.theme-forest .bg-orange-500:hover,
+.theme-forest .bg-orange-600:hover {
+  background-color: #1b4332 !important;
+}
+
+.theme-forest aside.bg-slate-900 {
+  background-color: #0f241a !important;
+  border-color: #1b4332 !important;
+}
+
+.theme-forest .text-orange-400 {
+  color: #ffb703 !important;
+}
+
+
+/* ----------------------------------------------------
+   HELVETIC SWISS ART THEME (High Contrast & Crisp)
+   ---------------------------------------------------- */
+.theme-swiss {
+  background-color: #f8f9fa !important;
+  color: #000000 !important;
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+}
+
+.theme-swiss .bg-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+.theme-swiss .rounded-3xl,
+.theme-swiss .rounded-2xl,
+.theme-swiss .rounded-xl,
+.theme-swiss .rounded-\[24px\],
+.theme-swiss .rounded-lg,
+.theme-swiss .rounded-md {
+  border-radius: 0px !important;
+}
+
+.theme-swiss .border-slate-200,
+.theme-swiss .border-slate-100,
+.theme-swiss .border-slate-300,
+.theme-swiss .border-orange-200,
+.theme-swiss .border-orange-100,
+.theme-swiss .divide-slate-200,
+.theme-swiss .divide-slate-100,
+.theme-swiss .border {
+  border-color: #000000 !important;
+  border-width: 1.5px !important;
+}
+
+/* Global high-contrast dark text on light backgrounds */
+.theme-swiss .text-slate-950,
+.theme-swiss .text-slate-900,
+.theme-swiss .text-slate-800,
+.theme-swiss .text-slate-700,
+.theme-swiss .text-slate-600,
+.theme-swiss .text-slate-500,
+.theme-swiss .text-slate-400,
+.theme-swiss .text-gray-950,
+.theme-swiss .text-gray-900,
+.theme-swiss .text-gray-800,
+.theme-swiss .text-gray-700,
+.theme-swiss .text-gray-600,
+.theme-swiss .text-gray-500,
+.theme-swiss .text-gray-400 {
+  color: #000000 !important;
+}
+
+/* Swiss red semantic mapping */
+.theme-swiss .text-orange-500,
+.theme-swiss .text-orange-600,
+.theme-swiss .text-orange-700,
+.theme-swiss .text-orange-900,
+.theme-swiss .text-orange-950 {
+  color: #da1212 !important;
+  font-weight: 800 !important;
+}
+
+/* Clear status styling with border outlining */
+.theme-swiss .text-emerald-800,
+.theme-swiss .text-emerald-700,
+.theme-swiss .text-emerald-600,
+.theme-swiss .text-emerald-950,
+.theme-swiss .text-emerald-900 {
+  color: #047857 !important;
+  font-weight: 700 !important;
+}
+
+.theme-swiss .text-rose-800,
+.theme-swiss .text-rose-700,
+.theme-swiss .text-rose-600,
+.theme-swiss .text-rose-950,
+.theme-swiss .text-rose-900,
+.theme-swiss .text-red-600,
+.theme-swiss .text-red-700,
+.theme-swiss .text-red-800 {
+  color: #da1212 !important;
+  font-weight: 700 !important;
+}
+
+.theme-swiss .text-blue-800,
+.theme-swiss .text-blue-700,
+.theme-swiss .text-blue-600,
+.theme-swiss .text-blue-950,
+.theme-swiss .text-blue-900 {
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+}
+
+.theme-swiss .text-amber-800,
+.theme-swiss .text-amber-700,
+.theme-swiss .text-amber-600,
+.theme-swiss .text-amber-950,
+.theme-swiss .text-amber-900 {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+
+.theme-swiss .bg-orange-50,
+.theme-swiss .bg-orange-100 {
+  background-color: #fde8e8 !important;
+  color: #da1212 !important;
+  border: 1px solid #da1212 !important;
+  border-radius: 0px !important;
+}
+
+.theme-swiss .bg-emerald-50,
+.theme-swiss .bg-emerald-100 {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #047857 !important;
+  border-radius: 0px !important;
+}
+
+.theme-swiss .bg-rose-50,
+.theme-swiss .bg-rose-100,
+.theme-swiss .bg-red-50 {
+  background-color: #fef2f2 !important;
+  border: 1px solid #da1212 !important;
+  border-radius: 0px !important;
+}
+
+.theme-swiss .bg-blue-50,
+.theme-swiss .bg-blue-100 {
+  background-color: #eff6ff !important;
+  border: 1px solid #1d4ed8 !important;
+  border-radius: 0px !important;
+}
+
+.theme-swiss .bg-amber-50,
+.theme-swiss .bg-amber-100,
+.theme-swiss .bg-yellow-50,
+.theme-swiss .bg-yellow-100 {
+  background-color: #fffbeb !important;
+  border: 1px solid #b45309 !important;
+  border-radius: 0px !important;
+}
+
+/* Buttons & primary active elements - force black with crisp borders */
+.theme-swiss .bg-orange-500,
+.theme-swiss .bg-orange-600,
+.theme-swiss .bg-emerald-500,
+.theme-swiss .bg-emerald-600,
+.theme-swiss .bg-emerald-700,
+.theme-swiss .bg-teal-500,
+.theme-swiss .bg-teal-600,
+.theme-swiss .bg-blue-500,
+.theme-swiss .bg-blue-600,
+.theme-swiss .bg-rose-500,
+.theme-swiss .bg-rose-600,
+.theme-swiss .bg-red-500,
+.theme-swiss .bg-red-600 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0px !important;
+}
+
+.theme-swiss .bg-orange-500:hover,
+.theme-swiss .bg-orange-600:hover,
+.theme-swiss .bg-emerald-500:hover,
+.theme-swiss .bg-emerald-600:hover,
+.theme-swiss .bg-teal-500:hover,
+.theme-swiss .bg-teal-600:hover,
+.theme-swiss .bg-blue-500:hover,
+.theme-swiss .bg-blue-600:hover,
+.theme-swiss .bg-rose-500:hover,
+.theme-swiss .bg-rose-600:hover,
+.theme-swiss .bg-red-500:hover,
+.theme-swiss .bg-red-600:hover {
+  background-color: #da1212 !important;
+  color: #ffffff !important;
+}
+
+/* Prevent black-on-black text inside dark containers and sidebar */
+.theme-swiss aside.bg-slate-900,
+.theme-swiss aside.bg-slate-900 * {
+  color: #ffffff !important;
+}
+
+.theme-swiss aside.bg-slate-900 {
+  background-color: #000000 !important;
+  border-right: 3px solid #000000 !important;
+}
+
+.theme-swiss aside.bg-slate-900 button.bg-slate-800 {
+  background-color: #da1212 !important;
+  border: 2px solid #ffffff !important;
+  color: #ffffff !important;
+}
+
+.theme-swiss aside.bg-slate-900 button:hover {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+.theme-swiss .bg-slate-900 *,
+.theme-swiss .bg-slate-800 *,
+.theme-swiss .bg-slate-950 *,
+.theme-swiss .bg-orange-500 *,
+.theme-swiss .bg-orange-600 *,
+.theme-swiss .bg-emerald-600 *,
+.theme-swiss .bg-rose-600 *,
+.theme-swiss .bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* Target specific nested classes inside dark elements to avoid global overrides */
+.theme-swiss aside.bg-slate-900 .text-slate-400,
+.theme-swiss aside.bg-slate-900 .text-slate-500,
+.theme-swiss .bg-slate-900 .text-slate-400,
+.theme-swiss .bg-slate-900 .text-slate-500,
+.theme-swiss .bg-slate-800 .text-slate-400,
+.theme-swiss .bg-slate-800 .text-slate-500,
+.theme-swiss .bg-slate-950 .text-slate-400,
+.theme-swiss .bg-slate-950 .text-slate-500,
+.theme-swiss .bg-orange-500 .text-slate-400,
+.theme-swiss .bg-orange-500 .text-slate-500,
+.theme-swiss .bg-orange-600 .text-slate-400,
+.theme-swiss .bg-orange-600 .text-slate-500,
+.theme-swiss .bg-emerald-600 .text-slate-400,
+.theme-swiss .bg-emerald-600 .text-slate-500,
+.theme-swiss .bg-rose-600 .text-slate-400,
+.theme-swiss .bg-rose-600 .text-slate-500 {
+  color: #d4d4d4 !important;
+}
+
+.theme-swiss aside.bg-slate-900 .text-slate-900,
+.theme-swiss aside.bg-slate-900 .text-slate-800,
+.theme-swiss .bg-slate-900 .text-slate-900,
+.theme-swiss .bg-slate-900 .text-slate-800,
+.theme-swiss .bg-slate-800 .text-slate-900,
+.theme-swiss .bg-slate-800 .text-slate-800,
+.theme-swiss .bg-slate-950 .text-slate-900,
+.theme-swiss .bg-slate-950 .text-slate-800,
+.theme-swiss .bg-orange-500 .text-slate-900,
+.theme-swiss .bg-orange-500 .text-slate-800,
+.theme-swiss .bg-orange-600 .text-slate-900,
+.theme-swiss .bg-orange-600 .text-slate-800,
+.theme-swiss .bg-emerald-600 .text-slate-900,
+.theme-swiss .bg-emerald-600 .text-slate-800,
+.theme-swiss .bg-rose-600 .text-slate-900,
+.theme-swiss .bg-rose-600 .text-slate-800 {
+  color: #ffffff !important;
+}
+
+.theme-swiss input,
+.theme-swiss select,
+.theme-swiss textarea {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+  font-family: monospace !important;
+}
+
+.theme-swiss input:focus,
+.theme-swiss select:focus,
+.theme-swiss textarea:focus {
+  outline: none !important;
+  border-color: #da1212 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+}
+
+.theme-swiss .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+}
+
+.theme-swiss .recharts-cartesian-grid-horizontal line,
+.theme-swiss .recharts-cartesian-grid-vertical line {
+  stroke: #000000 !important;
+  stroke-width: 1.5px !important;
+}
