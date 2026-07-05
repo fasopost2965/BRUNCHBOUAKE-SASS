@@ -373,6 +373,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
 ];
 
 export const DEFAULT_PROPERTY_SETTINGS: PropertySettings = {
+  tenantId: 'tenant-bouake-kennedy',
   establishmentName: "Brunch Bouaké Hospitality",
   brandLogoText: "Brunch Bouaké",
   address: "Quartier Kennedy, route de l'Université",
@@ -426,6 +427,11 @@ export const DEFAULT_PROPERTY_SETTINGS: PropertySettings = {
       { id: 's1', name: 'Saison Haute / Fêtes Fin d\'Année', startMonth: 12, endMonth: 1, percentage: 15, active: true },
       { id: 's2', name: 'Période Vacances Scolaires d\'Été', startMonth: 7, endMonth: 8, percentage: 10, active: false }
     ]
+  },
+  whatsappConfig: {
+    instanceUrl: "https://api.whatsapp-gateway.ci/v1/instance-bouake-kennedy",
+    apiToken: "WA_TOKEN_SIMULATED_KENNEDY_9921",
+    isActive: true
   }
 };
 

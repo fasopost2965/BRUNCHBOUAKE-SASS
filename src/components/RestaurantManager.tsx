@@ -73,9 +73,33 @@ export default function RestaurantManager({
   const [formIsMaquisOnly, setFormIsMaquisOnly] = useState(false);
   const [formIsRestaurantOnly, setFormIsRestaurantOnly] = useState(false);
   const [formLinkedStockId, setFormLinkedStockId] = useState('');
+  const [formIngredients, setFormIngredients] = useState<{ stockItemId: string; quantityRequired: number }[]>([]);
+  const [newIngredientId, setNewIngredientId] = useState<string>('');
+  const [newIngredientQty, setNewIngredientQty] = useState<string>('1');
 
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
+
+  const handleAddIngredientToRecipe = () => {
+    if (!newIngredientId) return;
+    const qty = parseFloat(newIngredientQty);
+    if (isNaN(qty) || qty <= 0) {
+      setFormError("La quantité requise doit être un nombre supérieur à 0.");
+      return;
+    }
+    if (formIngredients.some(i => i.stockItemId === newIngredientId)) {
+      setFormError("Cet ingrédient est déjà présent dans la recette.");
+      return;
+    }
+    setFormIngredients([...formIngredients, { stockItemId: newIngredientId, quantityRequired: qty }]);
+    setNewIngredientId('');
+    setNewIngredientQty('1');
+    setFormError('');
+  };
+
+  const handleRemoveIngredientFromRecipe = (stockId: string) => {
+    setFormIngredients(formIngredients.filter(i => i.stockItemId !== stockId));
+  };
 
   // Handle Edit click
   const handleEditClick = (item: MenuItem) => {
@@ -88,6 +112,9 @@ export default function RestaurantManager({
     setFormIsMaquisOnly(!!item.isMaquisOnly);
     setFormIsRestaurantOnly(!!item.isRestaurantOnly);
     setFormLinkedStockId(item.ingredients?.[0]?.stockItemId || '');
+    setFormIngredients(item.ingredients || []);
+    setNewIngredientId('');
+    setNewIngredientQty('1');
     setFormError('');
     setFormSuccess('');
     setIsFormOpen(true);
@@ -104,6 +131,9 @@ export default function RestaurantManager({
     setFormIsMaquisOnly(establishmentMode === 'maquis');
     setFormIsRestaurantOnly(false);
     setFormLinkedStockId('');
+    setFormIngredients([]);
+    setNewIngredientId('');
+    setNewIngredientQty('1');
     setFormError('');
     setFormSuccess('');
     setIsFormOpen(true);
@@ -144,7 +174,7 @@ export default function RestaurantManager({
       description: formDescription.trim() || undefined,
       isMaquisOnly: formIsMaquisOnly,
       isRestaurantOnly: formIsRestaurantOnly,
-      ingredients: formLinkedStockId ? [{ stockItemId: formLinkedStockId, quantityRequired: 1 }] : undefined
+      ingredients: formIngredients.length > 0 ? formIngredients : undefined
     };
 
     if (editingItem) {
@@ -412,8 +442,17 @@ export default function RestaurantManager({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredItems.map(item => {
-            // Find if item has linked stock
-            const linkedStock = stockItems.find(s => s.id === (item.ingredients?.[0]?.stockItemId));
+            // Find all linked ingredients and check stock statuses
+            const itemIngredients = item.ingredients || [];
+            const ingredientStatuses = itemIngredients.map(ing => {
+              const stockItem = stockItems.find(s => s.id === ing.stockItemId);
+              return {
+                ...ing,
+                stockItem,
+                isCritique: stockItem ? (stockItem.quantity <= stockItem.minQuantity || stockItem.quantity < ing.quantityRequired) : true
+              };
+            });
+            const hasCritiqueStock = ingredientStatuses.some(status => status.isCritique);
             
             return (
               <div 
@@ -464,6 +503,24 @@ export default function RestaurantManager({
                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 h-8">
                       {item.description || "Aucune description fournie pour ce menu de l'établissement."}
                     </p>
+
+                    {/* Ingredients summary badges */}
+                    {itemIngredients.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {ingredientStatuses.map(status => (
+                          <span
+                            key={status.stockItemId}
+                            className={`px-1.5 py-0.5 rounded text-[8px] font-semibold tracking-tight ${
+                              status.isCritique 
+                                ? 'bg-rose-50 text-rose-600 border border-rose-100' 
+                                : 'bg-slate-50 text-slate-500 border border-slate-150'
+                            }`}
+                          >
+                            {status.stockItem?.name || status.stockItemId}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -478,15 +535,13 @@ export default function RestaurantManager({
                     </div>
 
                     {/* Stock status indicator */}
-                    {linkedStock ? (
+                    {itemIngredients.length > 0 ? (
                       <div className="text-right">
-                        <span className="text-[9px] text-slate-400 font-bold uppercase block">Stock Réel</span>
-                        <span className={`font-mono font-bold text-xs ${
-                          linkedStock.quantity <= linkedStock.minQuantity 
-                            ? 'text-rose-600' 
-                            : 'text-emerald-600'
-                        }`}>
-                          {linkedStock.quantity} {linkedStock.unit}
+                        <span className="text-[9px] text-slate-400 font-bold uppercase block">Recette</span>
+                        <span className={`font-mono font-bold text-[10px] ${
+                          hasCritiqueStock ? 'text-rose-600 animate-pulse' : 'text-emerald-600'
+                        }`} title={ingredientStatuses.map(status => `${status.stockItem?.name || status.stockItemId}: ${status.stockItem?.quantity || 0}/${status.quantityRequired}`).join(', ')}>
+                          {hasCritiqueStock ? '⚠️ Stock Critique' : '✅ Ingrédients OK'}
                         </span>
                       </div>
                     ) : (
@@ -618,24 +673,94 @@ export default function RestaurantManager({
                   />
                 </div>
 
-                {/* Linked Stock Item (Dynamic reconciliation) */}
-                <div className="col-span-2 space-y-1">
+                {/* Composition de la Recette - Multi-Ingrédients */}
+                <div className="col-span-2 space-y-2 bg-slate-50/50 p-4 border border-slate-100 rounded-2xl">
                   <div className="flex items-center justify-between">
-                    <label className="block text-slate-500 font-bold uppercase tracking-wider text-[10px]">Lier à un article de Stock (Optionnel)</label>
-                    <span className="text-[9px] text-orange-500 font-bold italic">Auto-Déduction lors de la vente</span>
+                    <div>
+                      <span className="block text-slate-800 font-extrabold uppercase tracking-wider text-[10px]">Composition de la Recette (Multi-Ingrédients)</span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Associez les ingrédients en stock consommés par ce plat</p>
+                    </div>
+                    <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold px-2 py-0.5 rounded-full">
+                      {formIngredients.length} ingrédient(s)
+                    </span>
                   </div>
-                  <select
-                    value={formLinkedStockId}
-                    onChange={e => setFormLinkedStockId(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800 font-medium"
-                  >
-                    <option value="">-- Ne pas lier au stock (Ration libre) --</option>
-                    {stockItems.map(stock => (
-                      <option key={stock.id} value={stock.id}>
-                        {stock.name} ({stock.quantity} {stock.unit} restants, Emplacement: {stock.location || 'Général'})
-                      </option>
-                    ))}
-                  </select>
+
+                  {/* List of current ingredients in recipe */}
+                  {formIngredients.length === 0 ? (
+                    <div className="text-center py-3 bg-white border border-slate-200 border-dashed rounded-xl text-[11px] text-slate-400 font-medium">
+                      Aucun ingrédient associé. Ce plat sera vendu sans déstockage d'ingrédients.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {formIngredients.map(ing => {
+                        const stockItem = stockItems.find(s => s.id === ing.stockItemId);
+                        return (
+                          <div key={ing.stockItemId} className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl">
+                            <div>
+                              <span className="font-bold text-slate-800">{stockItem ? stockItem.name : `ID: ${ing.stockItemId}`}</span>
+                              <span className="text-[9px] text-slate-400 ml-1.5">
+                                (Stock disponible: {stockItem ? `${stockItem.quantity} ${stockItem.unit}` : 'Inconnu'})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md text-[10px]">
+                                {ing.quantityRequired} {stockItem?.unit || 'unité(s)'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveIngredientFromRecipe(ing.stockItemId)}
+                                className="p-1 hover:bg-rose-50 text-rose-500 rounded-lg hover:text-rose-600 transition-colors"
+                                title="Retirer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add ingredient controls */}
+                  <div className="pt-2 border-t border-slate-200/50">
+                    <span className="block text-[9px] text-slate-400 font-bold uppercase mb-1.5">Associer un nouvel ingrédient :</span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={newIngredientId}
+                        onChange={e => setNewIngredientId(e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:border-orange-500 focus:outline-none font-medium text-slate-700"
+                      >
+                        <option value="">-- Choisir un ingrédient --</option>
+                        {stockItems.map(stock => (
+                          <option key={stock.id} value={stock.id} disabled={formIngredients.some(i => i.stockItemId === stock.id)}>
+                            {stock.name} ({stock.quantity} {stock.unit} dispo)
+                          </option>
+                        ))}
+                      </select>
+                      <div className="w-24 relative">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0.01"
+                          placeholder="Qté"
+                          value={newIngredientQty}
+                          onChange={e => setNewIngredientQty(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg focus:border-orange-500 focus:outline-none font-semibold text-slate-800"
+                        />
+                        <span className="absolute right-2.5 top-1.5 text-[9px] text-slate-400 font-bold uppercase">
+                          {stockItems.find(s => s.id === newIngredientId)?.unit || ''}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddIngredientToRecipe}
+                        disabled={!newIngredientId}
+                        className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-extrabold rounded-lg shadow-sm transition-all text-[11px]"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Scoping rules checkboxes */}

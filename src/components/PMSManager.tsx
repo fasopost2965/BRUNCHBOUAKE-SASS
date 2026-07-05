@@ -34,6 +34,7 @@ import {
 import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, RoomHistoryLog } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
 import { validateReservation } from '../utils/validation';
+import { WhatsAppOrchestrator } from '../services/whatsappService';
 
 interface PMSProps {
   rooms: Room[];
@@ -458,6 +459,34 @@ export default function PMSManager({
 
     // Save reservations
     onUpdateReservations(updatedReservationsList);
+
+    // Trigger WhatsApp Reservation Confirmation Notification (French / Nouchi local chic)
+    if (finalGuestPhone) {
+      const pinToUse = securityPin.trim() || '1234';
+      WhatsAppOrchestrator.sendTemplateMessage(
+        finalGuestPhone,
+        'reservation_confirm',
+        {
+          guestName: finalGuestName,
+          roomName: selectedRoom.name,
+          checkInDate,
+          checkOutDate,
+          securityPin: pinToUse
+        },
+        settings.tenantId || 'tenant-bouake-kennedy',
+        settings
+      ).then((res) => {
+        console.log("[WhatsApp PMS Check-in] Response:", res);
+        // We can show a non-blocking toast/log or alert depending on the response status
+        if (res.status === 'sent') {
+          console.log(`[WhatsApp] Notification envoyée à ${finalGuestPhone}.`);
+        } else if (res.status === 'queued') {
+          console.warn(`[WhatsApp Hors-ligne] Message mis en attente IndexedDB pour ${finalGuestPhone}.`);
+        }
+      }).catch((err) => {
+        console.error("[WhatsApp PMS Check-in] Error:", err);
+      });
+    }
 
     // Reset and close
     setShowCheckInModal(false);

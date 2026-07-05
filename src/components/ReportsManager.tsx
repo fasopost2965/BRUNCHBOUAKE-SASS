@@ -11,29 +11,105 @@ import {
   FileText, 
   Printer, 
   Download, 
-  ChevronRight, 
-  RefreshCw,
-  Search,
-  Lock,
-  Unlock,
-  AlertTriangle,
+  Lock, 
+  AlertTriangle, 
+  BarChart2, 
+  Info,
+  Layers,
   Award,
-  ChevronDown,
-  PieChart,
-  BarChart2,
-  Info
+  CheckCircle2
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Transaction, Room, Reservation, MenuItem, UserAccount, HREmployee, Payslip } from '../types';
+import { 
+  Transaction, 
+  Room, 
+  Reservation, 
+  MenuItem, 
+  UserAccount, 
+  HREmployee, 
+  Payslip, 
+  TableOrder, 
+  StockItem 
+} from '../types';
+import { INITIAL_MENU } from '../data';
+import { 
+  calculateOccupancyRate, 
+  calculateRevPAR, 
+  calculateFoodCostAndMargin 
+} from '../utils/analytics';
 
 interface ReportsManagerProps {
   currentUser: UserAccount;
 }
 
+// Fallback seed stock items to enable robust cost price lookup
+const FALLBACK_STOCK_ITEMS: StockItem[] = [
+  { id: 'st-i-1', tenantId: 'tenant-bouake-kennedy', name: 'Huile de Palme raffinée Dinor (Bidon de 20L)', category: 'ingredient', quantity: 2, unit: 'litre', minQuantity: 1, pricePurchase: 23000, location: 'Épicerie' },
+  { id: 'st-i-2', tenantId: 'tenant-bouake-kennedy', name: 'Carton de Poulet importé découpé (10kg)', category: 'nourriture', quantity: 1, unit: 'unité', minQuantity: 3, pricePurchase: 18000, location: 'Chambre Froide' },
+  { id: 'st-i-3', tenantId: 'tenant-bouake-kennedy', name: 'Piment de Table Rouge d\'Alépé (Cagette de 5kg)', category: 'ingredient', quantity: 1, unit: 'kg', minQuantity: 2, pricePurchase: 6000, location: 'Cuisine Légumes' },
+  { id: 'st-f-2', tenantId: 'tenant-bouake-kennedy', name: 'Régime de Banane Plantain', category: 'nourriture', quantity: 2, unit: 'unité', minQuantity: 2, pricePurchase: 3500 }
+];
+
+// Fallback seed paid POS orders matching initial demo transactions
+const FALLBACK_PAID_ORDERS: TableOrder[] = [
+  {
+    id: 'ord-8101',
+    tenantId: 'tenant-bouake-kennedy',
+    tableNumber: 'Table 4',
+    items: [
+      { menuItemId: 'm1', name: 'Kedjenou de Poulet de Brousse (M)', price: 6500, quantity: 2 },
+      { menuItemId: 'm4', name: 'Alloco Spécial Giga (Bananes mûres)', price: 2000, quantity: 1 },
+      { menuItemId: 'm8', name: 'Bière Ivoirienne Bock de 65cl', price: 1500, quantity: 1 },
+      { menuItemId: 'm5', name: 'Attiéké de Qualité Supérieure', price: 1000, quantity: 1 }
+    ],
+    status: 'paid',
+    createdAt: '2026-06-30T13:10:00Z',
+    totalAmount: 17500
+  },
+  {
+    id: 'ord-8102',
+    tenantId: 'tenant-bouake-kennedy',
+    tableNumber: 'VIP Lounge',
+    items: [
+      { menuItemId: 'm1', name: 'Kedjenou de Poulet de Brousse (M)', price: 6500, quantity: 2 },
+      { menuItemId: 'm3', name: 'Choukouya de Mouton Tendre', price: 8000, quantity: 2 },
+      { menuItemId: 'm8', name: 'Bière Ivoirienne Bock de 65cl', price: 1500, quantity: 2 }
+    ],
+    status: 'paid',
+    createdAt: '2026-06-29T21:40:00Z',
+    totalAmount: 32000
+  },
+  {
+    id: 'ord-8103',
+    tenantId: 'tenant-bouake-kennedy',
+    tableNumber: 'Table 2',
+    items: [
+      { menuItemId: 'm1', name: 'Kedjenou de Poulet de Brousse (M)', price: 6500, quantity: 1 },
+      { menuItemId: 'm4', name: 'Alloco Spécial Giga (Bananes mûres)', price: 2000, quantity: 2 },
+      { menuItemId: 'm6', name: 'Bissap Glacé Maison (Hibiscus)', price: 1500, quantity: 2 }
+    ],
+    status: 'paid',
+    createdAt: '2026-07-01T12:30:00Z',
+    totalAmount: 13500
+  },
+  {
+    id: 'ord-8104',
+    tenantId: 'tenant-bouake-kennedy',
+    tableNumber: 'Table 1',
+    items: [
+      { menuItemId: 'm3', name: 'Choukouya de Mouton Tendre', price: 8000, quantity: 1 },
+      { menuItemId: 'm5', name: 'Attiéké de Qualité Supérieure', price: 1000, quantity: 2 },
+      { menuItemId: 'm8', name: 'Bière Ivoirienne Bock de 65cl', price: 1500, quantity: 4 }
+    ],
+    status: 'paid',
+    createdAt: '2026-07-02T19:15:00Z',
+    totalAmount: 16000
+  }
+];
+
 export default function ReportsManager({ currentUser }: ReportsManagerProps) {
   // 1. CONFIDENTIALITY / SECURITY LAYER
   const [isLocked, setIsLocked] = useState<boolean>(() => {
-    // If user is receptionist or housekeeper, restrict by default
     if (currentUser.role === 'receptionist' || currentUser.role === 'housekeeper' || currentUser.role === 'waiter') {
       return true;
     }
@@ -43,12 +119,15 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
   const [passcode, setPasscode] = useState<string>('');
   const [lockError, setLockError] = useState<string | null>(null);
 
-  // 2. LOAD DATA
+  // 2. DATA STATES
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [hrEmployees, setHrEmployees] = useState<HREmployee[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [activeOrders, setActiveOrders] = useState<TableOrder[]>([]);
 
   const [selectedYear, setSelectedYear] = useState<string>('2026');
   const [selectedMonth, setSelectedMonth] = useState<string>('06'); // June 2026 is our seed date month
@@ -66,20 +145,19 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
   };
 
   useEffect(() => {
-    // Load existing transactions, rooms, reservations, etc.
+    // Load data from LocalStorage with appropriate fallbacks
     const savedTx = localStorage.getItem('bb_transactions');
     if (savedTx) {
       setTransactions(JSON.parse(savedTx));
     } else {
-      // Import fallback seeds
       setTransactions([
-        { id: 'tr-001', type: 'lodging_payment', amount: 50000, method: 'wave', description: 'Acompte réservation res-101 (Konan Koffi Serge)', date: '2026-06-28T10:15:00Z' },
-        { id: 'tr-002', type: 'lodging_payment', amount: 270000, method: 'orange_money', description: 'Paiement intégral chambre 103 (Marc-Antoine Dubois)', date: '2026-06-29T14:30:00Z' },
-        { id: 'tr-003', type: 'pos_sale', amount: 17500, method: 'cash', description: 'Addition maquis - Table 4', date: '2026-06-30T13:10:00Z' },
-        { id: 'tr-004', type: 'expense', amount: 35000, method: 'cash', description: 'Achat bouteilles de gaz pour les cuisines du maquis', date: '2026-06-30T09:00:00Z' },
-        { id: 'tr-005', type: 'lodging_payment', amount: 150000, method: 'wave', description: 'Acompte réservation Diop (res-102)', date: '2026-06-30T16:00:00Z' },
-        { id: 'tr-006', type: 'pos_sale', amount: 32000, method: 'mtn', description: 'Commande maquis - Salon VIP', date: '2026-06-29T21:40:00Z' },
-        { id: 'tr-007', type: 'expense', amount: 120000, method: 'orange_money', description: 'Achat approvisionnement viande de mouton Maquis', date: '2026-06-28T08:00:00Z' }
+        { id: 'tr-001', tenantId: 'tenant-bouake-kennedy', type: 'lodging_payment', amount: 50000, method: 'wave', description: 'Acompte réservation res-101 (Konan Koffi Serge)', date: '2026-06-28T10:15:00Z', idempotencyKey: 'idem-tr-001' },
+        { id: 'tr-002', tenantId: 'tenant-bouake-kennedy', type: 'lodging_payment', amount: 270000, method: 'orange_money', description: 'Paiement intégral chambre 103 (Marc-Antoine Dubois)', date: '2026-06-29T14:30:00Z', idempotencyKey: 'idem-tr-002' },
+        { id: 'tr-003', tenantId: 'tenant-bouake-kennedy', type: 'pos_sale', amount: 17500, method: 'cash', description: 'Addition maquis - Table 4 (Kedjenou x2, Alloco x1, Boissons x3)', date: '2026-06-30T13:10:00Z', idempotencyKey: 'idem-tr-003' },
+        { id: 'tr-004', tenantId: 'tenant-bouake-kennedy', type: 'expense', amount: 35000, method: 'cash', description: 'Achat bouteilles de gaz pour les cuisines du maquis', date: '2026-06-30T09:00:00Z', idempotencyKey: 'idem-tr-004' },
+        { id: 'tr-005', tenantId: 'tenant-bouake-kennedy', type: 'lodging_payment', amount: 150000, method: 'wave', description: 'Acompte réservation Diop (res-102)', date: '2026-06-30T16:00:00Z', idempotencyKey: 'idem-tr-005' },
+        { id: 'tr-006', tenantId: 'tenant-bouake-kennedy', type: 'pos_sale', amount: 32000, method: 'mtn', description: 'Commande maquis - Salon VIP (Kedjenou x2, Choukouya x2, Bière x2)', date: '2026-06-29T21:40:00Z', idempotencyKey: 'idem-tr-006' },
+        { id: 'tr-007', tenantId: 'tenant-bouake-kennedy', type: 'expense', amount: 120000, method: 'orange_money', description: 'Achat approvisionnement viande de mouton Maquis', date: '2026-06-28T08:00:00Z', idempotencyKey: 'idem-tr-007' }
       ]);
     }
 
@@ -88,12 +166,12 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
       setRooms(JSON.parse(savedRooms));
     } else {
       setRooms([
-        { id: '101', name: 'Studio Bouaké Chic', type: 'studio', pricePerNight: 25000, status: 'occupied', maxGuests: 2, features: [] },
-        { id: '102', name: 'Chambre Standard Gbêkê', type: 'room', pricePerNight: 18000, status: 'available', maxGuests: 2, features: [] },
-        { id: '103', name: 'Appartement F2 VIP', type: 'apartment', pricePerNight: 45000, status: 'occupied', maxGuests: 4, features: [] },
-        { id: '104', name: 'Studio L\'Harmattan', type: 'studio', pricePerNight: 25000, status: 'dirty', maxGuests: 2, features: [] },
-        { id: '105', name: 'Chambre Confort Kénédougou', type: 'room', pricePerNight: 20000, status: 'available', maxGuests: 2, features: [] },
-        { id: '106', name: 'Appartement Suite Prestige', type: 'apartment', pricePerNight: 60000, status: 'maintenance', maxGuests: 6, features: [] }
+        { id: '101', tenantId: 'tenant-bouake-kennedy', name: 'Studio Bouaké Chic', type: 'studio', pricePerNight: 25000, status: 'occupied', maxGuests: 2, features: [] },
+        { id: '102', tenantId: 'tenant-bouake-kennedy', name: 'Chambre Standard Gbêkê', type: 'room', pricePerNight: 18000, status: 'available', maxGuests: 2, features: [] },
+        { id: '103', tenantId: 'tenant-bouake-kennedy', name: 'Appartement F2 VIP', type: 'apartment', pricePerNight: 45000, status: 'occupied', maxGuests: 4, features: [] },
+        { id: '104', tenantId: 'tenant-bouake-kennedy', name: 'Studio L\'Harmattan', type: 'studio', pricePerNight: 25000, status: 'dirty', maxGuests: 2, features: [] },
+        { id: '105', tenantId: 'tenant-bouake-kennedy', name: 'Chambre Confort Kénédougou', type: 'room', pricePerNight: 20000, status: 'available', maxGuests: 2, features: [] },
+        { id: '106', tenantId: 'tenant-bouake-kennedy', name: 'Appartement Suite Prestige', type: 'apartment', pricePerNight: 60000, status: 'maintenance', maxGuests: 6, features: [] }
       ]);
     }
 
@@ -105,11 +183,46 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
 
     const savedSlips = localStorage.getItem('bb_hr_payslips');
     if (savedSlips) setPayslips(JSON.parse(savedSlips));
+
+    const savedMenu = localStorage.getItem('bb_menu');
+    if (savedMenu) {
+      setMenu(JSON.parse(savedMenu));
+    } else {
+      setMenu(INITIAL_MENU);
+    }
+
+    const savedStock = localStorage.getItem('bb_stock_items');
+    if (savedStock) {
+      setStockItems(JSON.parse(savedStock));
+    } else {
+      setStockItems(FALLBACK_STOCK_ITEMS);
+    }
+
+    const savedOrders = localStorage.getItem('bb_active_orders');
+    if (savedOrders) {
+      setActiveOrders(JSON.parse(savedOrders));
+    } else {
+      setActiveOrders(FALLBACK_PAID_ORDERS);
+    }
   }, []);
 
-  // 3. AGGREGATIONS AND MATH CALCULATIONS
-  // Total Revenue of active month (from transactions)
-  const monthlyTransactions = transactions.filter(tx => {
+  // 3. ANALYTICAL CALCULATIONS (STRICT isolation by tenantId)
+  const activeTenantId = currentUser.tenantId;
+
+  // Filter basic objects for active tenant
+  const tenantRooms = rooms.filter(r => r.tenantId === activeTenantId);
+  const tenantTransactions = transactions.filter(tx => tx.tenantId === activeTenantId);
+  const tenantOrders = activeOrders.filter(o => o.tenantId === activeTenantId);
+  const tenantEmployees = hrEmployees.filter(e => e.tenantId === activeTenantId);
+  
+  // Resolve payslips belonging to this tenant's staff
+  const tenantPayslips = payslips.filter(p => {
+    const emp = tenantEmployees.find(e => e.id === p.employeeId);
+    return !!emp;
+  });
+
+  // Filter transactions of the selected month
+  const monthlyTransactions = tenantTransactions.filter(tx => {
     try {
       const txDate = new Date(tx.date);
       const m = (txDate.getMonth() + 1).toString().padStart(2, '0');
@@ -120,6 +233,7 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
     }
   });
 
+  // Financial aggregates
   const totalIncomes = monthlyTransactions
     .filter(tx => tx.type === 'lodging_payment' || tx.type === 'pos_sale')
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -128,57 +242,83 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
     .filter(tx => tx.type === 'expense')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  // HR expense inside month (from payslips matching period like "Juin 2026")
   const periodLabel = selectedMonth === '06' ? 'Juin 2026' : selectedMonth === '07' ? 'Juillet 2026' : `Mois ${selectedMonth} ${selectedYear}`;
-  const hrPayrollCost = payslips
+  
+  // HR payroll cost inside month
+  const hrPayrollCost = tenantPayslips
     .filter(p => p.period.toLowerCase().includes(periodLabel.toLowerCase()) || p.period.includes(selectedMonth))
     .reduce((acc, curr) => acc + curr.netSalary, 0);
 
   const totalGrossExpenses = totalExpenses + hrPayrollCost;
   const netProfit = totalIncomes - totalGrossExpenses;
 
-  // Occupancy Math
-  const totalRoomsCount = rooms.length || 6;
-  const occupiedRoomsCount = rooms.filter(r => r.status === 'occupied').length;
-  const occupancyPercentage = Math.round((occupiedRoomsCount / totalRoomsCount) * 100);
+  // --- HOTEL PERFORMANCE INDICATORS ---
+  // Taux d'Occupation
+  const occupancyResult = calculateOccupancyRate(tenantRooms, activeTenantId);
+  const occupancyPercentage = occupancyResult.rate;
+  const occupiedRoomsCount = occupancyResult.occupiedCount;
+  const totalRoomsCount = occupancyResult.totalCount;
 
-  // Method distribution
-  const paymentMethods = ['wave', 'orange_money', 'mtn', 'cash', 'card'] as const;
-  const methodStats = paymentMethods.map(method => {
-    const amt = monthlyTransactions
-      .filter(tx => tx.method === method && (tx.type === 'lodging_payment' || tx.type === 'pos_sale'))
-      .reduce((acc, curr) => acc + curr.amount, 0);
-    return { name: method.toUpperCase().replace('_', ' '), value: amt };
-  });
+  // RevPAR (Revenue Per Available Room)
+  const revParResult = calculateRevPAR(tenantTransactions, tenantRooms, activeTenantId, selectedMonth, selectedYear);
+  const revPar = revParResult.revPar;
+  const lodgingRevenue = revParResult.lodgingRevenue;
 
-  const maxMethodValue = Math.max(...methodStats.map(s => s.value), 1);
-
-  // Weekly Revenue Trend simulated or compiled
-  const weeklyTrend = [
-    { week: 'Semaine 1', revenue: Math.round(totalIncomes * 0.18), expenses: Math.round(totalExpenses * 0.22) },
-    { week: 'Semaine 2', revenue: Math.round(totalIncomes * 0.28), expenses: Math.round(totalExpenses * 0.15) },
-    { week: 'Semaine 3', revenue: Math.round(totalIncomes * 0.32), expenses: Math.round(totalExpenses * 0.35) },
-    { week: 'Semaine 4', revenue: Math.round(totalIncomes * 0.22), expenses: Math.round(totalExpenses * 0.28) }
-  ];
-
-  const maxWeeklyRevenue = Math.max(...weeklyTrend.map(w => w.revenue), 1);
-
-  // Sector Performance
-  const lodgingRevenue = monthlyTransactions
-    .filter(tx => tx.type === 'lodging_payment')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
+  // --- POS RESTAURANT & MARGINS INDICATORS ---
   const posRevenue = monthlyTransactions
     .filter(tx => tx.type === 'pos_sale')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  // Top Selling Items (Simulated based on menu items list)
-  const topDishes = [
-    { name: 'Kedjenou de Poulet de Brousse', sales: 124, category: 'Plat' },
-    { name: 'Poisson Carpe Braisé d\'Ayame', sales: 98, category: 'Plat' },
-    { name: 'Choukouya de Mouton Tendre', sales: 85, category: 'Plat' },
-    { name: 'Bissap Glacé Maison', sales: 192, category: 'Boisson' },
-    { name: 'Bière Ivoirienne Bock 65cl', sales: 154, category: 'Boisson' }
+  // Food Cost & Gross Margin Rate using utility functions
+  const foodCostResult = calculateFoodCostAndMargin(tenantOrders, menu, stockItems, activeTenantId, selectedMonth, selectedYear);
+  const theoreticalFoodCost = foodCostResult.foodCost;
+  const totalPosSalesFromOrders = foodCostResult.totalSales;
+
+  // To be robust, if orders list in local storage has 0 sales but transactions has POS sales,
+  // we can use POS transactions as fallback base to avoid 0% margins.
+  const finalPosSalesBase = totalPosSalesFromOrders > 0 ? totalPosSalesFromOrders : posRevenue;
+  const grossMarginRate = finalPosSalesBase > 0 
+    ? Math.round(((finalPosSalesBase - theoreticalFoodCost) / finalPosSalesBase) * 100)
+    : 0;
+
+  // --- CASH CONSOLIDATION (Journal de Caisse) ---
+  // Categorized cash entries
+  const waveIn = monthlyTransactions
+    .filter(tx => tx.method === 'wave' && (tx.type === 'lodging_payment' || tx.type === 'pos_sale'))
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const omIn = monthlyTransactions
+    .filter(tx => (tx.method === 'orange_money' || tx.method === 'om') && (tx.type === 'lodging_payment' || tx.type === 'pos_sale'))
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const cashIn = monthlyTransactions
+    .filter(tx => tx.method === 'cash' && (tx.type === 'lodging_payment' || tx.type === 'pos_sale'))
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const otherMethodsIn = monthlyTransactions
+    .filter(tx => !['wave', 'orange_money', 'om', 'cash'].includes(tx.method) && (tx.type === 'lodging_payment' || tx.type === 'pos_sale'))
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalConsolidatedInflow = waveIn + omIn + cashIn + otherMethodsIn;
+
+  // --- PERFORMANCE VS FICTIVE TARGETS ---
+  const TARGET_REVENUE = 400000;       // target Chiffre d'Affaires
+  const TARGET_OCCUPANCY = 60;         // target Occupancy Rate
+  const TARGET_REVPAR = 20000;         // target RevPAR
+  const TARGET_REST_MARGIN = 65;       // target Resto Gross Margin
+
+  const revenueSuccess = totalIncomes >= TARGET_REVENUE;
+  const occupancySuccess = occupancyPercentage >= TARGET_OCCUPANCY;
+  const revparSuccess = revPar >= TARGET_REVPAR;
+  const marginSuccess = grossMarginRate >= TARGET_REST_MARGIN;
+
+  // Stats for visualization
+  const maxWeeklyRevenue = totalIncomes > 0 ? Math.round(totalIncomes * 0.35) : 100000;
+  const weeklyTrend = [
+    { week: 'Semaine 1', revenue: Math.round(totalIncomes * 0.20), expenses: Math.round(totalExpenses * 0.25) },
+    { week: 'Semaine 2', revenue: Math.round(totalIncomes * 0.32), expenses: Math.round(totalExpenses * 0.15) },
+    { week: 'Semaine 3', revenue: Math.round(totalIncomes * 0.28), expenses: Math.round(totalExpenses * 0.40) },
+    { week: 'Semaine 4', revenue: Math.round(totalIncomes * 0.20), expenses: Math.round(totalExpenses * 0.20) }
   ];
 
   const handlePrint = () => {
@@ -186,90 +326,120 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
   };
 
   const handleExportCSV = (reportType: 'treasury' | 'restaurant' | 'hotel' | 'payroll') => {
-    let csvContent = '\uFEFF'; // Add BOM for Excel French UTF-8 accents
-    let filename = `rapport-${reportType}-${selectedMonth}-${selectedYear}.csv`;
+    let csvContent = '\uFEFF'; // UTF-8 BOM
+    const filename = `rapport-${reportType}-${selectedMonth}-${selectedYear}.csv`;
 
     if (reportType === 'treasury') {
-      // 1. Treasury Report CSV
-      csvContent += `RAPPORT GÉNÉRAL DE TRÉSORERIE - BRUNCH BOUAKÉ HOSPITALITY\n`;
+      csvContent += `JOURNAL DE CAISSE CONSOLIDÉ - ISOLATION T-${activeTenantId}\n`;
       csvContent += `Période du Rapport :;${periodLabel}\n`;
       csvContent += `Date d'exportation :;${new Date().toLocaleDateString('fr-FR')}\n\n`;
       
       csvContent += `ID Transaction;Type;Description;Méthode de Paiement;Montant (FCFA);Date\n`;
-      
       monthlyTransactions.forEach(tx => {
-        const typeFr = tx.type === 'lodging_payment' ? 'Encaissement Hébergement' :
+        const typeFr = tx.type === 'lodging_payment' ? 'Acompte Hébergement' :
                       tx.type === 'pos_sale' ? 'Vente POS Restaurant' : 'Dépense Opérationnelle';
         const dateFr = new Date(tx.date).toLocaleDateString('fr-FR');
         csvContent += `"${tx.id}";"${typeFr}";"${tx.description.replace(/"/g, '""')}";"${tx.method.toUpperCase()}";${tx.amount};"${dateFr}"\n`;
       });
       
-      csvContent += `\nSYNTHÈSE COMPTABLE ;\n`;
-      csvContent += `Total Chiffre d'Affaires Brut :;;;;${totalIncomes} FCFA\n`;
-      csvContent += `Total Dépenses Matériel/Approvisionnement :;;;;${totalExpenses} FCFA\n`;
-      csvContent += `Total Masse Salariale Paie :;;;;${hrPayrollCost} FCFA\n`;
-      csvContent += `Total Charges Globales :;;;;${totalGrossExpenses} FCFA\n`;
-      csvContent += `Bénéfice Net :;;;;${netProfit} FCFA\n`;
+      csvContent += `\nSYNTHÈSE DU JOURNAL ;\n`;
+      csvContent += `Flux Entrant WAVE :;;;;${waveIn} FCFA\n`;
+      csvContent += `Flux Entrant ORANGE MONEY :;;;;${omIn} FCFA\n`;
+      csvContent += `Flux Entrant CASH :;;;;${cashIn} FCFA\n`;
+      csvContent += `Flux Entrant AUTRES :;;;;${otherMethodsIn} FCFA\n`;
+      csvContent += `TOTAL ENCAISSEMENTS BRUT :;;;;${totalIncomes} FCFA\n`;
+      csvContent += `TOTAL DÉPENSES MATÉRIEL :;;;;${totalExpenses} FCFA\n`;
+      csvContent += `TOTAL RENTABILITÉ NETTE :;;;;${netProfit} FCFA\n`;
 
     } else if (reportType === 'restaurant') {
-      // 2. Restaurant POS Report CSV
-      csvContent += `STATISTIQUES DE VENTE RESTAURANT & BAR - MAQUIS VIP BRUNCH BOUAKÉ\n`;
-      csvContent += `Période :;${periodLabel}\n`;
+      csvContent += `MARGES ET RESTAURATION ANALYTIQUE (POS) - ISOLATION T-${activeTenantId}\n`;
+      csvContent += `Période du Rapport :;${periodLabel}\n`;
       csvContent += `Date d'exportation :;${new Date().toLocaleDateString('fr-FR')}\n\n`;
       
-      csvContent += `Classement;Nom de l'Article;Catégorie;Commandes Estimées (Unités);Chiffre d'Affaires Estimé (FCFA)\n`;
-      topDishes.forEach((item, index) => {
-        const estRevenue = item.sales * (item.category === 'Plat' ? 3500 : 1000); // estimated ticket price
-        csvContent += `${index + 1};"${item.name}";"${item.category}";${item.sales};${estRevenue}\n`;
-      });
+      csvContent += `Total Chiffre d'Affaires POS (Caisse/Orders) :;${finalPosSalesBase} FCFA\n`;
+      csvContent += `Coût Théorique des Ingrédients (Food Cost) :;${theoreticalFoodCost} FCFA\n`;
+      csvContent += `Taux de Marge Brute global :;${grossMarginRate}%\n\n`;
+
+      csvContent += `ID Commande;Table/Salon;Articles Vendus;Total Vente (FCFA);Coût Estimé Ingrédients (FCFA);Marge Brute (FCFA);Marge (%)\n`;
       
-      csvContent += `\n*Note : Ces données reposent sur le cumul des additions clôturées sur le terminal POS du maquis.\n`;
+      const periodOrders = tenantOrders.filter(order => {
+        if (order.status !== 'paid') return false;
+        try {
+          const orderDate = new Date(order.createdAt);
+          const m = (orderDate.getMonth() + 1).toString().padStart(2, '0');
+          const y = orderDate.getFullYear().toString();
+          return m === selectedMonth && y === selectedYear;
+        } catch {
+          return false;
+        }
+      });
+
+      periodOrders.forEach(order => {
+        let orderFoodCost = 0;
+        const itemsSummary = order.items.map(i => {
+          // Look up menu item to find ingredients
+          const menuItem = menu.find(m => m.id === i.menuItemId);
+          if (menuItem && menuItem.ingredients) {
+            let itemIngredientsCost = 0;
+            menuItem.ingredients.forEach(ing => {
+              const st = stockItems.find(s => s.id === ing.stockItemId);
+              if (st) itemIngredientsCost += ing.quantityRequired * st.pricePurchase;
+            });
+            orderFoodCost += itemIngredientsCost * i.quantity;
+          } else if (menuItem) {
+            orderFoodCost += (menuItem.price * 0.3) * i.quantity;
+          }
+          return `${i.name} (x${i.quantity})`;
+        }).join(', ');
+
+        const orderMargin = order.totalAmount - orderFoodCost;
+        const orderMarginPercent = order.totalAmount > 0 ? Math.round((orderMargin / order.totalAmount) * 100) : 0;
+
+        csvContent += `"${order.id}";"${order.tableNumber}";"${itemsSummary}";${order.totalAmount};${orderFoodCost};${orderMargin};${orderMarginPercent}%\n`;
+      });
 
     } else if (reportType === 'hotel') {
-      // 3. Hotel Occupancy Report CSV
-      csvContent += `REGISTRE D'OCCUPATION DES CHAMBRES ET SUITES - PMS HOTEL\n`;
-      csvContent += `Date d'extraction :;${new Date().toLocaleDateString('fr-FR')}\n`;
-      csvContent += `Taux d'occupation actuel des chambres :;${occupancyPercentage}%\n\n`;
+      csvContent += `INDICATEURS HÔTELIERS DE PERFORMANCE (PMS) - ISOLATION T-${activeTenantId}\n`;
+      csvContent += `Généré le :;${new Date().toLocaleDateString('fr-FR')}\n\n`;
       
-      csvContent += `ID Chambre;Nom du Studio/Suite;Type de Logement;Tarif Journalier (FCFA);Statut Actuel;Capacité d'Accueil (Personnes)\n`;
-      rooms.forEach(r => {
-        const typeFr = r.type === 'studio' ? 'Studio' : r.type === 'apartment' ? 'Appartement F2/VIP' : 'Chambre Standard';
-        const statusFr = r.status === 'occupied' ? 'Occupé' : r.status === 'available' ? 'Disponible' : r.status === 'dirty' ? 'À Nettoyer' : 'Maintenance';
-        csvContent += `"${r.id}";"${r.name}";"${typeFr}";${r.pricePerNight};"${statusFr}";${r.maxGuests}\n`;
+      csvContent += `Taux d'Occupation Actuel :;${occupancyPercentage}%\n`;
+      csvContent += `Chambres Occupées :;${occupiedRoomsCount} / ${totalRoomsCount}\n`;
+      csvContent += `Total Revenus Hébergement (${periodLabel}) :;${lodgingRevenue} FCFA\n`;
+      csvContent += `RevPAR (${periodLabel}) :;${revPar} FCFA\n\n`;
+
+      csvContent += `Numéro Chambre;Nom Logement;Type;Statut Actuel;Tarif Standard (FCFA)\n`;
+      tenantRooms.forEach(r => {
+        csvContent += `"${r.id}";"${r.name}";"${r.type.toUpperCase()}";"${r.status.toUpperCase()}";${r.pricePerNight}\n`;
       });
 
     } else if (reportType === 'payroll') {
-      // 4. Payroll and Wages Ledger CSV
-      csvContent += `LIVRE DE PAIE ET REGISTRE DES CHARGES SALARIALES - DEPARTEMENT RH\n`;
-      csvContent += `Période Salariale :;${periodLabel}\n`;
+      csvContent += `REGISTRE DE LA MASSE SALARIALE (RH) - ISOLATION T-${activeTenantId}\n`;
+      csvContent += `Période du Rapport :;${periodLabel}\n`;
       csvContent += `Date d'exportation :;${new Date().toLocaleDateString('fr-FR')}\n\n`;
       
-      csvContent += `ID Bulletin;Nom de l'Employé;ID Salarié;Mois de Référence;Salaire de Base Brut;Ancienneté;Indemnité Transport;Primes Rendement;Cotisations CNPS;Impôts ITS/IGR;Salaire Net Payé (FCFA);Statut Règlement\n`;
+      csvContent += `Masse Salariale Net Payée :;${hrPayrollCost} FCFA\n`;
+      csvContent += `Nombre d'Employés dans l'Établissement :;${tenantEmployees.length}\n\n`;
+
+      csvContent += `ID Bulletin;Nom de l'Employé;Période;Salaire de Base Brut;Net Salarial;Statut\n`;
       
-      const filteredPayslips = payslips.filter(p => p.period.toLowerCase().includes(periodLabel.toLowerCase()) || p.period.includes(selectedMonth));
-      
-      if (filteredPayslips.length > 0) {
-        filteredPayslips.forEach(p => {
-          csvContent += `"${p.id}";"${p.employeeName}";"${p.employeeId}";"${p.period}";${p.baseSalary};${p.includeSeniority ? p.seniorityAmount : 0};${p.includeTransport ? p.transportAllowance : 0};${p.includeBonus ? p.bonusAmount : 0};${p.includeSocialSecurity ? p.socialSecurityDeduction : 0};${p.includeTax ? p.taxDeduction : 0};${p.netSalary};"${p.status.toUpperCase()}"\n`;
-        });
-        csvContent += `\nCumul Net Liquidé de la Période :;;;;;;;;;;${hrPayrollCost} FCFA\n`;
-      } else {
-        csvContent += `Aucun bulletin de paie émis ou liquidé pour cette période hôtelière.\n`;
-      }
+      const filteredPayslips = tenantPayslips.filter(p => 
+        p.period.toLowerCase().includes(periodLabel.toLowerCase()) || p.period.includes(selectedMonth)
+      );
+
+      filteredPayslips.forEach(p => {
+        csvContent += `"${p.id}";"${p.employeeName}";"${p.period}";${p.baseSalary};${p.netSalary};"${p.status.toUpperCase()}"\n`;
+      });
     }
 
-    // Create browser download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (isLocked) {
@@ -286,7 +456,7 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
           <p className="text-[10px] text-orange-600 font-extrabold uppercase tracking-widest mt-1">Données Comptables & Financières</p>
           
           <p className="text-xs text-slate-500 mt-4 leading-relaxed">
-            Seuls les rôles Direction, Comptabilité ou Administrateur Système peuvent consulter l'évolution du chiffre d'affaires et de la paie.
+            Seuls les rôles Direction, Comptabilité ou Administrateur Système de l'établissement peuvent consulter l'évolution du chiffre d'affaires et de la paie.
           </p>
 
           <form onSubmit={handleUnlock} className="mt-6 space-y-4">
@@ -319,7 +489,7 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
 
           <div className="mt-6 pt-5 border-t border-slate-100 text-slate-400 text-[10px] flex items-center justify-center gap-1.5">
             <Info className="w-3.5 h-3.5 text-slate-400" />
-            <span>Code confidentiel de sécurité actuel (Défaut : <strong className="font-bold text-slate-600">1234</strong>)</span>
+            <span>Code de sécurité démo par défaut : <strong className="font-bold text-slate-600">1234</strong></span>
           </div>
         </div>
       </div>
@@ -329,21 +499,23 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
   return (
     <div className="space-y-6">
       
-      {/* Banner and Filter Controls */}
+      {/* HEADER AND FILTER CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white border border-slate-200 p-6 rounded-[32px] shadow-sm">
         <div className="flex items-center gap-4">
           <div className="bg-slate-900 text-orange-400 p-3 rounded-2xl border border-slate-800">
             <BarChart2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-md font-black uppercase text-slate-900">Statistiques & Analyse Financière</h3>
-            <p className="text-xs text-slate-400 mt-1">Suivi du chiffre d'affaires combiné (Hôtel, Maquis-POS, Salaires, Rentabilité).</p>
+            <h3 className="text-md font-black uppercase text-slate-900">Moteur Analytique & Reporting</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Statistiques d'exploitation hôtelières et restauration. Isolation active : <strong className="text-slate-700 font-bold">T-{activeTenantId}</strong>
+            </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">Période :</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">Mois :</span>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
@@ -377,303 +549,385 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
           >
             <Printer className="w-4 h-4" />
-            <span>Imprimer Bilan</span>
+            <span>Imprimer</span>
           </button>
 
           <button
             onClick={() => setIsLocked(true)}
             className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all cursor-pointer border border-slate-200"
-            title="Activer la restriction"
+            title="Verrouiller l'accès"
           >
             <Lock className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Financial Bento Cards */}
+      {/* RENTABILITÉ GLOBALE & COMPARAISON OBJECTIFS (Bento Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Total Incomes */}
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-5 rounded-[24px] relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-emerald-500">
-            <TrendingUp className="w-6 h-6" />
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-5 rounded-[24px] relative overflow-hidden flex flex-col justify-between h-44">
+          <div>
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold text-teal-600 uppercase tracking-widest block">Chiffre d'Affaires Brut</span>
+              {revenueSuccess ? (
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
+                  <Award className="w-3 h-3 text-emerald-600" /> Cible Atteinte
+                </span>
+              ) : (
+                <span className="bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded text-[9px] font-black uppercase">
+                  Sous Cible
+                </span>
+              )}
+            </div>
+            <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
+              {totalIncomes.toLocaleString('fr-FR')} F
+            </span>
           </div>
-          <span className="text-[10px] font-extrabold text-teal-600 uppercase tracking-widest block">Chiffre d'Affaires Brut</span>
-          <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
-            {totalIncomes.toLocaleString('fr-FR')} F
-          </span>
-          <div className="flex justify-between items-center text-[10px] text-slate-400 mt-4 pt-3 border-t border-emerald-100/50">
-            <span>Chambre/Folio: {lodgingRevenue.toLocaleString('fr-FR')} F</span>
-            <span>Maquis/Bar: {posRevenue.toLocaleString('fr-FR')} F</span>
+          
+          <div>
+            <div className="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-emerald-100/50">
+              <span>Hébergement: {lodgingRevenue.toLocaleString('fr-FR')} F</span>
+              <span>Cuisine/Bar: {posRevenue.toLocaleString('fr-FR')} F</span>
+            </div>
+            <div className="text-[9px] font-semibold text-slate-500 mt-1">
+              Objectif fictif : {TARGET_REVENUE.toLocaleString('fr-FR')} F
+            </div>
           </div>
         </div>
 
         {/* Operating Expenses */}
-        <div className="bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5 rounded-[24px] relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-rose-500">
-            <TrendingDown className="w-6 h-6" />
+        <div className="bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5 rounded-[24px] relative overflow-hidden flex flex-col justify-between h-44">
+          <div>
+            <span className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest block">Dépenses Fournisseurs</span>
+            <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
+              {totalExpenses.toLocaleString('fr-FR')} F
+            </span>
           </div>
-          <span className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest block">Dépenses Exploitation</span>
-          <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
-            {totalExpenses.toLocaleString('fr-FR')} F
-          </span>
-          <div className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-rose-100/50">
-            Gaz, achats cuisine, stocks boissons
-          </div>
-        </div>
-
-        {/* HR payroll expenses */}
-        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 p-5 rounded-[24px] relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-indigo-500">
-            <Users className="w-6 h-6" />
-          </div>
-          <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-widest block">Charges Salariales (Net Paie)</span>
-          <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
-            {hrPayrollCost.toLocaleString('fr-FR')} F
-          </span>
-          <div className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-indigo-100/50">
-            {hrEmployees.length} employés actifs sur le fichier
+          
+          <div className="text-[10px] text-slate-400 pt-2 border-t border-rose-100/50">
+            <span className="block">Achats alimentation, gaz, bouteilles et consommables</span>
           </div>
         </div>
 
-        {/* Net Margin */}
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-[24px] text-white relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-orange-400">
-            <DollarSign className="w-6 h-6 animate-pulse" />
+        {/* Payroll Expense */}
+        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 p-5 rounded-[24px] relative overflow-hidden flex flex-col justify-between h-44">
+          <div>
+            <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-widest block">Masse Salariale Net Paie</span>
+            <span className="text-2xl font-black text-slate-900 block mt-2 font-mono">
+              {hrPayrollCost.toLocaleString('fr-FR')} F
+            </span>
           </div>
-          <span className="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest block">Bénéfice Net Estimé</span>
-          <span className={`text-2xl font-black block mt-2 font-mono ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {netProfit.toLocaleString('fr-FR')} F
-          </span>
-          <div className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-slate-800">
-            Masse paie + achats opérationnels déduits
+          
+          <div className="text-[10px] text-slate-400 pt-2 border-t border-indigo-100/50">
+            <span>{tenantEmployees.length} salariés actifs sur ce tenant</span>
+          </div>
+        </div>
+
+        {/* Profit Net */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-[24px] text-white relative overflow-hidden flex flex-col justify-between h-44">
+          <div>
+            <span className="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest block">Résultat Net d'Exploitation</span>
+            <span className={`text-2xl font-black block mt-2 font-mono ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {netProfit.toLocaleString('fr-FR')} F
+            </span>
+          </div>
+          
+          <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-800">
+            <span>Marge d'exploitation : {totalIncomes > 0 ? Math.round((netProfit / totalIncomes) * 100) : 0}%</span>
           </div>
         </div>
 
       </div>
 
-      {/* Visual Analytics Charts Panel */}
+      {/* CORE PERFORMANCE METRICS & ANALYSIS (Hôtel vs Resto POS) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* CHART 1: WEEKLY REVENUE TRENDS (Custom SVG bars) */}
-        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-sm font-black text-slate-900 uppercase">Évolution des Recettes Hebdomadaires</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Performance financière découpée par semaine pour {periodLabel}</p>
-            </div>
-            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded font-black font-mono">REVENUS +</span>
-          </div>
-
-          {/* SVG Custom Interactive Graph */}
-          <div className="h-64 relative flex items-end gap-6 pt-10 pb-4 px-2">
-            
-            {/* Background grid lines */}
-            <div className="absolute inset-x-0 top-10 bottom-4 flex flex-col justify-between pointer-events-none">
-              <div className="border-b border-slate-100 w-full text-[9px] text-slate-300 text-left pt-0.5">100%</div>
-              <div className="border-b border-slate-100 w-full text-[9px] text-slate-300 text-left pt-0.5">75%</div>
-              <div className="border-b border-slate-100 w-full text-[9px] text-slate-300 text-left pt-0.5">50%</div>
-              <div className="border-b border-slate-100 w-full text-[9px] text-slate-300 text-left pt-0.5">25%</div>
+        {/* SECTOR 1 : HÔTELLERIE KPI (Occupancy, RevPAR, ADR) */}
+        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-900 uppercase">Performance Hébergement (PMS)</h4>
+                <p className="text-[11px] text-slate-400">KPIs standardisés de l'établissement hôtelier actif</p>
+              </div>
+              <span className="p-2 bg-sky-50 text-sky-600 rounded-xl border border-sky-100">
+                <Bed className="w-5 h-5" />
+              </span>
             </div>
 
-            {/* Bars */}
-            {weeklyTrend.map((item, idx) => {
-              const revPercent = Math.round((item.revenue / maxWeeklyRevenue) * 100);
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full justify-end group">
-                  
-                  {/* Tooltip on hover */}
-                  <div className="absolute -top-6 bg-slate-950 text-white text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30 font-mono shadow">
-                    +{item.revenue.toLocaleString('fr-FR')} F
-                  </div>
-
-                  {/* Revenue Bar */}
-                  <motion.div 
-                    initial={{ height: 0 }}
-                    animate={{ height: `${revPercent * 0.8}%` }}
-                    transition={{ duration: 0.8, delay: idx * 0.1 }}
-                    className="w-8 bg-orange-500 rounded-t-xl group-hover:bg-orange-600 transition-colors shadow-sm relative overflow-hidden"
-                  >
-                    {/* Gloss element */}
-                    <div className="absolute inset-y-0 left-0 w-2 bg-white/20" />
-                  </motion.div>
-
-                  <span className="text-[10px] font-extrabold text-slate-500 mt-1">{item.week}</span>
+            {/* Visual Occupancy Radial/Gauge Meter */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 py-4">
+              <div className="w-28 h-28 rounded-full border-[10px] border-slate-100 flex items-center justify-center relative shadow-inner shrink-0">
+                <div className="absolute inset-0 rounded-full border-[10px] border-transparent border-t-sky-500 border-r-sky-500 animate-pulse" />
+                <div className="text-center">
+                  <span className="text-xl font-black text-slate-900 block font-mono">{occupancyPercentage}%</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Occupé</span>
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          <div className="flex justify-center gap-6 text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-orange-500 rounded-full" />
-              <span>Chiffre d'Affaires Brut</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-slate-900 rounded-full" />
-              <span>Frais Fonctionnement (Moyenne)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* CHART 2: PAYMENT METHODS DISTRIBUTION */}
-        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-sm font-black text-slate-900 uppercase">Canaux de Paiements Favoris</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Chiffre d'affaires trié par opérateur mobile money et cash</p>
-            </div>
-            <span className="text-[10px] bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded font-black font-mono">WAVE / ORANGE</span>
-          </div>
-
-          {/* Custom SVG Donut / Bar layout */}
-          <div className="space-y-4 pt-2">
-            {methodStats.map((item, idx) => {
-              const percentage = Math.round((item.value / (totalIncomes || 1)) * 100);
-              const barWidth = Math.round((item.value / maxMethodValue) * 100);
-              return (
-                <div key={idx} className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-extrabold text-slate-800">{item.name}</span>
-                    <div className="space-x-1.5 text-slate-400">
-                      <span className="font-bold text-slate-900 font-mono">{item.value.toLocaleString('fr-FR')} F</span>
-                      <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
-                        {percentage}%
+              <div className="space-y-3 w-full">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Taux d'Occupation :</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-slate-800">{occupancyPercentage}%</span>
+                    {occupancySuccess ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
+                        <TrendingUp className="w-2.5 h-2.5" /> ≥ {TARGET_OCCUPANCY}%
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Progressive Bar */}
-                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${barWidth}%` }}
-                      transition={{ duration: 0.8, delay: idx * 0.1 }}
-                      className={`h-full rounded-full ${
-                        item.name.includes('WAVE') ? 'bg-sky-500' :
-                        item.name.includes('ORANGE') ? 'bg-orange-500' :
-                        item.name.includes('MTN') ? 'bg-yellow-500' :
-                        item.name.includes('CASH') ? 'bg-emerald-500' : 'bg-slate-700'
-                      }`} 
-                    />
+                    ) : (
+                      <span className="bg-rose-100 text-rose-800 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
+                        <TrendingDown className="w-2.5 h-2.5" /> &lt; {TARGET_OCCUPANCY}%
+                      </span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">RevPAR (Revenu par chambre disponible) :</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-slate-800 font-mono">{revPar.toLocaleString('fr-FR')} F</span>
+                    {revparSuccess ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-[8px] font-bold px-1 rounded">≥ {TARGET_REVPAR.toLocaleString('fr-FR')} F</span>
+                    ) : (
+                      <span className="bg-rose-100 text-rose-800 text-[8px] font-bold px-1 rounded">&lt; {TARGET_REVPAR.toLocaleString('fr-FR')} F</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Revenus Hébergement Totaux :</span>
+                  <span className="font-extrabold text-slate-800 font-mono">{lodgingRevenue.toLocaleString('fr-FR')} F</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Chambres en Service :</span>
+                  <span className="font-extrabold text-slate-800 font-mono">{occupiedRoomsCount} / {totalRoomsCount} chambres</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="text-[10px] text-slate-400 mt-6 pt-3 border-t border-slate-100 leading-relaxed">
-            💡 <strong className="text-slate-700">Observation :</strong> Les paiements électroniques via <strong className="text-sky-500">Wave</strong> et <strong className="text-orange-500">Orange Money</strong> représentent la majorité absolue du chiffre d'affaires. Pensez à approvisionner vos comptes de retrait.
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-4 text-[11px] text-slate-500 space-y-1.5">
+            <span className="font-bold text-slate-700 block uppercase text-[10px]">Formules mathématiques appliquées :</span>
+            <p>• **Taux d'Occupation** = (Chambres Occupées [{occupiedRoomsCount}] / Total Chambres [{totalRoomsCount}]) × 100</p>
+            <p>• **RevPAR** = Total Revenus Hébergement [{lodgingRevenue.toLocaleString('fr-FR')} F] / Chambres Disponibles [{totalRoomsCount}]</p>
+          </div>
+        </div>
+
+        {/* SECTOR 2 : RESTAURATION & MARGES POS (Food Cost, Marge Brute) */}
+        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-900 uppercase">Restauration & Marges (Maquis POS)</h4>
+                <p className="text-[11px] text-slate-400">Suivi du Food Cost théorique et rentabilité cuisine</p>
+              </div>
+              <span className="p-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100">
+                <Utensils className="w-5 h-5" />
+              </span>
+            </div>
+
+            <div className="space-y-4 py-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Chiffre d'Affaires POS (Ventes Clôturées) :</span>
+                <span className="font-extrabold text-slate-900 font-mono">{finalPosSalesBase.toLocaleString('fr-FR')} F</span>
+              </div>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Coût Théorique Ingrédients (Food Cost) :</span>
+                <span className="font-extrabold text-rose-600 font-mono">-{theoreticalFoodCost.toLocaleString('fr-FR')} F</span>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center text-xs mb-1">
+                  <span className="text-slate-500">Taux de Marge Brute Restauration :</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-emerald-600 font-mono">{grossMarginRate}%</span>
+                    {marginSuccess ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
+                        <TrendingUp className="w-2.5 h-2.5" /> ≥ {TARGET_REST_MARGIN}%
+                      </span>
+                    ) : (
+                      <span className="bg-rose-100 text-rose-800 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
+                        <TrendingDown className="w-2.5 h-2.5" /> &lt; {TARGET_REST_MARGIN}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Progress bar visual for margin */}
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${marginSuccess ? 'bg-emerald-500' : 'bg-rose-500'}`} 
+                    style={{ width: `${Math.min(grossMarginRate, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between text-[11px] pt-1.5 border-t border-slate-100">
+                <span className="text-slate-400">Total Profits Bruts Maquis :</span>
+                <span className="font-bold text-slate-800 font-mono">{(finalPosSalesBase - theoreticalFoodCost).toLocaleString('fr-FR')} F</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-4 text-[11px] text-slate-500 space-y-1.5">
+            <span className="font-bold text-slate-700 block uppercase text-[10px]">Méthode de croisement du coût matières :</span>
+            <p>• Le moteur extrait la recette de chaque article vendu dans `MenuItem.ingredients` et cherche le prix d'achat enregistré dans `StockItem.pricePurchase`.</p>
+            <p>• **Marge Brute** = ((Ventes [{finalPosSalesBase.toLocaleString('fr-FR')} F] - Coût Ingrédients [{theoreticalFoodCost.toLocaleString('fr-FR')} F]) / Ventes) × 100</p>
           </div>
         </div>
 
       </div>
 
-      {/* Segment 3: Occupancy & Food Service Reports */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* PMS Occupancy Analytics */}
-        <div className="bg-white border border-slate-200 p-6 rounded-[32px] lg:col-span-1 shadow-sm flex flex-col justify-between">
+      {/* CONSOLIDATED CASH JOURNAL (Journal de Caisse Consolidé) */}
+      <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
           <div>
-            <h4 className="text-sm font-black text-slate-900 uppercase">Taux d'Occupation Hôtel</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Occupation temps réel des Studios & Suites</p>
+            <h4 className="text-sm font-black text-slate-900 uppercase">Journal de Caisse Consolidé</h4>
+            <p className="text-[11px] text-slate-400">Répartition des flux financiers entrants par canal de règlement (Wave, OM, Cash)</p>
           </div>
-
-          {/* Donut chart mockup */}
-          <div className="flex flex-col items-center justify-center my-6 relative">
-            
-            {/* Visual Circular donut mockup */}
-            <div className="w-32 h-32 rounded-full border-[14px] border-slate-100 flex items-center justify-center relative">
-              
-              {/* Overlay highlight */}
-              <div className="absolute inset-0 rounded-full border-[14px] border-transparent border-t-orange-500 border-r-orange-500 animate-spin-slow" />
-              
-              <div className="text-center">
-                <span className="text-2xl font-black text-slate-900 block font-mono">{occupancyPercentage}%</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Actif</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 font-semibold mt-4 text-center">
-              {occupiedRoomsCount} de {totalRoomsCount} chambres réservées
-            </p>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-[11px] text-slate-500 space-y-1.5">
-            <div className="flex justify-between font-bold">
-              <span>Chambres Disponibles</span>
-              <span className="text-slate-800">{rooms.filter(r => r.status === 'available').length}</span>
-            </div>
-            <div className="flex justify-between font-bold">
-              <span>Chambres à Nettoyer</span>
-              <span className="text-slate-800">{rooms.filter(r => r.status === 'dirty').length}</span>
-            </div>
-          </div>
+          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded font-black uppercase">
+            Flux de Caisse Clôturés
+          </span>
         </div>
 
-        {/* POS Maquis Top Dishes sales */}
-        <div className="bg-white border border-slate-200 p-6 rounded-[32px] lg:col-span-2 shadow-sm flex flex-col justify-between">
-          <div>
-            <h4 className="text-sm font-black text-slate-900 uppercase">Top 5 Ventes Cuisine & Bar (Maquis)</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Plats et boissons les plus populaires en salle</p>
-          </div>
-
-          <div className="divide-y divide-slate-100 my-4">
-            {topDishes.map((dish, idx) => (
-              <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center font-bold text-[10px]">
-                    #{idx + 1}
-                  </span>
-                  <div>
-                    <span className="font-extrabold text-slate-900 block">{dish.name}</span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">{dish.category}</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="font-mono font-bold text-slate-900 block">{dish.sales} commandes</span>
-                  <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-black uppercase">
-                    POPULAIRE
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-slate-900 rounded-2xl p-4 text-white text-[11px] flex justify-between items-center">
-            <div>
-              <span className="text-orange-400 font-bold block uppercase text-[10px]">Total Plats Servis</span>
-              <p className="text-slate-300 mt-0.5">Sur l'ensemble des tables ouvertes ce mois</p>
+        {/* Channels progress layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          
+          {/* WAVE */}
+          <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+            <div className="flex justify-between items-center mb-1.5 text-xs">
+              <span className="font-extrabold text-sky-600 block">WAVE CI</span>
+              <span className="font-bold font-mono text-slate-900">{waveIn.toLocaleString('fr-FR')} F</span>
             </div>
-            <span className="text-lg font-black text-white font-mono">659 assiettes</span>
+            <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-sky-500 rounded-full" 
+                style={{ width: `${totalConsolidatedInflow > 0 ? (waveIn / totalConsolidatedInflow) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-slate-400 block mt-1">
+              Poids : {totalConsolidatedInflow > 0 ? Math.round((waveIn / totalConsolidatedInflow) * 100) : 0}% des entrées
+            </span>
           </div>
+
+          {/* ORANGE MONEY */}
+          <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+            <div className="flex justify-between items-center mb-1.5 text-xs">
+              <span className="font-extrabold text-orange-600 block">ORANGE MONEY (OM)</span>
+              <span className="font-bold font-mono text-slate-900">{omIn.toLocaleString('fr-FR')} F</span>
+            </div>
+            <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 rounded-full" 
+                style={{ width: `${totalConsolidatedInflow > 0 ? (omIn / totalConsolidatedInflow) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-slate-400 block mt-1">
+              Poids : {totalConsolidatedInflow > 0 ? Math.round((omIn / totalConsolidatedInflow) * 100) : 0}% des entrées
+            </span>
+          </div>
+
+          {/* CASH */}
+          <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+            <div className="flex justify-between items-center mb-1.5 text-xs">
+              <span className="font-extrabold text-emerald-600 block">ESPÈCES (CASH)</span>
+              <span className="font-bold font-mono text-slate-900">{cashIn.toLocaleString('fr-FR')} F</span>
+            </div>
+            <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500 rounded-full" 
+                style={{ width: `${totalConsolidatedInflow > 0 ? (cashIn / totalConsolidatedInflow) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-slate-400 block mt-1">
+              Poids : {totalConsolidatedInflow > 0 ? Math.round((cashIn / totalConsolidatedInflow) * 100) : 0}% des entrées
+            </span>
+          </div>
+
         </div>
 
+        {/* Ledger table */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-100 text-slate-500 font-bold border-b border-slate-200">
+                <th className="p-3">Référence / Date</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Description</th>
+                <th className="p-3">Mode</th>
+                <th className="p-3 text-right">Montant</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {monthlyTransactions.length > 0 ? (
+                monthlyTransactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-mono">
+                      <span className="font-bold text-slate-700 block">{tx.id}</span>
+                      <span className="text-[10px] text-slate-400">{new Date(tx.date).toLocaleDateString('fr-FR')}</span>
+                    </td>
+                    <td className="p-3">
+                      {tx.type === 'lodging_payment' && (
+                        <span className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-100 rounded text-[9px] font-bold uppercase">
+                          Hébergement
+                        </span>
+                      )}
+                      {tx.type === 'pos_sale' && (
+                        <span className="px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded text-[9px] font-bold uppercase">
+                          POS Maquis
+                        </span>
+                      )}
+                      {tx.type === 'expense' && (
+                        <span className="px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-100 rounded text-[9px] font-bold uppercase">
+                          Dépense
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-slate-600 font-medium">{tx.description}</td>
+                    <td className="p-3 font-bold uppercase text-slate-500">{tx.method}</td>
+                    <td className={`p-3 text-right font-mono font-bold ${tx.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {tx.type === 'expense' ? '-' : '+'}{tx.amount.toLocaleString('fr-FR')} F
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-slate-400">
+                    Aucune transaction de caisse enregistrée sur ce mois d'exploitation.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* SECTION EXPORT: TÉLÉCHARGER DES RAPPORTS CSV / EXCEL */}
+      {/* GENERATE AND EXPORT REPORT SECTION */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 rounded-[32px] p-8 text-white shadow-xl space-y-6">
         <div>
           <h4 className="text-md font-black uppercase text-orange-400 tracking-tight flex items-center gap-2">
-            <Download className="w-5 h-5 text-orange-400 animate-bounce" />
-            <span>Générateur & Export de Rapports Professionnels (Excel/CSV)</span>
+            <Download className="w-5 h-5 text-orange-400" />
+            <span>Générateur d'Exports Professionnels (Format CSV / Excel)</span>
           </h4>
           <p className="text-xs text-slate-300 mt-1">
-            Générez et téléchargez instantanément les différents rapports opérationnels au format **CSV / Excel** pour vos outils comptables externes ou votre archivage local.
+            Générez et téléchargez instantanément les rapports détaillés au format CSV compatibles avec Excel pour votre comptabilité.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Treasury */}
+          
+          {/* Treasury */}
           <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-orange-500/30 transition-all">
             <div className="space-y-2">
               <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg inline-block">
                 <TrendingUp className="w-4 h-4" />
               </span>
-              <h5 className="text-xs font-black uppercase text-white">Trésorerie & Flux Financiers</h5>
+              <h5 className="text-xs font-black uppercase text-white">Journal de Trésorerie</h5>
               <p className="text-[10px] text-slate-400 leading-relaxed">
-                Liste toutes les transactions (Logement, Restaurant, Dépenses) de la période {periodLabel} avec synthèse comptable de rentabilité.
+                Liste consolidée des encaissements (Hébergement, POS) et décaissements opérationnels pour la période {periodLabel}.
               </p>
             </div>
             <button
@@ -685,15 +939,15 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
             </button>
           </div>
 
-          {/* Card 2: Restaurant POS */}
+          {/* Restaurant POS */}
           <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-orange-500/30 transition-all">
             <div className="space-y-2">
               <span className="p-2 bg-orange-500/10 text-orange-400 rounded-lg inline-block">
                 <Utensils className="w-4 h-4" />
               </span>
-              <h5 className="text-xs font-black uppercase text-white">Ventes Restaurant & Bar</h5>
+              <h5 className="text-xs font-black uppercase text-white">Marge Resto & POS</h5>
               <p className="text-[10px] text-slate-400 leading-relaxed">
-                Tableau des plats et boissons les plus populaires en salle, quantités vendues et estimations de recettes de la caisse POS.
+                Rapport analytique des commandes clôturées, coûts théoriques des ingrédients par recette et taux de marge brute par table.
               </p>
             </div>
             <button
@@ -701,19 +955,19 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
               className="mt-4 w-full py-2 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black rounded-xl text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Exporter Ventes</span>
+              <span>Exporter Marges</span>
             </button>
           </div>
 
-          {/* Card 3: Hotel PMS */}
+          {/* Hotel PMS */}
           <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-orange-500/30 transition-all">
             <div className="space-y-2">
               <span className="p-2 bg-sky-500/10 text-sky-400 rounded-lg inline-block">
                 <Bed className="w-4 h-4" />
               </span>
-              <h5 className="text-xs font-black uppercase text-white">Registre Hôtelier PMS</h5>
+              <h5 className="text-xs font-black uppercase text-white">Registre Hôtelier</h5>
               <p className="text-[10px] text-slate-400 leading-relaxed">
-                État actuel des logements (studios, appartements), taux d'occupation, tarifs journaliers et statuts de propreté/maintenance.
+                Registre complet de l'occupation des logements, taux de remplissage, RevPAR et état opérationnel actuel du parc.
               </p>
             </div>
             <button
@@ -725,15 +979,15 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
             </button>
           </div>
 
-          {/* Card 4: Payroll & Wages Ledger */}
+          {/* Payroll */}
           <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-orange-500/30 transition-all">
             <div className="space-y-2">
               <span className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg inline-block">
                 <Users className="w-4 h-4" />
               </span>
-              <h5 className="text-xs font-black uppercase text-white">Livre de Paie & Charges</h5>
+              <h5 className="text-xs font-black uppercase text-white">Masse Salariale</h5>
               <p className="text-[10px] text-slate-400 leading-relaxed">
-                Livre de paie détaillé avec salaire de base, ancienneté, primes hôtelières, retenues sociales CNPS, impôts salariaux et nets à payer.
+                État des salaires nets payés, primes hôtelières de rendement et dépenses salariales globales du mois {selectedMonth}.
               </p>
             </div>
             <button
@@ -744,6 +998,7 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
               <span>Exporter Paie</span>
             </button>
           </div>
+
         </div>
       </div>
 

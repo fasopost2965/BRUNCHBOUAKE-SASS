@@ -117,6 +117,7 @@ export interface TableOrder {
   totalAmount: number;
   roomIdForCharge?: string; // If charged to room
   waiterId?: string;
+  idempotencyKey?: string;
 }
 
 export interface StaffMember {
@@ -144,7 +145,7 @@ export interface Transaction {
   tenantId: string;
   type: 'lodging_payment' | 'pos_sale' | 'expense';
   amount: number;
-  method: 'wave' | 'orange_money' | 'mtn' | 'cash' | 'card';
+  method: 'wave' | 'orange_money' | 'mtn' | 'cash' | 'card' | 'room_charge';
   description: string;
   date: string;
   referenceId?: string; // Reservation ID or Order ID
@@ -235,6 +236,7 @@ export interface PricingPolicy {
 }
 
 export interface PropertySettings {
+  tenantId: string;
   establishmentName: string;
   brandLogoText: string;
   address: string;
@@ -273,6 +275,11 @@ export interface PropertySettings {
     apartment?: string;
   };
   pricingPolicy?: PricingPolicy;
+  whatsappConfig?: {
+    instanceUrl: string;
+    apiToken: string;
+    isActive: boolean;
+  };
 }
 
 export type UserRole = 'admin' | 'receptionist' | 'waiter' | 'manager' | 'housekeeper' | 'accountant';
@@ -417,6 +424,24 @@ export interface CustomerAvoir {
   movements: AvoirMovement[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ==========================================
+// WHATSAPP COMMUNCATION & MOCK MODELS
+// ==========================================
+
+export interface WhatsAppMessage {
+  id: string;
+  tenantId: string;
+  to: string;
+  template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert';
+  variables: Record<string, string>;
+  status: 'pending' | 'sending' | 'failed' | 'sent';
+  attempts: number;
+  lastAttempt?: string;
+  error?: string;
+  errorDetail?: string;
+  createdAt: string;
 }
 
 

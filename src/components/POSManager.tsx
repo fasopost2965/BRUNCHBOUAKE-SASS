@@ -44,8 +44,9 @@ import {
   Move,
   Map
 } from 'lucide-react';
-import { MenuItem, OrderItem, TableOrder, Room, Transaction, Reservation, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings } from '../types';
+import { MenuItem, OrderItem, TableOrder, Room, Transaction, Reservation, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, StockItem } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
+import { WhatsAppOrchestrator } from '../services/whatsappService';
 
 interface POSProps {
   menu: MenuItem[];
@@ -65,6 +66,8 @@ interface POSProps {
   onUpdateWebhookEvents: React.Dispatch<React.SetStateAction<WebhookEvent[]>>;
   onUpdateProcessedEvents: React.Dispatch<React.SetStateAction<ProcessedEvent[]>>;
   settings: PropertySettings;
+  stockItems?: StockItem[];
+  onUpdateStockItem?: (itemId: string, updated: Partial<StockItem>) => void;
 }
 
 // Interactive mockup menu items for extreme high-fidelity feel
@@ -117,7 +120,10 @@ export default function POSManager({
   onUpdatePaymentIntents,
   onUpdatePaymentTransactions,
   onUpdateWebhookEvents,
-  onUpdateProcessedEvents
+  onUpdateProcessedEvents,
+  settings,
+  stockItems = [],
+  onUpdateStockItem
 }: POSProps) {
   
   // Basic POS states
@@ -470,21 +476,30 @@ export default function POSManager({
           id: item.id,
           tenantId: 'tenant-bouake-kennedy',
           name: item.name,
-          category: (item.category === 'entrées' || item.category === 'boissons' || item.category === 'cocktails' || item.category === 'petit-déjeuner' || item.category === 'extras' || item.category === 'room_service') ? 'plat' : item.category as any,
+          category: item.category as any,
           price: item.price,
-          available: item.available
-        });
+          available: item.available,
+          description: item.description,
+          tags: item.tags,
+          ingredients: []
+        } as any);
       }
     });
 
     // Match filtering
-    return RICH_MOCK_MENU.filter(item => {
+    return merged.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                            (item.description || '').toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
+      let itemCat = item.category.toLowerCase();
+      // Normalize actual menu categories to match POS tabs
+      if (itemCat === 'boisson') itemCat = 'boissons';
+      if (itemCat === 'accompagnement' || itemCat === 'dessert') itemCat = 'extras';
+
+      const matchesCategory = activeCategory === 'all' || itemCat === activeCategory;
       
-      const matchesFilter = activeFilter === 'all' || item.tags.includes(activeFilter);
+      const tags = (item as any).tags || [];
+      const matchesFilter = activeFilter === 'all' || tags.includes(activeFilter);
 
       return matchesSearch && matchesCategory && matchesFilter;
     });
@@ -519,11 +534,39 @@ export default function POSManager({
 
   // Cart state modifiers
   const handleAddToCart = (item: typeof RICH_MOCK_MENU[0]) => {
-    // Check inventory stock if tracked
-    const tracked = inventory[item.id];
-    if (tracked && tracked.stock <= 0) {
-      alert(`RUPTURE DE STOCK: Il n'y a plus de "${item.name}" disponible.`);
-      return;
+    // Find full menu item with ingredients list from props
+    const fullMenuItem = menu.find(m => m.id === item.id);
+    const itemIngredients = fullMenuItem?.ingredients || [];
+
+    // Verify ingredient stock from stockItems prop if recipe exists
+    if (itemIngredients.length > 0) {
+      for (const ingredient of itemIngredients) {
+        const stockItem = stockItems.find(s => s.id === ingredient.stockItemId);
+        if (stockItem) {
+          // Calculate what is already demanded in the active cart for this stock item
+          let qtyInCartAlready = 0;
+          cart.forEach(cartItem => {
+            const mItem = menu.find(m => m.id === cartItem.id);
+            const ing = mItem?.ingredients?.find(i => i.stockItemId === ingredient.stockItemId);
+            if (ing) {
+              qtyInCartAlready += cartItem.quantity * ing.quantityRequired;
+            }
+          });
+
+          const totalRequired = qtyInCartAlready + ingredient.quantityRequired;
+          if (stockItem.quantity < totalRequired) {
+            alert(`COMPOSITION IMPOSSIBLE : Le stock de l'ingrédient "${stockItem.name}" est insuffisant pour préparer "${item.name}". Disponible: ${stockItem.quantity} ${stockItem.unit}, requis au total avec le panier: ${totalRequired} ${stockItem.unit}.`);
+            return;
+          }
+        }
+      }
+    } else {
+      // Fallback for mock items to standard mock inventory
+      const tracked = inventory[item.id];
+      if (tracked && tracked.stock <= 0) {
+        alert(`RUPTURE DE STOCK: Il n'y a plus de "${item.name}" disponible.`);
+        return;
+      }
     }
 
     // Trigger bounce animation & toast message
@@ -540,9 +583,12 @@ export default function POSManager({
     const existingIdx = cart.findIndex(i => i.id === item.id);
     if (existingIdx > -1) {
       const currentQty = cart[existingIdx].quantity;
-      if (tracked && tracked.stock <= currentQty) {
-        alert(`STOCK INSUFFISANT: Seulement ${tracked.stock} portion(s) disponible(s).`);
-        return;
+      if (!fullMenuItem?.ingredients) {
+        const tracked = inventory[item.id];
+        if (tracked && tracked.stock <= currentQty) {
+          alert(`STOCK INSUFFISANT: Seulement ${tracked.stock} portion(s) disponible(s).`);
+          return;
+        }
       }
       const updated = [...cart];
       updated[existingIdx].quantity += 1;
@@ -563,7 +609,6 @@ export default function POSManager({
     const item = cart.find(i => i.id === id);
     if (!item) return;
 
-    const tracked = inventory[id];
     const newQty = item.quantity + delta;
 
     if (newQty <= 0) {
@@ -571,9 +616,38 @@ export default function POSManager({
       return;
     }
 
-    if (delta > 0 && tracked && tracked.stock < newQty) {
-      alert(`STOCK INSUFFISANT: Stock maximal atteint (${tracked.stock} portions).`);
-      return;
+    // If increasing quantity, check stock
+    if (delta > 0) {
+      const fullMenuItem = menu.find(m => m.id === id);
+      const itemIngredients = fullMenuItem?.ingredients || [];
+
+      if (itemIngredients.length > 0) {
+        for (const ingredient of itemIngredients) {
+          const stockItem = stockItems.find(s => s.id === ingredient.stockItemId);
+          if (stockItem) {
+            let qtyInCartAlready = 0;
+            cart.forEach(cartItem => {
+              const mItem = menu.find(m => m.id === cartItem.id);
+              const ing = mItem?.ingredients?.find(i => i.stockItemId === ingredient.stockItemId);
+              if (ing) {
+                qtyInCartAlready += cartItem.quantity * ing.quantityRequired;
+              }
+            });
+
+            const totalRequired = qtyInCartAlready + ingredient.quantityRequired;
+            if (stockItem.quantity < totalRequired) {
+              alert(`COMPOSITION IMPOSSIBLE : Le stock de l'ingrédient "${stockItem.name}" est insuffisant pour augmenter la quantité de "${item.name}". Disponible: ${stockItem.quantity} ${stockItem.unit}, requis au total: ${totalRequired} ${stockItem.unit}.`);
+              return;
+            }
+          }
+        }
+      } else {
+        const tracked = inventory[id];
+        if (tracked && tracked.stock < newQty) {
+          alert(`STOCK INSUFFISANT: Stock maximal atteint (${tracked.stock} portions).`);
+          return;
+        }
+      }
     }
 
     setCart(cart.map(i => i.id === id ? { ...i, quantity: newQty } : i));
@@ -652,17 +726,22 @@ export default function POSManager({
       quantity: item.quantity
     }));
 
+    const activeTenantId = settings?.tenantId || 'tenant-bouake-kennedy';
+    const orderIdempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idem-ord-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const txnIdempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idem-txn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
     const newOrder: TableOrder = {
       id: orderId,
-      tenantId: 'tenant-bouake-kennedy',
+      tenantId: activeTenantId,
       tableNumber: activeTable,
       items: itemsFormatted,
       status: 'paid',
       createdAt: new Date().toISOString(),
       totalAmount: intent.amount,
+      idempotencyKey: orderIdempotencyKey
     };
 
-    // Decrement inventory stock
+    // Decrement inventory stock (mocked)
     setInventory(prev => {
       const updated = { ...prev };
       cart.forEach(item => {
@@ -676,22 +755,60 @@ export default function POSManager({
       return updated;
     });
 
+    // Decrement actual stock from stockItems prop using onUpdateStockItem
+    if (onUpdateStockItem && stockItems) {
+      cart.forEach(item => {
+        const fullMenuItem = menu.find(m => m.id === item.id);
+        const itemIngredients = fullMenuItem?.ingredients || [];
+        itemIngredients.forEach(ingredient => {
+          const stockItem = stockItems.find(s => s.id === ingredient.stockItemId);
+          if (stockItem) {
+            const qtyToDeduct = item.quantity * ingredient.quantityRequired;
+            onUpdateStockItem(stockItem.id, {
+              quantity: Math.max(0, stockItem.quantity - qtyToDeduct)
+            });
+          }
+        });
+      });
+    }
+
     onAddOrder(newOrder);
     setPosHistory([newOrder, ...posHistory]);
 
     const extraDesc = ` [MM Tél: ${intent.phoneNumber}, Réf MM: ${intent.providerReference || 'N/A'}]`;
     const transaction: Transaction = {
       id: `TXN-${Date.now().toString().slice(-5)}`,
-      tenantId: 'tenant-bouake-kennedy',
+      tenantId: activeTenantId,
       type: 'pos_sale',
       amount: intent.amount,
       method: intent.provider,
       description: `Vente POS Maquis - ${activeTable} (${cart.length} articles)${extraDesc}`,
       date: new Date().toISOString(),
       referenceId: orderId,
-      idempotencyKey: `idem-pos-gw-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      idempotencyKey: txnIdempotencyKey
     };
     onAddTransaction(transaction);
+
+    // Trigger WhatsApp POS Receipt Notification (French / Nouchi local chic)
+    const waPhone = intent.phoneNumber || mobileMoneyNumber;
+    if (waPhone) {
+      WhatsAppOrchestrator.sendTemplateMessage(
+        waPhone,
+        'pos_receipt',
+        {
+          tableOrRoom: activeTable || 'Table',
+          amount: intent.amount.toString(),
+          method: intent.provider,
+          receiptLink: WhatsAppOrchestrator.generateReceiptLink(orderId)
+        },
+        settings.tenantId || 'tenant-bouake-kennedy',
+        settings
+      ).then((res) => {
+        console.log("[WhatsApp POS Receipt] Webhook Finalized Response:", res);
+      }).catch((err) => {
+        console.error("[WhatsApp POS Receipt] Webhook Finalized Error:", err);
+      });
+    }
 
     setShowPaymentGatewayModal(false);
     setShowPaymentSuccess(true);
@@ -762,18 +879,23 @@ export default function POSManager({
       quantity: item.quantity
     }));
 
+    const activeTenantId = settings?.tenantId || 'tenant-bouake-kennedy';
+    const orderIdempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idem-ord-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const txnIdempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idem-txn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
     const newOrder: TableOrder = {
       id: orderId,
-      tenantId: 'tenant-bouake-kennedy',
+      tenantId: activeTenantId,
       tableNumber: activeTable,
       items: itemsFormatted,
       status: billingMode === 'charge_to_room' ? 'preparing' : 'paid',
       createdAt: new Date().toISOString(),
       totalAmount: totalToPay,
-      roomIdForCharge: billingMode === 'charge_to_room' ? selectedRoomId : undefined
+      roomIdForCharge: billingMode === 'charge_to_room' ? selectedRoomId : undefined,
+      idempotencyKey: orderIdempotencyKey
     };
 
-    // Decrement inventory stock
+    // Decrement inventory stock (mocked)
     setInventory(prev => {
       const updated = { ...prev };
       cart.forEach(item => {
@@ -787,32 +909,84 @@ export default function POSManager({
       return updated;
     });
 
+    // Decrement actual stock from stockItems prop using onUpdateStockItem
+    if (onUpdateStockItem && stockItems) {
+      cart.forEach(item => {
+        const fullMenuItem = menu.find(m => m.id === item.id);
+        const itemIngredients = fullMenuItem?.ingredients || [];
+        itemIngredients.forEach(ingredient => {
+          const stockItem = stockItems.find(s => s.id === ingredient.stockItemId);
+          if (stockItem) {
+            const qtyToDeduct = item.quantity * ingredient.quantityRequired;
+            onUpdateStockItem(stockItem.id, {
+              quantity: Math.max(0, stockItem.quantity - qtyToDeduct)
+            });
+          }
+        });
+      });
+    }
+
     // Callback to main context
     onAddOrder(newOrder);
 
     // Save locally
     setPosHistory([newOrder, ...posHistory]);
 
-    // Handle ERP Transaction logging if paid now
-    if (billingMode !== 'charge_to_room') {
+    // Handle ERP Transaction logging
+    if (billingMode === 'charge_to_room') {
+      const activeRes = (reservations || []).find(r => r.roomId === selectedRoomId && r.status === 'checked-in');
+      const transaction: Transaction = {
+        id: `TXN-${Date.now().toString().slice(-5)}`,
+        tenantId: activeTenantId,
+        type: 'pos_sale',
+        amount: totalToPay,
+        method: 'room_charge',
+        description: `Facture Chambre ${selectedRoomId} (${activeRes?.guestName || 'Client'}) - Maquis Table ${activeTable} (${cart.length} articles)`,
+        date: new Date().toISOString(),
+        referenceId: activeRes?.id || orderId, // Links directly to the reservation (Folio)
+        idempotencyKey: txnIdempotencyKey
+      };
+      onAddTransaction(transaction);
+    } else {
       let extraDesc = '';
       if (billingMode === 'split') {
         extraDesc = ` [Partagé - Espèces/Mobile Money]`;
       } else if (['wave', 'orange_money', 'momo'].includes(selectedPaymentMethod)) {
-        extraDesc = ` [MM Tél: ${mobileMoneyNumber || 'N/A'}, Réf: ${paymentReference || 'N/A'}]`;
+        extraDesc = ` [MM Tél: ${mobileMoneyNumber || 'N/A'}, Réf: ${paymentReference || 'N/A'}`;
       }
       const transaction: Transaction = {
         id: `TXN-${Date.now().toString().slice(-5)}`,
-        tenantId: 'tenant-bouake-kennedy',
+        tenantId: activeTenantId,
         type: 'pos_sale',
         amount: totalToPay,
         method: selectedPaymentMethod,
         description: `Vente POS Maquis - ${activeTable} (${cart.length} articles)${extraDesc}`,
         date: new Date().toISOString(),
         referenceId: orderId,
-        idempotencyKey: `idem-pos-dir-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+        idempotencyKey: txnIdempotencyKey
       };
       onAddTransaction(transaction);
+    }
+
+    // Trigger WhatsApp POS Receipt Notification if paid immediately and phone is available (French / Nouchi local chic)
+    const waPhone = mobileMoneyNumber;
+    if (waPhone && newOrder.status === 'paid') {
+      WhatsAppOrchestrator.sendTemplateMessage(
+        waPhone,
+        'pos_receipt',
+        {
+          tableOrRoom: activeTable || 'Table',
+          amount: totalToPay.toString(),
+          method: selectedPaymentMethod,
+          receiptLink: WhatsAppOrchestrator.generateReceiptLink(orderId)
+        },
+        settings.tenantId || 'tenant-bouake-kennedy',
+        settings
+      ).then((res) => {
+        console.log("[WhatsApp POS Receipt] Direct Checkout Response:", res);
+      }).catch((err) => {
+        console.error("[WhatsApp POS Receipt] Direct Checkout Error:", err);
+      });
     }
 
     // Show beautiful success dialog
@@ -1489,7 +1663,7 @@ export default function POSManager({
                       <span className="text-[10px] font-black tracking-widest text-orange-600/35 uppercase">
                         {item.category}
                       </span>
-                      {item.tags.includes('specials') && (
+                      {item.tags?.includes('specials') && (
                         <span className="absolute top-1.5 left-1.5 bg-orange-500 text-slate-950 font-black text-[7px] uppercase tracking-wider px-1 py-0.5 rounded-sm shadow-sm">
                           CHEF
                         </span>
@@ -1502,24 +1676,83 @@ export default function POSManager({
                       <h4 className="text-xs font-bold text-slate-800 leading-tight group-hover:text-orange-950 transition-colors">
                         {item.name}
                       </h4>
-                      {viewMode === 'list' && item.tags.includes('specials') && (
+                      {viewMode === 'list' && item.tags?.includes('specials') && (
                         <span className="bg-orange-100 text-orange-800 font-bold text-[7px] uppercase tracking-wider px-1 py-0.5 rounded-sm">
                           CHEF
                         </span>
                       )}
                     </div>
                     <p className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
-                    {inventory[item.id] && (
-                      <div className="mt-1">
-                        <span className={`inline-block text-[8px] font-bold px-1 py-0.5 rounded-sm uppercase tracking-tight ${
-                          inventory[item.id].stock <= inventory[item.id].minStock
-                            ? 'bg-rose-100 text-rose-700 font-black animate-pulse'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {inventory[item.id].stock <= inventory[item.id].minStock ? '⚠️ ' : ''}Stock: {inventory[item.id].stock}
-                        </span>
-                      </div>
-                    )}
+                    {(() => {
+                      const fullItem = menu.find(m => m.id === item.id);
+                      const itemIngredients = fullItem?.ingredients || [];
+
+                      if (itemIngredients.length > 0) {
+                        let isOutOfStock = false;
+                        let isLowStock = false;
+                        let alertDetails = '';
+                        for (const ing of itemIngredients) {
+                          const sItem = stockItems.find(s => s.id === ing.stockItemId);
+                          if (!sItem) {
+                            isOutOfStock = true;
+                            alertDetails = `Stock manquant`;
+                            break;
+                          } else {
+                            if (sItem.quantity < ing.quantityRequired) {
+                              isOutOfStock = true;
+                              alertDetails = `Manque: ${sItem.name}`;
+                              break;
+                            } else if (sItem.quantity <= sItem.minQuantity) {
+                              isLowStock = true;
+                              alertDetails = `Critique: ${sItem.name}`;
+                            }
+                          }
+                        }
+
+                        if (isOutOfStock) {
+                          return (
+                            <div className="mt-1">
+                              <span className="inline-block text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded-sm animate-pulse uppercase tracking-tight">
+                                ⚠️ Ingrédients Insuffisants ({alertDetails})
+                              </span>
+                            </div>
+                          );
+                        } else if (isLowStock) {
+                          return (
+                            <div className="mt-1">
+                              <span className="inline-block text-[8px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-sm uppercase tracking-tight">
+                                ⚠️ Stock Critique ({alertDetails})
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="mt-1">
+                              <span className="inline-block text-[8px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded-sm uppercase tracking-tight">
+                                ✅ En Stock Prêt
+                              </span>
+                            </div>
+                          );
+                        }
+                      } else {
+                        // Fallback to mock inventory tracking
+                        const tracked = inventory[item.id];
+                        if (tracked) {
+                          return (
+                            <div className="mt-1">
+                              <span className={`inline-block text-[8px] font-bold px-1 py-0.5 rounded-sm uppercase tracking-tight ${
+                                tracked.stock <= tracked.minStock
+                                  ? 'bg-rose-100 text-rose-700 font-black animate-pulse'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {tracked.stock <= tracked.minStock ? '⚠️ ' : ''}Stock: {tracked.stock}
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div className={`flex justify-between items-center ${viewMode === 'grid' ? 'mt-3.5 pt-2 border-t border-slate-50' : 'shrink-0 gap-4'}`}>

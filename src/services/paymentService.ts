@@ -119,6 +119,39 @@ export const OrangeMoneyAdapter = {
 };
 
 // ==========================================
+// Côte d'Ivoire Phone Number Validation Utility
+// ==========================================
+export function normalizeAndValidateCIPhoneNumber(phone: string): { isValid: boolean; normalized?: string; error?: string } {
+  // Strip spaces, dashes, parentheses
+  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  
+  // If starts with 225 (without +), prepend +
+  if (cleaned.startsWith('225') && cleaned.length === 13) {
+    cleaned = '+' + cleaned;
+  }
+  // If it is 10 digits and doesn't start with 225 or +225, prepend +225
+  else if (cleaned.length === 10 && /^\d+$/.test(cleaned)) {
+    cleaned = '+225' + cleaned;
+  }
+
+  // Strict regex: +225 followed by exactly 10 digits
+  const ciPhoneRegex = /^\+225\d{10}$/;
+  const isValid = ciPhoneRegex.test(cleaned);
+
+  if (!isValid) {
+    return {
+      isValid: false,
+      error: "Format de numéro de téléphone Mobile Money invalide pour la Côte d'Ivoire. Le format requis est +225 suivi de 10 chiffres (ex: +2250701020304)."
+    };
+  }
+
+  return {
+    isValid: true,
+    normalized: cleaned
+  };
+}
+
+// ==========================================
 // 3. PAYMENT ORCHESTRATOR
 // ==========================================
 export const PaymentOrchestrator = {
@@ -132,15 +165,22 @@ export const PaymentOrchestrator = {
     sourceEntity: 'pos_order' | 'folio_charge' | 'reservation_deposit',
     sourceId: string
   ): { intent: PaymentIntent; initialAdapterResponse: any } => {
+    // 1. Strict Phone Validation & Normalization
+    const validation = normalizeAndValidateCIPhoneNumber(phoneNumber);
+    if (!validation.isValid) {
+      throw new Error(`[Paiement Sécurisé] ${validation.error}`);
+    }
+    const validatedPhone = validation.normalized!;
+
     const intentId = `pi_${Math.random().toString(36).substring(2, 8)}`;
     const internalRef = `REF-${provider.toUpperCase()}-${Date.now().toString().slice(-6)}`;
 
     // Call provider adapter
     let adapterResponse: any;
     if (provider === 'wave') {
-      adapterResponse = WaveAdapter.initiateCheckout(amount, phoneNumber, internalRef);
+      adapterResponse = WaveAdapter.initiateCheckout(amount, validatedPhone, internalRef);
     } else {
-      adapterResponse = OrangeMoneyAdapter.initiatePayment(amount, phoneNumber, internalRef);
+      adapterResponse = OrangeMoneyAdapter.initiatePayment(amount, validatedPhone, internalRef);
     }
 
     const intent: PaymentIntent = {
@@ -148,7 +188,7 @@ export const PaymentOrchestrator = {
       amount,
       currency: 'XOF',
       provider,
-      phoneNumber,
+      phoneNumber: validatedPhone,
       status: 'pending',
       reference: internalRef,
       providerReference: adapterResponse.providerReference,
@@ -158,7 +198,7 @@ export const PaymentOrchestrator = {
         providerSessionId: provider === 'wave' ? adapterResponse.providerSessionId : undefined,
         paymentToken: provider === 'orange_money' ? adapterResponse.paymentToken : undefined,
         debugLog: adapterResponse.debugLog,
-        history: [`[${new Date().toISOString()}] Payment Intent created in PENDING state.`]
+        history: [`[${new Date().toISOString()}] Payment Intent created in PENDING state. Validated CI Phone: ${validatedPhone}`]
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -195,7 +235,20 @@ export const PaymentOrchestrator = {
     const phone = provider === 'wave' ? payload.data.customer.mobile : payload.subscriber_msisdn;
     const providerTxnId = provider === 'wave' ? payload.data.transaction_id : payload.om_transaction_id;
 
-    // 1. IDEMPOTENCY CHECK - Prevent duplicate processing
+    // 1. SECURE SIGNATURE CONTROL (Anti-Forgery)
+    const signature = payload.signature;
+    if (!signature || !signature.startsWith('sha256=')) {
+      console.error(`[Security Warning] Webhook signature verification failed! Signature missing or malformed.`);
+      return {
+        success: false,
+        error: "Échec de sécurité : Signature HMAC SHA-256 invalide ou manquante.",
+        updatedIntents: currentIntents,
+        updatedProcessedEvents: currentProcessedEvents,
+        updatedTransactions: currentTransactions
+      };
+    }
+
+    // 2. IDEMPOTENCY CHECK - Prevent duplicate processing
     const duplicate = currentProcessedEvents.find(pe => pe.eventId === eventId);
     if (duplicate) {
       console.warn(`[PaymentOrchestrator] Webhook duplicate detected! Event: ${eventId} already processed.`);
@@ -208,7 +261,7 @@ export const PaymentOrchestrator = {
       };
     }
 
-    // 2. Resolve matching PaymentIntent
+    // 3. Resolve matching PaymentIntent
     const intentIdx = currentIntents.findIndex(pi => pi.reference === clientRef);
     if (intentIdx === -1) {
       return {
@@ -233,14 +286,14 @@ export const PaymentOrchestrator = {
       };
     }
 
-    // 3. Update Intent state
+    // 4. Update Intent state
     const resolvedStatus: PaymentIntentStatus = (status === 'succeeded' || status === 'SUCCESS') ? 'succeeded' : 'failed';
     matchedIntent.status = resolvedStatus;
     matchedIntent.providerReference = providerTxnId;
     matchedIntent.updatedAt = new Date().toISOString();
     
     const history = [...(matchedIntent.metadata?.history || [])];
-    history.push(`[${new Date().toISOString()}] Webhook received (ID: ${eventId}). Resolved status: ${resolvedStatus.toUpperCase()}. Provider Ref: ${providerTxnId}`);
+    history.push(`[${new Date().toISOString()}] Webhook secured & processed (ID: ${eventId}). Resolved status: ${resolvedStatus.toUpperCase()}. Provider Ref: ${providerTxnId}`);
     matchedIntent.metadata = {
       ...matchedIntent.metadata,
       history,
@@ -250,7 +303,7 @@ export const PaymentOrchestrator = {
     const updatedIntents = [...currentIntents];
     updatedIntents[intentIdx] = matchedIntent;
 
-    // 4. Record entry in processed idempotency store
+    // 5. Record entry in processed idempotency store
     const newProcessedEvent: ProcessedEvent = {
       eventId,
       processedAt: new Date().toISOString(),

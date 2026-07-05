@@ -71,7 +71,7 @@ import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecor
 
 import { PaymentOrchestrator } from './services/paymentService';
 import { DEFAULT_PROPERTY_SETTINGS } from './data';
-import { getSyncQueueDB, saveSyncQueueItemDB, deleteSyncQueueItemDB, clearSyncQueueDB } from './utils/indexedDB';
+import { getSyncQueueDB, saveSyncQueueItemDB, deleteSyncQueueItemDB, clearSyncQueueDB, processSyncQueue } from './utils/indexedDB';
 
 const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   admin: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr', 'tour'],
@@ -384,27 +384,70 @@ export default function App() {
   }, []);
 
   const triggerSync = async () => {
-    if (syncQueue.length === 0) return;
+    // Filter out items that are already permanently failed so we don't try them again
+    const activeItems = syncQueue.filter(item => !(item.status === 'failed' && item.attempts >= 3));
+    if (activeItems.length === 0) {
+      if (syncQueue.some(item => item.status === 'failed')) {
+        setSyncStatus('error');
+        setSyncMessage("Échec : Certaines transactions ont échoué définitivement après 3 tentatives.");
+      }
+      return;
+    }
     
     setSyncStatus('syncing');
-    setSyncMessage(`Synchronisation de ${syncQueue.length} transaction(s) en attente...`);
+    setSyncMessage(`Synchronisation sécurisée de ${activeItems.length} transaction(s) en cours...`);
     
     try {
-      // Simulate real latency
+      // Simulate network latency
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Successfully synced
-      setSyncQueue([]);
-      setSyncStatus('success');
-      setSyncMessage("Synchronisation automatique réussie ! Les écritures locales ont été fusionnées.");
+      // Keep track of processed idempotency keys on mock server
+      const serverProcessedKeys = new Set<string>();
       
+      const { remainingQueue, syncedCount, failedCount } = await processSyncQueue(
+        syncQueue,
+        async (idempotencyKey, transaction) => {
+          // 1. Check idempotency on the server
+          if (serverProcessedKeys.has(idempotencyKey)) {
+            console.warn(`[Mock Server] Idempotency match found! Already processed transaction ${transaction.id}.`);
+            return; // No-op idempotent success
+          }
+
+          // 2. Simulate occasional network failure (25% chance)
+          // This allows testing the attempts count going up and errorDetail being updated!
+          const isNetworkFlaky = Math.random() < 0.25;
+          if (isNetworkFlaky) {
+            throw new Error("Délai d'attente dépassé (Gateway Timeout 504) ou instabilité de la connexion mobile.");
+          }
+
+          // Successful process
+          serverProcessedKeys.add(idempotencyKey);
+          console.log(`[Mock Server] Transaction ${transaction.id} registered. IdempotencyKey: ${idempotencyKey}`);
+        }
+      );
+
+      setSyncQueue(remainingQueue);
+
+      if (failedCount > 0) {
+        setSyncStatus('error');
+        setSyncMessage(`Synchro terminée. ${syncedCount} réussie(s), ${failedCount} en échec définitif.`);
+      } else if (remainingQueue.length > 0) {
+        setSyncStatus('idle');
+        setSyncMessage(`Synchro partielle : ${syncedCount} réussie(s), ${remainingQueue.length} repoussée(s) pour instabilité.`);
+      } else {
+        setSyncStatus('success');
+        setSyncMessage(`Félicitations ! ${syncedCount} transaction(s) synchronisées avec contrôle d'idempotence.`);
+      }
+
       setTimeout(() => {
         setSyncStatus('idle');
-        setSyncMessage('');
-      }, 4000);
+        if (failedCount === 0 && remainingQueue.length === 0) {
+          setSyncMessage('');
+        }
+      }, 5000);
     } catch (err) {
       setSyncStatus('error');
-      setSyncMessage("Erreur réseau. Échec de la synchronisation.");
+      setSyncMessage("Échec de la synchronisation en raison d'un problème réseau majeur.");
     }
   };
 
@@ -1843,6 +1886,8 @@ export default function App() {
                   onUpdateWebhookEvents={setWebhookEvents}
                   onUpdateProcessedEvents={setProcessedEvents}
                   settings={settings}
+                  stockItems={stockItems}
+                  onUpdateStockItem={(itemId, updated) => setStockItems(prev => prev.map(item => item.id === itemId ? { ...item, ...updated } : item))}
                 />
               )}
 
