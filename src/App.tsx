@@ -38,31 +38,37 @@ import {
   INITIAL_STAFF, 
   INITIAL_TASKS, 
   INITIAL_TRANSACTIONS,
-  INITIAL_ROOM_HISTORY_LOGS
+  INITIAL_ROOM_HISTORY_LOGS,
+  INITIAL_INVOICES,
+  INITIAL_CUSTOMER_AVOIRS
 } from './data';
 
+import { lazy, Suspense } from 'react';
+
 // Custom components
-import ArchitecturalBlueprints from './components/ArchitecturalBlueprints';
 import DashboardOverview from './components/DashboardOverview';
-import PMSManager from './components/PMSManager';
-import POSManager from './components/POSManager';
-import ERPBilling from './components/ERPBilling';
-import StaffOperations from './components/StaffOperations';
-import CRMGuests from './components/CRMGuests';
-import PropertySettingsManager from './components/PropertySettingsManager';
-import UserManager from './components/UserManager';
 import LoginView from './components/LoginView';
-import RestaurantManager from './components/RestaurantManager';
-import StockManager from './components/StockManager';
-import ReportsManager from './components/ReportsManager';
-import HRManager from './components/HRManager';
 import OnboardingTour, { ONBOARDING_STEPS } from './components/OnboardingTour';
-import GuidedTourPage from './components/GuidedTourPage';
+
+const ArchitecturalBlueprints = lazy(() => import('./components/ArchitecturalBlueprints'));
+const PMSManager = lazy(() => import('./components/PMSManager'));
+const POSManager = lazy(() => import('./components/POSManager'));
+const ERPBilling = lazy(() => import('./components/ERPBilling'));
+const StaffOperations = lazy(() => import('./components/StaffOperations'));
+const CRMGuests = lazy(() => import('./components/CRMGuests'));
+const PropertySettingsManager = lazy(() => import('./components/PropertySettingsManager'));
+const UserManager = lazy(() => import('./components/UserManager'));
+const RestaurantManager = lazy(() => import('./components/RestaurantManager'));
+const StockManager = lazy(() => import('./components/StockManager'));
+const ReportsManager = lazy(() => import('./components/ReportsManager'));
+const HRManager = lazy(() => import('./components/HRManager'));
+const GuidedTourPage = lazy(() => import('./components/GuidedTourPage'));
 
 import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, TableOrder, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PropertySettings, UserAccount, UserRole, StockItem, StockMovement, OfflineSyncItem, Invoice, CustomerAvoir, RoomHistoryLog } from './types';
 
 import { PaymentOrchestrator } from './services/paymentService';
 import { DEFAULT_PROPERTY_SETTINGS } from './data';
+import { getSyncQueueDB, saveSyncQueueItemDB, deleteSyncQueueItemDB, clearSyncQueueDB } from './utils/indexedDB';
 
 const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   admin: ['dashboard', 'pms', 'pos', 'restaurant', 'stocks', 'erp', 'staff', 'crm', 'blueprints', 'settings', 'users', 'reports', 'hr', 'tour'],
@@ -241,116 +247,15 @@ export default function App() {
     return saved === 'true';
   });
 
-  const [syncQueue, setSyncQueue] = useState<OfflineSyncItem[]>(() => {
-    return safeJSONParse('bb_sync_queue', []);
-  });
+  const [syncQueue, setSyncQueue] = useState<OfflineSyncItem[]>([]);
 
   // ERP Invoices & Customer Avoirs States
   const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    const defaultInvoices = [
-      {
-        id: 'FAC-2026-0001',
-        clientName: 'Koffi Anderson',
-        clientPhone: '+225 07 01 02 03 04',
-        date: '2026-06-30',
-        dueDate: '2026-07-15',
-        items: [
-          { description: 'Chambre Standard Gbêkê - Séjour de 2 nuits', quantity: 2, unitPrice: 18000, total: 36000 },
-          { description: 'Boisson - Bière Bock Grande Maquis', quantity: 4, unitPrice: 1000, total: 4000 }
-        ],
-        subtotal: 40000,
-        taxRate: 0.18,
-        taxAmount: 7200,
-        totalAmount: 47200,
-        status: 'paid',
-        paymentMethod: 'cash',
-        notes: 'Payé à l\'accueil lors du check-out'
-      },
-      {
-        id: 'FAC-2026-0002',
-        clientName: 'Amina Doukouré',
-        clientPhone: '+225 05 11 22 33 44',
-        date: '2026-07-01',
-        dueDate: '2026-07-10',
-        items: [
-          { description: 'Studio Bouaké Chic - Séjour de 1 nuit', quantity: 1, unitPrice: 25000, total: 25000 },
-          { description: 'Restauration - Kedjenou de Poulet & Attiéké', quantity: 2, unitPrice: 6000, total: 12000 }
-        ],
-        subtotal: 37000,
-        taxRate: 0.18,
-        taxAmount: 6660,
-        totalAmount: 43660,
-        status: 'unpaid',
-        notes: 'En attente de virement Wave ou Orange Money'
-      },
-      {
-        id: 'FAC-2026-0003',
-        clientName: 'Dr. Bakayoko Sylla',
-        clientPhone: '+225 07 88 99 00 11',
-        date: '2026-07-02',
-        dueDate: '2026-07-02',
-        items: [
-          { description: 'Appartement F2 VIP - Séjour de 3 nuits', quantity: 3, unitPrice: 45000, total: 135000 }
-        ],
-        subtotal: 135000,
-        taxRate: 0.18,
-        taxAmount: 24300,
-        totalAmount: 159300,
-        status: 'paid',
-        paymentMethod: 'wave',
-        notes: 'Facture VIP soldée par Wave CI'
-      }
-    ];
-    return safeJSONParse('bb_invoices', defaultInvoices);
+    return safeJSONParse('bb_invoices', INITIAL_INVOICES);
   });
 
   const [customerAvoirs, setCustomerAvoirs] = useState<CustomerAvoir[]>(() => {
-    const defaultAvoirs = [
-      {
-        id: 'AVO-001',
-        clientName: 'Amadou Coulibaly (Client Fidèle)',
-        clientPhone: '+225 07 47 48 49 50',
-        balance: 45000,
-        createdAt: '2026-07-01T10:00:00.000Z',
-        updatedAt: '2026-07-02T12:30:00.000Z',
-        movements: [
-          {
-            id: 'mov-1',
-            type: 'credit',
-            amount: 50000,
-            reason: 'Dépôt de garantie prépayé Maquis (Recharge compte)',
-            date: '2026-07-01T10:00:00.000Z',
-            paymentMethod: 'wave'
-          },
-          {
-            id: 'mov-2',
-            type: 'debit',
-            amount: 5000,
-            reason: 'Déduction consommation table 4 - Braisé & Bock',
-            date: '2026-07-02T12:30:00.000Z'
-          }
-        ]
-      },
-      {
-        id: 'AVO-002',
-        clientName: 'Sékou Sangaré',
-        clientPhone: '+225 05 06 07 08 09',
-        balance: 15000,
-        createdAt: '2026-07-02T08:15:00.000Z',
-        updatedAt: '2026-07-02T08:15:00.000Z',
-        movements: [
-          {
-            id: 'mov-3',
-            type: 'credit',
-            amount: 15000,
-            reason: 'Avoir émis pour remboursement bouteilles de gaz consignées',
-            date: '2026-07-02T08:15:00.000Z',
-            paymentMethod: 'cash'
-          }
-        ]
-      }
-    ];
-    return safeJSONParse('bb_customer_avoirs', defaultAvoirs);
+    return safeJSONParse('bb_customer_avoirs', INITIAL_CUSTOMER_AVOIRS);
   });
 
   const [roomHistoryLogs, setRoomHistoryLogs] = useState<RoomHistoryLog[]>(() => {
@@ -428,6 +333,25 @@ export default function App() {
   }, [isOfflineModeSimulated]);
 
   useEffect(() => {
+    getSyncQueueDB().then(items => {
+      setSyncQueue(items);
+    }).catch(err => {
+      console.error("Failed to load offline sync queue from IndexedDB:", err);
+    });
+  }, []);
+
+  useEffect(() => {
+    const syncWithIDB = async () => {
+      try {
+        await clearSyncQueueDB();
+        for (const item of syncQueue) {
+          await saveSyncQueueItemDB(item);
+        }
+      } catch (err) {
+        console.error("Failed to update IndexedDB sync queue:", err);
+      }
+    };
+    syncWithIDB();
     localStorage.setItem('bb_sync_queue', JSON.stringify(syncQueue));
   }, [syncQueue]);
 
@@ -497,7 +421,7 @@ export default function App() {
         phone: '+225 07 48 29 10 11',
         role: 'admin',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Quartier Kennedy'
@@ -510,7 +434,7 @@ export default function App() {
         phone: '+225 05 55 12 34 56',
         role: 'receptionist',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Quartier Kennedy'
@@ -523,7 +447,7 @@ export default function App() {
         phone: '+225 05 99 88 77 66',
         role: 'waiter',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Maquis Central'
@@ -536,7 +460,7 @@ export default function App() {
         phone: '+225 01 22 33 44 55',
         role: 'housekeeper',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Quartier Kennedy'
@@ -549,7 +473,7 @@ export default function App() {
         phone: '+225 07 11 22 33 44',
         role: 'accountant',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Quartier Kennedy'
@@ -562,7 +486,7 @@ export default function App() {
         phone: '+225 07 44 55 66 77',
         role: 'manager',
         status: 'active',
-        passwordHash: 'password',
+        passwordHash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         isTemporaryPassword: false,
         createdAt: new Date().toISOString(),
         branch: 'Quartier Kennedy'
@@ -1736,7 +1660,12 @@ export default function App() {
               onBackToDashboard={() => setActiveTab('dashboard')} 
             />
           ) : (
-            <>
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center p-12 min-h-[400px] text-center space-y-4">
+                <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
+                <p className="text-slate-500 text-xs font-bold font-mono uppercase tracking-widest">Chargement du module {TAB_NAMES[activeTab] || 'en cours'}...</p>
+              </div>
+            }>
               {activeTab === 'dashboard' && (
                 <DashboardOverview 
                   rooms={rooms}
@@ -1921,7 +1850,7 @@ export default function App() {
                   onStartOnboarding={handleStartOnboarding}
                 />
               )}
-            </>
+            </Suspense>
           )}
 
         </div>

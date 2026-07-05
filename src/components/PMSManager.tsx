@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, RoomHistoryLog } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
+import { validateReservation } from '../utils/validation';
 
 interface PMSProps {
   rooms: Room[];
@@ -287,6 +288,25 @@ export default function PMSManager({
   const handleCheckInSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoom) return;
+
+    // Zod runtime validation
+    const validation = validateReservation({
+      roomId: selectedRoom.id,
+      guestName: guestName,
+      guestPhone: guestPhone,
+      guestEmail: guestEmail,
+      checkInDate,
+      checkOutDate,
+      numberOfGuests: numGuests,
+      prepaidAmount,
+      securityPin: securityPin.trim(),
+      creditLimit
+    });
+
+    if (!validation.success) {
+      alert(`ERREUR DE VALIDATION : ${validation.message}`);
+      return;
+    }
 
     // A room cannot be checked in if it is dirty, maintenance, or occupied
     if (selectedRoom.status === 'dirty' || selectedRoom.status === 'maintenance' || selectedRoom.status === 'occupied') {

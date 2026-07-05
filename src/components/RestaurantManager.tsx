@@ -25,6 +25,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { MenuItem, StockItem, UserAccount } from '../types';
+import { validateMenuItem } from '../utils/validation';
 
 interface RestaurantManagerProps {
   menu: MenuItem[];
@@ -120,8 +121,18 @@ export default function RestaurantManager({
     }
 
     const priceNum = parseFloat(formPrice);
-    if (isNaN(priceNum) || priceNum < 0) {
-      setFormError("Le prix doit être un nombre positif.");
+    
+    // Zod runtime validation
+    const validation = validateMenuItem({
+      name: formName.trim(),
+      category: formCategory,
+      price: priceNum,
+      available: formAvailable,
+      description: formDescription.trim() || undefined
+    });
+
+    if (!validation.success) {
+      setFormError(validation.message || "Données du menu de restaurant invalides.");
       return;
     }
 

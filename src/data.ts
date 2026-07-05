@@ -1,4 +1,4 @@
-import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings, RoomHistoryLog } from './types';
+import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecord, PropertySettings, RoomHistoryLog, Invoice, CustomerAvoir } from './types';
 
 export const INITIAL_ROOMS: Room[] = [
   {
@@ -441,6 +441,107 @@ export const INITIAL_ROOM_HISTORY_LOGS: RoomHistoryLog[] = [
     title: 'Signalement climatisation HS',
     description: 'Le compresseur extérieur fait un bruit métallique et n\'émet plus d\'air froid. Transfert en maintenance.',
     staffName: 'Zadi Richard'
+  }
+];
+
+export const INITIAL_INVOICES: Invoice[] = [
+  {
+    id: 'FAC-2026-0001',
+    clientName: 'Koffi Anderson',
+    clientPhone: '+225 07 01 02 03 04',
+    date: '2026-06-30',
+    dueDate: '2026-07-15',
+    items: [
+      { description: 'Chambre Standard Gbêkê - Séjour de 2 nuits', quantity: 2, unitPrice: 18000, total: 36000 },
+      { description: 'Boisson - Bière Bock Grande Maquis', quantity: 4, unitPrice: 1000, total: 4000 }
+    ],
+    subtotal: 40000,
+    taxRate: 0.18,
+    taxAmount: 7200,
+    totalAmount: 47200,
+    status: 'paid',
+    paymentMethod: 'cash',
+    notes: 'Payé à l\'accueil lors du check-out'
+  },
+  {
+    id: 'FAC-2026-0002',
+    clientName: 'Amina Doukouré',
+    clientPhone: '+225 05 11 22 33 44',
+    date: '2026-07-01',
+    dueDate: '2026-07-10',
+    items: [
+      { description: 'Studio Bouaké Chic - Séjour de 1 nuit', quantity: 1, unitPrice: 25000, total: 25000 },
+      { description: 'Restauration - Kedjenou de Poulet & Attiéké', quantity: 2, unitPrice: 6000, total: 12000 }
+    ],
+    subtotal: 37000,
+    taxRate: 0.18,
+    taxAmount: 6660,
+    totalAmount: 43660,
+    status: 'unpaid',
+    notes: 'En attente de virement Wave ou Orange Money'
+  },
+  {
+    id: 'FAC-2026-0003',
+    clientName: 'Dr. Bakayoko Sylla',
+    clientPhone: '+225 07 88 99 00 11',
+    date: '2026-07-02',
+    dueDate: '2026-07-02',
+    items: [
+      { description: 'Appartement F2 VIP - Séjour de 3 nuits', quantity: 3, unitPrice: 45000, total: 135000 }
+    ],
+    subtotal: 135000,
+    taxRate: 0.18,
+    taxAmount: 24300,
+    totalAmount: 159300,
+    status: 'paid',
+    paymentMethod: 'wave',
+    notes: 'Facture VIP soldée par Wave CI'
+  }
+];
+
+export const INITIAL_CUSTOMER_AVOIRS: CustomerAvoir[] = [
+  {
+    id: 'AVO-001',
+    clientName: 'Amadou Coulibaly (Client Fidèle)',
+    clientPhone: '+225 07 47 48 49 50',
+    balance: 45000,
+    createdAt: '2026-07-01T10:00:00.000Z',
+    updatedAt: '2026-07-02T12:30:00.000Z',
+    movements: [
+      {
+        id: 'mov-1',
+        type: 'credit',
+        amount: 50000,
+        reason: 'Dépôt de garantie prépayé Maquis (Recharge compte)',
+        date: '2026-07-01T10:00:00.000Z',
+        paymentMethod: 'wave'
+      },
+      {
+        id: 'mov-2',
+        type: 'debit',
+        amount: 5000,
+        reason: 'Déduction consommation table 4 - Braisé & Bock',
+        date: '2026-07-02T12:30:00.000Z'
+      }
+    ]
+  },
+  {
+    id: 'AVO-002',
+    clientName: 'Sékou Sangaré',
+    clientPhone: '+225 05 06 07 08 09',
+    balance: 15000,
+    createdAt: '2026-07-02T08:15:00.000Z',
+    updatedAt: '2026-07-02T08:15:00.000Z',
+    movements: [
+      {
+        id: 'mov-3',
+        type: 'credit',
+        amount: 15000,
+        reason: 'Avoir émis pour remboursement bouteilles de gaz consignées',
+        date: '2026-07-02T08:15:00.000Z',
+        paymentMethod: 'cash'
+      }
+    ]
   }
 ];
 

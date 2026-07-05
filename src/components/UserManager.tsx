@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, UserRole } from '../types';
 import { hashPassword } from '../utils/crypto';
+import { validateUser } from '../utils/validation';
 
 interface UserManagerProps {
   users: UserAccount[];
@@ -179,9 +180,24 @@ export default function UserManager({
     e.preventDefault();
     setErrorMessage('');
 
-    // Validations
-    if (!fullName.trim() || !username.trim() || !password.trim()) {
-      setErrorMessage('Veuillez remplir tous les champs obligatoires.');
+    // Run robust Zod runtime validation
+    const validation = validateUser({
+      name: fullName,
+      username,
+      email,
+      phone,
+      role,
+      status,
+      branch
+    });
+
+    if (!validation.success) {
+      setErrorMessage(validation.message || "Erreur de validation des données.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setErrorMessage('Le mot de passe de sécurité est obligatoire.');
       return;
     }
 

@@ -125,8 +125,13 @@ export default function LoginView({
     // Hash the entered password to compare with the stored hash
     const inputHash = await hashPassword(password);
 
-    // Support both pre-hashed secure passwords and legacy plain text ones for migration
-    const isMatch = matchedUser.passwordHash === password || matchedUser.passwordHash === inputHash;
+    // Determine if the stored password is already a secure 64-character SHA-256 hash
+    const isStoredHashed = matchedUser.passwordHash.length === 64 && /^[0-9a-f]+$/.test(matchedUser.passwordHash);
+
+    // If hashed, we strictly compare inputHash. If legacy plain text, we fallback for migration.
+    const isMatch = isStoredHashed 
+      ? matchedUser.passwordHash === inputHash 
+      : matchedUser.passwordHash === password;
 
     if (!isMatch) {
       setErrorMessage("Mot de passe incorrect. Veuillez vérifier la saisie ou demander une réinitialisation.");
