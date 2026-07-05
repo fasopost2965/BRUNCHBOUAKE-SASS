@@ -22,7 +22,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { PropertySettings } from '../types';
+import { PropertySettings, UserAccount } from '../types';
 import { DEFAULT_PROPERTY_SETTINGS } from '../data';
 
 interface PropertySettingsProps {
@@ -30,6 +30,10 @@ interface PropertySettingsProps {
   onUpdateSettings: (updated: PropertySettings) => void;
   appTheme?: 'savannah' | 'lagoon' | 'forest' | 'swiss';
   onUpdateTheme?: (theme: 'savannah' | 'lagoon' | 'forest' | 'swiss') => void;
+  isProductionMode?: boolean;
+  currentUser?: UserAccount | null;
+  onResetToDemo?: () => void;
+  onResetToProductionWipe?: () => void;
 }
 
 type SettingsSection = 'general' | 'pms' | 'finance' | 'pricing' | 'system' | 'design';
@@ -38,7 +42,11 @@ export default function PropertySettingsManager({
   settings, 
   onUpdateSettings,
   appTheme,
-  onUpdateTheme
+  onUpdateTheme,
+  isProductionMode = false,
+  currentUser,
+  onResetToDemo,
+  onResetToProductionWipe
 }: PropertySettingsProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const [localSettings, setLocalSettings] = useState<PropertySettings>({ 
@@ -774,6 +782,86 @@ export default function PropertySettingsManager({
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 font-extrabold rounded-lg">Boissons (Bock, Sucrés)</span>
                         <span className="px-3 py-1 bg-yellow-100 text-yellow-800 font-extrabold rounded-lg">Accompagnements (Alloco, Attiéké)</span>
                         <span className="px-3 py-1 bg-purple-100 text-purple-800 font-extrabold rounded-lg">Desserts glacés</span>
+                      </div>
+                    </div>
+
+                    {/* DANGER ZONE & SYSTEM MAINTENANCE FOR ADMIN ONLY */}
+                    <div className="md:col-span-2 border-t border-rose-100 pt-6 mt-6 space-y-4">
+                      <div className="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl">
+                        <div className="flex items-start gap-3.5">
+                          <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl border border-rose-200 shrink-0">
+                            <ShieldAlert className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-black uppercase text-rose-800 tracking-tight">Zone d'Administration Sécurisée</h4>
+                            <p className="text-[11px] text-slate-500 leading-normal">
+                              Cette section vous permet de gérer les cycles d'activité de l'application Brunch Bouaké. Elle est strictement réservée au compte Directeur/Administrateur principal et ne doit pas être manipulée par le personnel de service.
+                            </p>
+                          </div>
+                        </div>
+
+                        {currentUser?.role !== 'admin' ? (
+                          <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-[11px] text-amber-800 font-bold flex items-center gap-2">
+                            <span>🔒 Accès Restreint : Seul le profil d'Administration Principal (Directeur) peut exécuter des réinitialisations usine ou de maintenance. Votre rôle de service actuel est : Manager Général.</span>
+                          </div>
+                        ) : (
+                          <div className="mt-5 space-y-4 pt-4 border-t border-rose-100/50">
+                            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 border border-slate-100 rounded-xl">
+                              <div className="space-y-1.5 flex-1 min-w-[250px]">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${isProductionMode ? 'bg-emerald-500 animate-ping' : 'bg-orange-500'}`} />
+                                  <span className="text-[11px] font-black uppercase text-slate-800">
+                                    Statut : {isProductionMode ? 'Mode Production Actif (Données Réelles)' : 'Mode Démo Actif (Données Simulées)'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 leading-tight">
+                                  {isProductionMode 
+                                    ? 'Le système fonctionne sur des bases de données réelles propres de votre établissement Brunch Bouaké.' 
+                                    : 'Le système utilise des comptes de test et des réservations de simulation pré-chargées pour la démonstration.'}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                {isProductionMode && onResetToDemo && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm("IMPORTANT: Vous allez désactiver le mode production et recharger le jeu de données de démonstration simulées. Toutes les réservations réelles actives seront effacées.\n\nVoulez-vous continuer ?")) {
+                                        onResetToDemo();
+                                      }
+                                    }}
+                                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Repasser en Mode Démo</span>
+                                  </button>
+                                )}
+
+                                {onResetToProductionWipe && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const code = Math.floor(1000 + Math.random() * 9000).toString();
+                                      const input = prompt(
+                                        `⚠️ ATTENTION - RÉINITIALISATION USINE EN MODE PRODUCTION !\n\nCette action va purger définitivement TOUTES les données d'activité de l'hôtel et du restaurant (folis, ventes, stocks, fiches clients) pour redémarrer à blanc tout en restant en mode production.\n\nSaisissez le code de contrôle pour valider : ${code}`
+                                      );
+                                      if (input === code) {
+                                        onResetToProductionWipe();
+                                        alert("Le système a été réinitialisé avec succès avec une base de données propre en mode production.");
+                                      } else {
+                                        alert("Code de contrôle incorrect. Opération annulée.");
+                                      }
+                                    }}
+                                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Purger & Réinitialiser à Blanc</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

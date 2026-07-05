@@ -24,6 +24,7 @@ interface LoginViewProps {
   users: UserAccount[];
   onLoginSuccess: (user: UserAccount) => void;
   onResetPasswordDirect: (username: string, newPassword: string) => void;
+  isProductionMode?: boolean;
 }
 
 type AuthScreen = 'login' | 'forgot' | 'first-reset' | 'reset-success';
@@ -31,8 +32,23 @@ type AuthScreen = 'login' | 'forgot' | 'first-reset' | 'reset-success';
 export default function LoginView({
   users,
   onLoginSuccess,
-  onResetPasswordDirect
+  onResetPasswordDirect,
+  isProductionMode = false
 }: LoginViewProps) {
+  const isViteProd = typeof import.meta !== 'undefined' && 
+    (import.meta as any).env && 
+    (import.meta as any).env.PROD;
+
+  const isProduction = isProductionMode || 
+                       (typeof localStorage !== 'undefined' && localStorage.getItem('bb_is_production') === 'true') ||
+                       isViteProd ||
+                       (typeof window !== 'undefined' && (
+                         window.location.hostname !== 'localhost' && 
+                         window.location.hostname !== '127.0.0.1' &&
+                         !window.location.hostname.includes('ais-dev') && 
+                         !window.location.hostname.includes('ais-pre') &&
+                         !window.location.hostname.includes('run.app')
+                       ));
   const [screen, setScreen] = useState<AuthScreen>('login');
   
   // Credentials input
@@ -345,50 +361,52 @@ export default function LoginView({
               </form>
 
               {/* DEMO ACCORDION BYPASS TRIGGER */}
-              <div className="pt-4 border-t border-slate-800 text-center space-y-2">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowDemoList(!showDemoList)}
-                    className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-bold text-orange-400 hover:bg-slate-900 transition-all inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-orange-400 animate-spin" />
-                    Bypass Caisse / Accès Rapide Démo
-                    <ChevronDown className={`w-3 h-3 transition-transform ${showDemoList ? 'rotate-180' : ''}`} />
-                  </button>
+              {!isProduction && (
+                <div className="pt-4 border-t border-slate-800 text-center space-y-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowDemoList(!showDemoList)}
+                      className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-bold text-orange-400 hover:bg-slate-900 transition-all inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-orange-400 animate-spin" />
+                      Bypass Caisse / Accès Rapide Démo
+                      <ChevronDown className={`w-3 h-3 transition-transform ${showDemoList ? 'rotate-180' : ''}`} />
+                    </button>
 
-                  {showDemoList && (
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 bg-slate-950 border border-slate-800 rounded-2xl p-2.5 text-left space-y-1.5 shadow-2xl z-20">
-                      <span className="block text-[9px] font-bold text-slate-500 uppercase px-1.5 mb-1">
-                        Sélectionnez un rôle de test :
-                      </span>
-                      {users.length === 0 ? (
-                        <div className="text-[10px] text-slate-500 px-1.5 italic">
-                          Aucun compte démo. Cliquez sur "Générer Comptes Demo" depuis l'onglet Utilisateurs après connexion.
-                        </div>
-                      ) : (
-                        <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
-                          {users.map(u => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => handleQuickDemoClick(u)}
-                              className="w-full text-left p-1.5 hover:bg-slate-900 rounded-lg flex items-center justify-between text-[11px] text-slate-300 transition-colors"
-                            >
-                              <div className="font-bold truncate max-w-[150px]">
-                                {u.name.split(' ')[0]} <span className="text-[9px] text-slate-500 font-mono font-normal">({u.username})</span>
-                              </div>
-                              <span className="px-1.5 py-0.5 bg-slate-800 text-orange-400 rounded text-[9px] font-mono uppercase font-bold text-right">
-                                {u.role}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {showDemoList && (
+                      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 bg-slate-950 border border-slate-800 rounded-2xl p-2.5 text-left space-y-1.5 shadow-2xl z-20">
+                        <span className="block text-[9px] font-bold text-slate-500 uppercase px-1.5 mb-1">
+                          Sélectionnez un rôle de test :
+                        </span>
+                        {users.length === 0 ? (
+                          <div className="text-[10px] text-slate-500 px-1.5 italic">
+                            Aucun compte démo. Cliquez sur "Générer Comptes Demo" depuis l'onglet Utilisateurs après connexion.
+                          </div>
+                        ) : (
+                          <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
+                            {users.map(u => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => handleQuickDemoClick(u)}
+                                className="w-full text-left p-1.5 hover:bg-slate-900 rounded-lg flex items-center justify-between text-[11px] text-slate-300 transition-colors"
+                              >
+                                <div className="font-bold truncate max-w-[150px]">
+                                  {u.name.split(' ')[0]} <span className="text-[9px] text-slate-500 font-mono font-normal">({u.username})</span>
+                                </div>
+                                <span className="px-1.5 py-0.5 bg-slate-800 text-orange-400 rounded text-[9px] font-mono uppercase font-bold text-right">
+                                  {u.role}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -557,31 +575,33 @@ export default function LoginView({
                   </button>
 
                   {/* QUICK DEMO ASSIST: LIST REGISTERED EMAILS TO EXPEDITE TESTING */}
-                  <div className="pt-4 border-t border-slate-800/80">
-                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-                      Emails enregistrés pour la démo :
-                    </span>
-                    <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto pr-1">
-                      {users.filter(u => u.email).map(u => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => {
-                            setForgotIdentifier(u.email || '');
-                            setErrorMessage('');
-                          }}
-                          className="p-2 bg-slate-950 hover:bg-slate-900 border border-slate-800/60 hover:border-orange-500/50 rounded-xl text-left text-[10px] text-slate-300 transition-all flex flex-col cursor-pointer"
-                        >
-                          <span className="font-bold text-slate-400 truncate text-[9px] uppercase tracking-wide">
-                            {u.name.split(' ')[0]} ({u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : u.role === 'receptionist' ? 'Réceptionniste' : u.role === 'waiter' ? 'Serveur' : u.role === 'accountant' ? 'Comptable' : 'Gouvernante'})
-                          </span>
-                          <span className="text-[10px] text-orange-400 truncate mt-0.5 select-all">
-                            {u.email}
-                          </span>
-                        </button>
-                      ))}
+                  {!isProduction && (
+                    <div className="pt-4 border-t border-slate-800/80">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
+                        Emails enregistrés pour la démo :
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                        {users.filter(u => u.email).map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => {
+                              setForgotIdentifier(u.email || '');
+                              setErrorMessage('');
+                            }}
+                            className="p-2 bg-slate-950 hover:bg-slate-900 border border-slate-800/60 hover:border-orange-500/50 rounded-xl text-left text-[10px] text-slate-300 transition-all flex flex-col cursor-pointer"
+                          >
+                            <span className="font-bold text-slate-400 truncate text-[9px] uppercase tracking-wide">
+                              {u.name.split(' ')[0]} ({u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : u.role === 'receptionist' ? 'Réceptionniste' : u.role === 'waiter' ? 'Serveur' : u.role === 'accountant' ? 'Comptable' : 'Gouvernante'})
+                            </span>
+                            <span className="text-[10px] text-orange-400 truncate mt-0.5 select-all">
+                              {u.email}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </form>
               )}
             </div>

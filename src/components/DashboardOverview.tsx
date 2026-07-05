@@ -35,6 +35,7 @@ interface DashboardProps {
   onQuickCheckIn: () => void;
   onQuickPOSOrder: () => void;
   onQuickAddTask: () => void;
+  currentRole?: string;
 }
 
 export default function DashboardOverview({
@@ -45,7 +46,8 @@ export default function DashboardOverview({
   onNavigate,
   onQuickCheckIn,
   onQuickPOSOrder,
-  onQuickAddTask
+  onQuickAddTask,
+  currentRole
 }: DashboardProps) {
   
   // Calculations
@@ -138,26 +140,82 @@ export default function DashboardOverview({
     <div className="space-y-6">
       {/* 1. KEY PERFORMANCE METRICS BAR */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Revenue */}
-        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Chiffre d'Affaires</p>
-              <h3 className="text-2xl font-bold text-slate-900 font-mono mt-1">
-                {(totalRevenue).toLocaleString('fr-FR')} <span className="text-xs font-sans text-slate-500 font-normal">FCFA</span>
-              </h3>
+        {/* Metric 1: Revenue or Operational Focus */}
+        {(currentRole === 'admin' || currentRole === 'manager' || currentRole === 'accountant') ? (
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Chiffre d'Affaires</p>
+                <h3 className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                  {(totalRevenue).toLocaleString('fr-FR')} <span className="text-xs font-sans text-slate-500 font-normal">FCFA</span>
+                </h3>
+              </div>
+              <div className="p-2.5 bg-orange-50 text-orange-700 rounded-xl">
+                <DollarSign className="w-5 h-5" />
+              </div>
             </div>
-            <div className="p-2.5 bg-orange-50 text-orange-700 rounded-xl">
-              <DollarSign className="w-5 h-5" />
+            <div className="flex items-center gap-1 mt-4 text-xs text-emerald-600 font-medium">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Hôtel: {lodgingRevenue.toLocaleString('fr-FR')} FCFA</span>
+              <span className="text-slate-300">|</span>
+              <span>Maquis: {posRevenue.toLocaleString('fr-FR')} FCFA</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-xs text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Hôtel: {lodgingRevenue.toLocaleString('fr-FR')} FCFA</span>
-            <span className="text-slate-300">|</span>
-            <span>Maquis: {posRevenue.toLocaleString('fr-FR')} FCFA</span>
+        ) : currentRole === 'housekeeper' ? (
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Studios à Nettoyer</p>
+                <h3 className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                  {rooms.filter(r => r.status === 'dirty').length} <span className="text-xs font-sans text-slate-500 font-normal">chambres sales</span>
+                </h3>
+              </div>
+              <div className="p-2.5 bg-orange-50 text-orange-700 rounded-xl">
+                <BedDouble className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-4 text-xs text-orange-600 font-medium">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse mr-1"></span>
+              <span>Ménage requis d'urgence pour remise en vente</span>
+            </div>
           </div>
-        </div>
+        ) : currentRole === 'receptionist' ? (
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Arrivées Prévues</p>
+                <h3 className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                  {reservations.filter(r => r.status === 'confirmed').length} <span className="text-xs font-sans text-slate-500 font-normal">chambres à attribuer</span>
+                </h3>
+              </div>
+              <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
+                <Calendar className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-4 font-medium flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse mr-1"></span>
+              En attente de check-in physique
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Service Maquis POS</p>
+                <h3 className="text-2xl font-bold text-slate-900 font-mono mt-1">
+                  Actif <span className="text-xs font-sans text-slate-500 font-normal">Caisse Resto</span>
+                </h3>
+              </div>
+              <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl">
+                <UtensilsCrossed className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-4 text-xs text-emerald-600 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>
+              <span>Prise de commande rapide de tables</span>
+            </div>
+          </div>
+        )}
 
         {/* Metric 2: Occupancy */}
         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
@@ -224,136 +282,199 @@ export default function DashboardOverview({
 
       {/* 📊 VISUAL ANALYTICS: OCCUPANCY & REVENUE CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Chart 1: Revenue & Expenses Trend */}
-        <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-all">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
-                <span>Flux Financiers (7 derniers jours)</span>
-              </h4>
-              <p className="text-[10px] text-slate-500 font-medium">Évolution quotidienne des recettes (Hôtel & Restaurant) vs. dépenses</p>
+        {(currentRole === 'admin' || currentRole === 'manager' || currentRole === 'accountant') ? (
+          <>
+            {/* Chart 1: Revenue & Expenses Trend */}
+            <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-all">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
+                    <span>Flux Financiers (7 derniers jours)</span>
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Évolution quotidienne des recettes (Hôtel & Restaurant) vs. dépenses</p>
+                </div>
+                <div className="text-[10px] bg-slate-100 font-bold px-2.5 py-1 rounded-lg text-slate-600 font-mono">
+                  En FCFA (XOF)
+                </div>
+              </div>
+              
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="label" 
+                      stroke="#94a3b8" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#94a3b8" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickFormatter={(val) => `${val >= 1000 ? (val / 1000) + 'k' : val}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e2e8f0',
+                        fontSize: '11px',
+                        fontFamily: 'sans-serif'
+                      }}
+                      formatter={(value: any, name: string) => [
+                        `${Number(value).toLocaleString('fr-FR')} FCFA`,
+                        name === 'revenue' ? 'Revenus Globaux' : 
+                        name === 'lodging' ? 'Hébergement' : 
+                        name === 'restaurant' ? 'Restauration' : 'Dépenses'
+                      ]}
+                    />
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36} 
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}
+                    />
+                    <Area type="monotone" dataKey="revenue" name="Revenus Globaux" stroke="#f97316" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExp)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="text-[10px] bg-slate-100 font-bold px-2.5 py-1 rounded-lg text-slate-600 font-mono">
-              En FCFA (XOF)
-            </div>
-          </div>
-          
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="label" 
-                  stroke="#94a3b8" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis 
-                  stroke="#94a3b8" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(val) => `${val >= 1000 ? (val / 1000) + 'k' : val}`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    borderRadius: '12px', 
-                    border: '1px solid #e2e8f0',
-                    fontSize: '11px',
-                    fontFamily: 'sans-serif'
-                  }}
-                  formatter={(value: any, name: string) => [
-                    `${Number(value).toLocaleString('fr-FR')} FCFA`,
-                    name === 'revenue' ? 'Revenus Globaux' : 
-                    name === 'lodging' ? 'Hébergement' : 
-                    name === 'restaurant' ? 'Restauration' : 'Dépenses'
-                  ]}
-                />
-                <Legend 
-                  verticalAlign="top" 
-                  height={36} 
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}
-                />
-                <Area type="monotone" dataKey="revenue" name="Revenus Globaux" stroke="#f97316" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExp)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* Chart 2: Occupancy Rate Trend */}
-        <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-all">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                <BedDouble className="w-4 h-4 text-emerald-500" />
-                <span>Taux d'Occupation Hôtelier (7 derniers jours)</span>
-              </h4>
-              <p className="text-[10px] text-slate-500 font-medium">Pourcentage de studios occupés par nuitée</p>
-            </div>
-            <div className="text-[10px] bg-emerald-50 font-extrabold px-2.5 py-1 rounded-lg text-emerald-700 uppercase">
-              Taux Moyen: {Math.round(chartData.reduce((sum, item) => sum + item.occupancy, 0) / 7)}%
-            </div>
-          </div>
+            {/* Chart 2: Occupancy Rate Trend */}
+            <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-all">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <BedDouble className="w-4 h-4 text-emerald-500" />
+                    <span>Taux d'Occupation Hôtelier (7 derniers jours)</span>
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Pourcentage de studios occupés par nuitée</p>
+                </div>
+                <div className="text-[10px] bg-emerald-50 font-extrabold px-2.5 py-1 rounded-lg text-emerald-700 uppercase">
+                  Taux Moyen: {Math.round(chartData.reduce((sum, item) => sum + item.occupancy, 0) / 7)}%
+                </div>
+              </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="label" 
-                  stroke="#94a3b8" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis 
-                  stroke="#94a3b8" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  domain={[0, 100]}
-                  tickFormatter={(val) => `${val}%`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    borderRadius: '12px', 
-                    border: '1px solid #e2e8f0',
-                    fontSize: '11px',
-                    fontFamily: 'sans-serif'
-                  }}
-                  formatter={(value: any) => [
-                    `${value}% (${chartData.find(item => item.occupancy === value)?.occupiedRooms || 0} chambres occupées)`,
-                    'Taux d\'Occupation'
-                  ]}
-                />
-                <Bar 
-                  dataKey="occupancy" 
-                  name="Taux d'Occupation" 
-                  fill="#059669" 
-                  radius={[8, 8, 0, 0]} 
-                  maxBarSize={45} 
-                />
-              </BarChart>
-            </ResponsiveContainer>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="label" 
+                      stroke="#94a3b8" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#94a3b8" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      domain={[0, 100]}
+                      tickFormatter={(val) => `${val}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e2e8f0',
+                        fontSize: '11px',
+                        fontFamily: 'sans-serif'
+                      }}
+                      formatter={(value: any) => [
+                        `${value}% (${chartData.find(item => item.occupancy === value)?.occupiedRooms || 0} chambres occupées)`,
+                        'Taux d\'Occupation'
+                      ]}
+                    />
+                    <Bar 
+                      dataKey="occupancy" 
+                      name="Taux d'Occupation" 
+                      fill="#059669" 
+                      radius={[8, 8, 0, 0]} 
+                      maxBarSize={45} 
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Expand Occupancy Rate Trend when financials are hidden */
+          <div className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-xs hover:shadow-md transition-all lg:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <BedDouble className="w-4 h-4 text-emerald-500" />
+                  <span>Taux d'Occupation Hôtelier (7 derniers jours)</span>
+                </h4>
+                <p className="text-[10px] text-slate-500 font-medium">Pourcentage de studios occupés par nuitée</p>
+              </div>
+              <div className="text-[10px] bg-emerald-50 font-extrabold px-2.5 py-1 rounded-lg text-emerald-700 uppercase">
+                Taux Moyen: {Math.round(chartData.reduce((sum, item) => sum + item.occupancy, 0) / 7)}%
+              </div>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="label" 
+                    stroke="#94a3b8" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    domain={[0, 100]}
+                    tickFormatter={(val) => `${val}%`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      borderRadius: '12px', 
+                      border: '1px solid #e2e8f0',
+                      fontSize: '11px',
+                      fontFamily: 'sans-serif'
+                    }}
+                    formatter={(value: any) => [
+                      `${value}% (${chartData.find(item => item.occupancy === value)?.occupiedRooms || 0} chambres occupées)`,
+                      'Taux d\'Occupation'
+                    ]}
+                  />
+                  <Bar 
+                    dataKey="occupancy" 
+                    name="Taux d'Occupation" 
+                    fill="#059669" 
+                    radius={[8, 8, 0, 0]} 
+                    maxBarSize={45} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 2. DYNAMIC QUICK ACTIONS & MODULES */}
@@ -408,52 +529,131 @@ export default function DashboardOverview({
             </div>
           </div>
 
-          {/* Recent Financial Transactions */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">Trésorerie Récente</h4>
-                <p className="text-xs text-slate-500">Flux d'argent combinés de la journée</p>
+          {/* Recent Financial Transactions or Housekeeping/Task Panel */}
+          {(currentRole === 'admin' || currentRole === 'manager' || currentRole === 'accountant') ? (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Trésorerie Récente</h4>
+                  <p className="text-xs text-slate-500">Flux d'argent combinés de la journée</p>
+                </div>
+                <button 
+                  onClick={() => onNavigate('erp')}
+                  className="text-xs font-semibold text-orange-600 hover:text-orange-800 flex items-center gap-1"
+                >
+                  Tout voir
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button 
-                onClick={() => onNavigate('erp')}
-                className="text-xs font-semibold text-orange-600 hover:text-orange-800 flex items-center gap-1"
-              >
-                Tout voir
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
-            <div className="divide-y divide-slate-100 mt-2">
-              {transactions.slice().reverse().map((t) => (
-                <div key={t.id} className="py-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${
-                      t.type === 'lodging_payment' 
-                        ? 'bg-blue-50 text-blue-700' 
-                        : t.type === 'pos_sale' 
-                        ? 'bg-emerald-50 text-emerald-700' 
-                        : 'bg-rose-50 text-rose-700'
-                    }`}>
-                      {t.type === 'lodging_payment' && <BedDouble className="w-4 h-4" />}
-                      {t.type === 'pos_sale' && <UtensilsCrossed className="w-4 h-4" />}
-                      {t.type === 'expense' && <ArrowDownRight className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-800">{t.description}</div>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span className="uppercase font-semibold tracking-wider text-orange-800 bg-orange-50 px-1.5 rounded">{t.method}</span>
-                        <span>{new Date(t.date).toLocaleDateString('fr-FR')} {new Date(t.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span>
+              <div className="divide-y divide-slate-100 mt-2">
+                {transactions.slice().reverse().map((t) => (
+                  <div key={t.id} className="py-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${
+                        t.type === 'lodging_payment' 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : t.type === 'pos_sale' 
+                          ? 'bg-emerald-50 text-emerald-700' 
+                          : 'bg-rose-50 text-rose-700'
+                      }`}>
+                        {t.type === 'lodging_payment' && <BedDouble className="w-4 h-4" />}
+                        {t.type === 'pos_sale' && <UtensilsCrossed className="w-4 h-4" />}
+                        {t.type === 'expense' && <ArrowDownRight className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-slate-800">{t.description}</div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span className="uppercase font-semibold tracking-wider text-orange-800 bg-orange-50 px-1.5 rounded">{t.method}</span>
+                          <span>{new Date(t.date).toLocaleDateString('fr-FR')} {new Date(t.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className={`text-sm font-mono font-bold ${t.type === 'expense' ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {t.type === 'expense' ? '-' : '+'}{t.amount.toLocaleString('fr-FR')} F
+                    </div>
                   </div>
-                  <div className={`text-sm font-mono font-bold ${t.type === 'expense' ? 'text-rose-600' : 'text-slate-900'}`}>
-                    {t.type === 'expense' ? '-' : '+'}{t.amount.toLocaleString('fr-FR')} F
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {currentRole === 'housekeeper' ? "Planning de Ménage Actif" : "Opérations Assignées"}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {currentRole === 'housekeeper' 
+                      ? "Suivi des chambres demandant un ménage d'urgence" 
+                      : "Liste des tâches d'équipe de la journée"}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => onNavigate('staff')}
+                  className="text-xs font-semibold text-orange-600 hover:text-orange-800 flex items-center gap-1"
+                >
+                  Gérer Tâches
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100 mt-2">
+                {currentRole === 'housekeeper' ? (
+                  rooms.filter(r => r.status === 'dirty').length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      ✨ Toutes les chambres sont propres ! Bon travail !
+                    </div>
+                  ) : (
+                    rooms.filter(r => r.status === 'dirty').map((room) => (
+                      <div key={room.id} className="py-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-orange-50 text-orange-700 rounded-xl">
+                            <BedDouble className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-slate-800">Ménage requis - {room.name}</div>
+                            <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                              <span className="uppercase font-semibold tracking-wider text-orange-800 bg-orange-50 px-1.5 rounded">{room.type}</span>
+                              <span>Statut actuel: Sale (Ménage urgent)</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-bold uppercase">
+                          À faire
+                        </span>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  tasks.filter(t => t.status !== 'completed').slice(0, 5).length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      🎉 Aucune tâche urgente assignée pour le moment !
+                    </div>
+                  ) : (
+                    tasks.filter(t => t.status !== 'completed').slice(0, 5).map((task) => (
+                      <div key={task.id} className="py-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2.5 rounded-xl ${
+                            task.category === 'housekeeping' ? 'bg-orange-50 text-orange-700' : 'bg-purple-50 text-purple-700'
+                          }`}>
+                            <CheckSquare className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-slate-800">{task.title}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{task.description}</div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold uppercase">
+                          {task.status === 'in-progress' ? 'En cours' : 'À faire'}
+                        </span>
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Mini room matrix & live active tasks */}

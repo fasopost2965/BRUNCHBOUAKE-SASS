@@ -532,6 +532,21 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [isProductionMode, setIsProductionMode] = useState<boolean>(() => {
+    const isProdHost = typeof window !== 'undefined' && 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1' &&
+      !window.location.hostname.includes('ais-dev') && 
+      !window.location.hostname.includes('ais-pre') &&
+      !window.location.hostname.includes('run.app');
+    
+    const isViteProd = typeof import.meta !== 'undefined' && 
+      (import.meta as any).env && 
+      (import.meta as any).env.PROD;
+    
+    return localStorage.getItem('bb_is_production') === 'true' || isViteProd || isProdHost;
+  });
+
   // Active view state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pms' | 'pos' | 'erp' | 'staff' | 'crm' | 'blueprints' | 'settings' | 'users' | 'tour'>('dashboard');
   const [pmsActiveSubTab, setPmsActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly'>('rooms');
@@ -774,6 +789,58 @@ export default function App() {
   };
 
   const handleResetData = () => {
+    if (currentRole !== 'admin') {
+      alert("Action non autorisée. Seul l'administrateur système (Directeur) peut réinitialiser l'application.");
+      return;
+    }
+
+    if (isProductionMode) {
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      const input = prompt(
+        `⚠️ OPTION DE RÉINITIALISATION DE PRODUCTION (RÉSERVÉ À L'ADMINISTRATEUR)\n\nLa réinitialisation supprimera définitivement TOUTES vos données d'activité réelles (réservations, fiches clients, factures, transactions, ventes, stocks).\nCette action est irréversible !\n\nVos comptes d'utilisateurs et la liste des chambres seront conservés.\n\nPour confirmer la réinitialisation complète usine, saisissez le code de contrôle : ${code}`
+      );
+      if (input !== code) {
+        alert("Code de sécurité incorrect. Réinitialisation usine annulée.");
+        return;
+      }
+      
+      // Wipe everything
+      setReservations([]);
+      setTransactions([]);
+      setGuests([]);
+      setInvoices([]);
+      setCustomerAvoirs([]);
+      setActiveOrders([]);
+      setPaymentIntents([]);
+      setPaymentTransactions([]);
+      setWebhookEvents([]);
+      setProcessedEvents([]);
+      setTasks([]);
+      setSyncQueue([]);
+      setStockMovements([]);
+      setStockItems([]);
+      setMenu([]);
+      setRooms(prev => prev.map(r => ({
+        ...r,
+        status: 'available',
+        currentGuestId: undefined,
+        currentReservationId: undefined
+      })));
+
+      localStorage.clear();
+      // Re-save production flag
+      localStorage.setItem('bb_is_production', 'true');
+      setIsProductionMode(true);
+      // Re-save users
+      localStorage.setItem('bb_users', JSON.stringify(users));
+      // Re-save current user
+      localStorage.setItem('bb_current_user', JSON.stringify(currentUser));
+      
+      setActiveTab('dashboard');
+      alert("L'application a été réinitialisée avec succès aux données d'usine (mode production maintenu).");
+      return;
+    }
+
     if (confirm("Voulez-vous réinitialiser toutes les données de simulation de Brunch Bouaké aux données de démonstration initiales ?")) {
       localStorage.clear();
       setRooms(INITIAL_ROOMS);
@@ -787,6 +854,130 @@ export default function App() {
       setSettings(DEFAULT_PROPERTY_SETTINGS);
       setActiveTab('dashboard');
     }
+  };
+
+  const handleResetToDemo = () => {
+    localStorage.clear();
+    setRooms(INITIAL_ROOMS);
+    setGuests(INITIAL_GUESTS);
+    setReservations(INITIAL_RESERVATIONS);
+    setMenu(INITIAL_MENU);
+    setStaff(INITIAL_STAFF);
+    setTasks(INITIAL_TASKS);
+    setTransactions(INITIAL_TRANSACTIONS);
+    setActiveOrders([]);
+    setSettings(DEFAULT_PROPERTY_SETTINGS);
+    setInvoices([
+      {
+        id: 'FAC-2026-0001',
+        clientName: 'Koffi Anderson',
+        clientPhone: '+225 07 01 02 03 04',
+        date: '2026-06-30',
+        dueDate: '2026-07-15',
+        items: [
+          { description: 'Chambre Standard Gbêkê - Séjour de 2 nuits', quantity: 2, unitPrice: 18000, total: 36000 },
+          { description: 'Boisson - Bière Bock Grande Maquis', quantity: 4, unitPrice: 1000, total: 4000 }
+        ],
+        subtotal: 40000,
+        taxRate: 0.18,
+        taxAmount: 7200,
+        totalAmount: 47200,
+        status: 'paid',
+        paymentMethod: 'cash',
+        notes: 'Payé à l\'accueil lors du check-out'
+      },
+      {
+        id: 'FAC-2026-0002',
+        clientName: 'Amina Doukouré',
+        clientPhone: '+225 05 11 22 33 44',
+        date: '2026-07-01',
+        dueDate: '2026-07-10',
+        items: [
+          { description: 'Studio Bouaké Chic - Séjour de 1 nuit', quantity: 1, unitPrice: 25000, total: 25000 },
+          { description: 'Restauration - Kedjenou de Poulet & Attiéké', quantity: 2, unitPrice: 6000, total: 12000 }
+        ],
+        subtotal: 37000,
+        taxRate: 0.18,
+        taxAmount: 6660,
+        totalAmount: 43660,
+        status: 'unpaid',
+        notes: 'En attente de virement Wave ou Orange Money'
+      },
+      {
+        id: 'FAC-2026-0003',
+        clientName: 'Dr. Bakayoko Sylla',
+        clientPhone: '+225 07 88 99 00 11',
+        date: '2026-07-02',
+        dueDate: '2026-07-02',
+        items: [
+          { description: 'Appartement Prestige Kénédou - Séjour de 3 nuits', quantity: 3, unitPrice: 45000, total: 135000 }
+        ],
+        subtotal: 135000,
+        taxRate: 0.18,
+        taxAmount: 24300,
+        totalAmount: 159300,
+        status: 'paid',
+        paymentMethod: 'wave',
+        notes: 'Payé via Wave avec confirmation'
+      }
+    ]);
+    setCustomerAvoirs([]);
+    setPaymentIntents([]);
+    setPaymentTransactions([]);
+    setWebhookEvents([]);
+    setProcessedEvents([]);
+    setSyncQueue([]);
+    setStockMovements([]);
+    setIsProductionMode(false);
+    localStorage.setItem('bb_is_production', 'false');
+    setActiveTab('dashboard');
+  };
+
+  const handleResetToProductionWipe = () => {
+    // Programmatic switch to production wipes everything cleanly
+    setReservations([]);
+    setTransactions([]);
+    setGuests([]);
+    setInvoices([]);
+    setCustomerAvoirs([]);
+    setActiveOrders([]);
+    setPaymentIntents([]);
+    setPaymentTransactions([]);
+    setWebhookEvents([]);
+    setProcessedEvents([]);
+    setTasks([]);
+    setSyncQueue([]);
+    setStockMovements([]);
+    setStockItems([]);
+    setMenu([]);
+    setRooms(prev => prev.map(r => ({
+      ...r,
+      status: 'available',
+      currentGuestId: undefined,
+      currentReservationId: undefined
+    })));
+
+    localStorage.removeItem('bb_reservations');
+    localStorage.removeItem('bb_transactions');
+    localStorage.removeItem('bb_guests');
+    localStorage.removeItem('bb_invoices');
+    localStorage.removeItem('bb_customer_avoirs');
+    localStorage.removeItem('bb_active_orders');
+    localStorage.removeItem('bb_payment_intents');
+    localStorage.removeItem('bb_payment_transactions');
+    localStorage.removeItem('bb_webhook_events');
+    localStorage.removeItem('bb_processed_events');
+    localStorage.removeItem('bb_tasks');
+    localStorage.removeItem('bb_sync_queue');
+    localStorage.removeItem('bb_stock_items');
+    localStorage.removeItem('bb_stock_movements');
+    localStorage.removeItem('bb_menu');
+
+    localStorage.setItem('bb_rooms', JSON.stringify(rooms.map(r => ({ ...r, status: 'available', currentGuestId: undefined, currentReservationId: undefined }))));
+    localStorage.setItem('bb_users', JSON.stringify(users));
+    localStorage.setItem('bb_is_production', 'true');
+    setIsProductionMode(true);
+    setActiveTab('dashboard');
   };
 
   const handleSwitchToProduction = () => {
@@ -837,6 +1028,8 @@ export default function App() {
     // Save cleaned collections (rooms and active users)
     localStorage.setItem('bb_rooms', JSON.stringify(rooms.map(r => ({ ...r, status: 'available', currentGuestId: undefined, currentReservationId: undefined }))));
     localStorage.setItem('bb_users', JSON.stringify(users));
+    localStorage.setItem('bb_is_production', 'true');
+    setIsProductionMode(true);
 
     setProductionSuccess(true);
     setActiveTab('dashboard');
@@ -848,6 +1041,7 @@ export default function App() {
         users={users} 
         onLoginSuccess={handleLoginSuccess} 
         onResetPasswordDirect={handleResetPasswordDirect} 
+        isProductionMode={isProductionMode}
       />
     );
   }
@@ -1572,20 +1766,30 @@ export default function App() {
             <span>Guide d'Intégration</span>
           </button>
 
-          <button
-            onClick={() => {
-              const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
-              setGeneratedConfirmCode(randomCode);
-              setProductionConfirmInput('');
-              setProductionError('');
-              setProductionSuccess(false);
-              setIsProductionModalOpen(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-xs font-extrabold transition-all cursor-pointer shadow-xs"
-          >
-            <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>Démarrage Production</span>
-          </button>
+          {isProductionMode ? (
+            <div className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-extrabold shadow-xs select-none">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Production Active</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+                setGeneratedConfirmCode(randomCode);
+                setProductionConfirmInput('');
+                setProductionError('');
+                setProductionSuccess(false);
+                setIsProductionModalOpen(true);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-xs font-extrabold transition-all cursor-pointer shadow-xs"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Démarrage Production</span>
+            </button>
+          )}
         </div>
 
         {/* User profile / role badge at bottom of sidebar with logout action */}
@@ -1709,37 +1913,39 @@ export default function App() {
               </select>
             </div>
 
-            {/* Simulation role-based switcher inside header */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
-              <span className="text-slate-400 text-[9px] uppercase font-mono font-bold">Rôle :</span>
-              <select
-                value={currentRole}
-                onChange={(e: any) => {
-                  const newRole = e.target.value as UserRole;
-                  setCurrentRole(newRole);
-                  // Also update currentUser's role for demo coherence if logged in
-                  if (currentUser) {
-                    const matchedDemo = users.find(u => u.role === newRole);
-                    if (matchedDemo) {
-                      setCurrentUser(matchedDemo);
-                      localStorage.setItem('bb_current_user', JSON.stringify(matchedDemo));
-                    } else {
-                      const updatedUser = { ...currentUser, role: newRole };
-                      setCurrentUser(updatedUser);
-                      localStorage.setItem('bb_current_user', JSON.stringify(updatedUser));
+            {/* Simulation role-based switcher inside header (Hidden in production mode) */}
+            {!isProductionMode && (
+              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                <span className="text-slate-400 text-[9px] uppercase font-mono font-bold">Rôle :</span>
+                <select
+                  value={currentRole}
+                  onChange={(e: any) => {
+                    const newRole = e.target.value as UserRole;
+                    setCurrentRole(newRole);
+                    // Also update currentUser's role for demo coherence if logged in
+                    if (currentUser) {
+                      const matchedDemo = users.find(u => u.role === newRole);
+                      if (matchedDemo) {
+                        setCurrentUser(matchedDemo);
+                        localStorage.setItem('bb_current_user', JSON.stringify(matchedDemo));
+                      } else {
+                        const updatedUser = { ...currentUser, role: newRole };
+                        setCurrentUser(updatedUser);
+                        localStorage.setItem('bb_current_user', JSON.stringify(updatedUser));
+                      }
                     }
-                  }
-                }}
-                className="bg-transparent text-orange-600 font-bold border-none outline-none cursor-pointer text-xs focus:ring-0 focus:outline-hidden"
-              >
-                <option value="admin">Directeur / Admin</option>
-                <option value="manager">Manager Général</option>
-                <option value="receptionist">Réceptionniste</option>
-                <option value="waiter">Serveur Resto</option>
-                <option value="accountant">Comptable</option>
-                <option value="housekeeper">Gouvernante</option>
-              </select>
-            </div>
+                  }}
+                  className="bg-transparent text-orange-600 font-bold border-none outline-none cursor-pointer text-xs focus:ring-0 focus:outline-hidden"
+                >
+                  <option value="admin">Directeur / Admin</option>
+                  <option value="manager">Manager Général</option>
+                  <option value="receptionist">Réceptionniste</option>
+                  <option value="waiter">Serveur Resto</option>
+                  <option value="accountant">Comptable</option>
+                  <option value="housekeeper">Gouvernante</option>
+                </select>
+              </div>
+            )}
 
             {/* Local time */}
             <div className="hidden lg:flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 font-mono">
@@ -1747,13 +1953,16 @@ export default function App() {
               <span>{currentTime.toLocaleDateString('fr-FR')} {currentTime.toLocaleTimeString('fr-FR')}</span>
             </div>
 
-            <button
-              onClick={handleResetData}
-              className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg border border-slate-200 transition-colors"
-              title="Réinitialiser la Démo"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
+            {/* Settings/Reset Cog shown ONLY for the Admin role to allow secure factory reset. */}
+            {currentRole === 'admin' && (
+              <button
+                onClick={handleResetData}
+                className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg border border-slate-200 transition-colors"
+                title={isProductionMode ? "Réinitialisation usine (Admin)" : "Réinitialiser la Démo"}
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </header>
 
@@ -1804,6 +2013,7 @@ export default function App() {
                   onQuickCheckIn={() => setActiveTab('pms')}
                   onQuickPOSOrder={() => setActiveTab('pos')}
                   onQuickAddTask={() => setActiveTab('staff')}
+                  currentRole={currentRole}
                 />
               )}
 
@@ -1935,6 +2145,10 @@ export default function App() {
                   onUpdateSettings={setSettings}
                   appTheme={appTheme}
                   onUpdateTheme={setAppTheme}
+                  isProductionMode={isProductionMode}
+                  currentUser={currentUser}
+                  onResetToDemo={handleResetToDemo}
+                  onResetToProductionWipe={handleResetToProductionWipe}
                 />
               )}
 
