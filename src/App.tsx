@@ -430,6 +430,7 @@ export default function App() {
     const defaultUsers = [
       {
         id: 'usr-admin',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Jean Dupont (Directeur)',
         username: 'admin@test',
         email: 'admin@brunchbouake.com',
@@ -443,6 +444,7 @@ export default function App() {
       },
       {
         id: 'usr-reception',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Mariam Diallo',
         username: 'reception@test',
         email: 'm.diallo@brunchbouake.com',
@@ -456,6 +458,7 @@ export default function App() {
       },
       {
         id: 'usr-waiter',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Kouassi Kouamé Jean',
         username: 'waiter@test',
         email: 'k.jean@brunchbouake.com',
@@ -469,6 +472,7 @@ export default function App() {
       },
       {
         id: 'usr-housekeeper',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Aka Florence (Gouvernante)',
         username: 'housekeeping@test',
         email: 'f.aka@brunchbouake.com',
@@ -482,6 +486,7 @@ export default function App() {
       },
       {
         id: 'usr-accountant',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Yao Amenan Chantal (Comptable)',
         username: 'cashier@test',
         email: 'c.yao@brunchbouake.com',
@@ -495,6 +500,7 @@ export default function App() {
       },
       {
         id: 'usr-manager',
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Zadi Richard (Manager Général)',
         username: 'manager@test',
         email: 'r.zadi@brunchbouake.com',
@@ -687,6 +693,7 @@ export default function App() {
     if (!effectiveOnlineStatus) {
       const syncItem: OfflineSyncItem = {
         id: `sync-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        idempotencyKey: newT.idempotencyKey,
         transaction: newT,
         status: 'pending',
         attempts: 0

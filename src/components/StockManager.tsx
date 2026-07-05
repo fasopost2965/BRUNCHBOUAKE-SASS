@@ -495,6 +495,7 @@ export default function StockManager({
       const newId = 'st-' + Math.random().toString(36).substr(2, 9);
       const newItem: StockItem = {
         id: newId,
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: itemName.trim(),
         category: itemCategory,
         quantity: qtyVal,
@@ -884,14 +885,14 @@ export default function StockManager({
   // Seeding default lodging items
   const handleSeedLingerie = () => {
     const initialLinen: StockItem[] = [
-      { id: 'st-linen-1', name: 'Draps de lit King Size (Blanc hôtelier)', category: 'lingerie', quantity: 45, unit: 'unité', minQuantity: 15, pricePurchase: 12500, location: 'Lingerie Centrale' },
-      { id: 'st-linen-2', name: 'Couvre-lits Brodés (Brunch Signature)', category: 'lingerie', quantity: 12, unit: 'unité', minQuantity: 5, pricePurchase: 22000, location: 'Lingerie Centrale' },
-      { id: 'st-linen-3', name: 'Oreillers Confort Soft & Taies', category: 'lingerie', quantity: 30, unit: 'unité', minQuantity: 10, pricePurchase: 6500, location: 'Lingerie Centrale' },
-      { id: 'st-linen-4', name: 'Serviettes de bain Éponge (Coton)', category: 'lingerie', quantity: 50, unit: 'unité', minQuantity: 15, pricePurchase: 4500, location: 'Lingerie Centrale' },
-      { id: 'st-linen-5', name: 'Savons de toilette d\'accueil (Brunch)', category: 'lingerie', quantity: 200, unit: 'unité', minQuantity: 50, pricePurchase: 150, location: 'Lingerie Centrale' },
-      { id: 'st-linen-6', name: 'Drap simple', category: 'lingerie', quantity: 35, unit: 'unité', minQuantity: 10, pricePurchase: 8500, location: 'Lingerie Centrale' },
-      { id: 'st-linen-7', name: 'Couvre-lit', category: 'lingerie', quantity: 15, unit: 'unité', minQuantity: 5, pricePurchase: 15000, location: 'Lingerie Centrale' },
-      { id: 'st-linen-8', name: 'Serviette', category: 'lingerie', quantity: 60, unit: 'unité', minQuantity: 15, pricePurchase: 3500, location: 'Lingerie Centrale' }
+      { id: 'st-linen-1', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Draps de lit King Size (Blanc hôtelier)', category: 'lingerie', quantity: 45, unit: 'unité', minQuantity: 15, pricePurchase: 12500, location: 'Lingerie Centrale' },
+      { id: 'st-linen-2', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Couvre-lits Brodés (Brunch Signature)', category: 'lingerie', quantity: 12, unit: 'unité', minQuantity: 5, pricePurchase: 22000, location: 'Lingerie Centrale' },
+      { id: 'st-linen-3', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Oreillers Confort Soft & Taies', category: 'lingerie', quantity: 30, unit: 'unité', minQuantity: 10, pricePurchase: 6500, location: 'Lingerie Centrale' },
+      { id: 'st-linen-4', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Serviettes de bain Éponge (Coton)', category: 'lingerie', quantity: 50, unit: 'unité', minQuantity: 15, pricePurchase: 4500, location: 'Lingerie Centrale' },
+      { id: 'st-linen-5', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Savons de toilette d\'accueil (Brunch)', category: 'lingerie', quantity: 200, unit: 'unité', minQuantity: 50, pricePurchase: 150, location: 'Lingerie Centrale' },
+      { id: 'st-linen-6', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Drap simple', category: 'lingerie', quantity: 35, unit: 'unité', minQuantity: 10, pricePurchase: 8500, location: 'Lingerie Centrale' },
+      { id: 'st-linen-7', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Couvre-lit', category: 'lingerie', quantity: 15, unit: 'unité', minQuantity: 5, pricePurchase: 15000, location: 'Lingerie Centrale' },
+      { id: 'st-linen-8', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Serviette', category: 'lingerie', quantity: 60, unit: 'unité', minQuantity: 15, pricePurchase: 3500, location: 'Lingerie Centrale' }
     ];
 
     let count = 0;
@@ -920,14 +921,14 @@ export default function StockManager({
 
   const handleSeedStock = () => {
     const defaultStocks: StockItem[] = [
-      { id: 'st-b-1', name: 'Caisse de Bière Beaufort (12 bout. 65cl)', category: 'boisson', quantity: 24, unit: 'casier', minQuantity: 5, pricePurchase: 14000, location: 'Réserve Cave' },
-      { id: 'st-b-2', name: 'Caisse de Bière Bock Ivoire (12 bout. 65cl)', category: 'boisson', quantity: 36, unit: 'casier', minQuantity: 8, pricePurchase: 11000, location: 'Réserve Cave' },
-      { id: 'st-b-3', name: 'Eau Minérale Awa (Carton de 12 bouteilles 1.5L)', category: 'boisson', quantity: 4, unit: 'casier', minQuantity: 10, pricePurchase: 4500, location: 'Réserve Bar' },
-      { id: 'st-f-1', name: 'Sac de Manioc Frais d\'Ananda (50kg)', category: 'nourriture', quantity: 3, unit: 'sac', minQuantity: 2, pricePurchase: 25000, location: 'Cuisine Stockage' },
-      { id: 'st-f-2', name: 'Régime de Bananes Plantains mûres (Gros calibre)', category: 'nourriture', quantity: 12, unit: 'unité', minQuantity: 4, pricePurchase: 4000, location: 'Cuisine Stockage' },
-      { id: 'st-i-1', name: 'Huile de Palme raffinée Dinor (Bidon de 20L)', category: 'ingredient', quantity: 2, unit: 'litre', minQuantity: 1, pricePurchase: 23000, location: 'Épicerie' },
-      { id: 'st-i-2', name: 'Carton de Poulet importé découpé (10kg)', category: 'nourriture', quantity: 1, unit: 'unité', minQuantity: 3, pricePurchase: 18000, location: 'Chambre Froide' },
-      { id: 'st-i-3', name: 'Piment de Table Rouge d\'Alépé (Cagette de 5kg)', category: 'ingredient', quantity: 1, unit: 'kg', minQuantity: 2, pricePurchase: 6000, location: 'Cuisine Légumes' }
+      { id: 'st-b-1', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Caisse de Bière Beaufort (12 bout. 65cl)', category: 'boisson', quantity: 24, unit: 'casier', minQuantity: 5, pricePurchase: 14000, location: 'Réserve Cave' },
+      { id: 'st-b-2', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Caisse de Bière Bock Ivoire (12 bout. 65cl)', category: 'boisson', quantity: 36, unit: 'casier', minQuantity: 8, pricePurchase: 11000, location: 'Réserve Cave' },
+      { id: 'st-b-3', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Eau Minérale Awa (Carton de 12 bouteilles 1.5L)', category: 'boisson', quantity: 4, unit: 'casier', minQuantity: 10, pricePurchase: 4500, location: 'Réserve Bar' },
+      { id: 'st-f-1', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Sac de Manioc Frais d\'Ananda (50kg)', category: 'nourriture', quantity: 3, unit: 'sac', minQuantity: 2, pricePurchase: 25000, location: 'Cuisine Stockage' },
+      { id: 'st-f-2', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Régime de Bananes Plantains mûres (Gros calibre)', category: 'nourriture', quantity: 12, unit: 'unité', minQuantity: 4, pricePurchase: 4000, location: 'Cuisine Stockage' },
+      { id: 'st-i-1', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Huile de Palme raffinée Dinor (Bidon de 20L)', category: 'ingredient', quantity: 2, unit: 'litre', minQuantity: 1, pricePurchase: 23000, location: 'Épicerie' },
+      { id: 'st-i-2', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Carton de Poulet importé découpé (10kg)', category: 'nourriture', quantity: 1, unit: 'unité', minQuantity: 3, pricePurchase: 18000, location: 'Chambre Froide' },
+      { id: 'st-i-3', tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy', name: 'Piment de Table Rouge d\'Alépé (Cagette de 5kg)', category: 'ingredient', quantity: 1, unit: 'kg', minQuantity: 2, pricePurchase: 6000, location: 'Cuisine Légumes' }
     ];
 
     let count = 0;

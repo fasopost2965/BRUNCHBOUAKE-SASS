@@ -87,7 +87,7 @@ export default function RestaurantManager({
     setFormAvailable(item.available);
     setFormIsMaquisOnly(!!item.isMaquisOnly);
     setFormIsRestaurantOnly(!!item.isRestaurantOnly);
-    setFormLinkedStockId(item.linkedStockItemId || '');
+    setFormLinkedStockId(item.ingredients?.[0]?.stockItemId || '');
     setFormError('');
     setFormSuccess('');
     setIsFormOpen(true);
@@ -144,7 +144,7 @@ export default function RestaurantManager({
       description: formDescription.trim() || undefined,
       isMaquisOnly: formIsMaquisOnly,
       isRestaurantOnly: formIsRestaurantOnly,
-      linkedStockItemId: formLinkedStockId || undefined
+      ingredients: formLinkedStockId ? [{ stockItemId: formLinkedStockId, quantityRequired: 1 }] : undefined
     };
 
     if (editingItem) {
@@ -157,6 +157,7 @@ export default function RestaurantManager({
     } else {
       const newItem: MenuItem = {
         id: 'menu-' + Date.now(),
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         ...itemData
       };
       onAddMenuItem(newItem);
@@ -208,6 +209,7 @@ export default function RestaurantManager({
     const demoItems: MenuItem[] = [
       {
         id: 'demo-plat-1',
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: 'Braised Tilapia Royal de Kossou',
         category: 'plat',
         price: 8500,
@@ -218,6 +220,7 @@ export default function RestaurantManager({
       },
       {
         id: 'demo-boisson-1',
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: 'Bière Bock Ivoire Étoile (65cl)',
         category: 'boisson',
         price: 1200,
@@ -228,6 +231,7 @@ export default function RestaurantManager({
       },
       {
         id: 'demo-plat-2',
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: 'Soupe de Cabri Pimentée',
         category: 'plat',
         price: 5000,
@@ -238,6 +242,7 @@ export default function RestaurantManager({
       },
       {
         id: 'demo-boisson-2',
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: 'Soda Beaufort Malt Sans Alcool',
         category: 'boisson',
         price: 1000,
@@ -248,6 +253,7 @@ export default function RestaurantManager({
       },
       {
         id: 'demo-dessert-1',
+        tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
         name: 'Dêguê de Bouaké Onctueux',
         category: 'dessert',
         price: 1500,
@@ -407,7 +413,7 @@ export default function RestaurantManager({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredItems.map(item => {
             // Find if item has linked stock
-            const linkedStock = stockItems.find(s => s.id === item.linkedStockItemId);
+            const linkedStock = stockItems.find(s => s.id === (item.ingredients?.[0]?.stockItemId));
             
             return (
               <div 

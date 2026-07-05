@@ -91,6 +91,7 @@ export default function UserManager({
   const handleQuickSeed = () => {
     const defaultDemoAccounts: Omit<UserAccount, 'id' | 'createdAt'>[] = [
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Jean Dupont (Directeur)',
         username: 'admin@test',
         email: 'admin@brunchbouake.com',
@@ -102,6 +103,7 @@ export default function UserManager({
         branch: 'Quartier Kennedy'
       },
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Mariam Diallo',
         username: 'reception@test',
         email: 'm.diallo@brunchbouake.com',
@@ -113,6 +115,7 @@ export default function UserManager({
         branch: 'Quartier Kennedy'
       },
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Kouassi Kouamé Jean',
         username: 'waiter@test',
         email: 'k.jean@brunchbouake.com',
@@ -124,6 +127,7 @@ export default function UserManager({
         branch: 'Maquis Central'
       },
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Aka Florence (Gouvernante)',
         username: 'housekeeping@test',
         email: 'f.aka@brunchbouake.com',
@@ -135,6 +139,7 @@ export default function UserManager({
         branch: 'Quartier Kennedy'
       },
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Yao Amenan Chantal (Comptable)',
         username: 'cashier@test',
         email: 'c.yao@brunchbouake.com',
@@ -146,6 +151,7 @@ export default function UserManager({
         branch: 'Quartier Kennedy'
       },
       {
+        tenantId: 'tenant-bouake-kennedy',
         name: 'Zadi Richard (Manager Général)',
         username: 'manager@test',
         email: 'r.zadi@brunchbouake.com',
@@ -220,6 +226,7 @@ export default function UserManager({
 
     const newUser: UserAccount = {
       id: `usr-${Date.now().toString().slice(-4)}`,
+      tenantId: currentUser?.tenantId || 'tenant-bouake-kennedy',
       name: fullName.trim(),
       username: normalizedUsername,
       email: email.trim(),

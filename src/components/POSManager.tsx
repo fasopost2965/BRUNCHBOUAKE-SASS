@@ -468,6 +468,7 @@ export default function POSManager({
       if (!existingIds.has(item.id)) {
         merged.push({
           id: item.id,
+          tenantId: 'tenant-bouake-kennedy',
           name: item.name,
           category: (item.category === 'entrées' || item.category === 'boissons' || item.category === 'cocktails' || item.category === 'petit-déjeuner' || item.category === 'extras' || item.category === 'room_service') ? 'plat' : item.category as any,
           price: item.price,
@@ -653,6 +654,7 @@ export default function POSManager({
 
     const newOrder: TableOrder = {
       id: orderId,
+      tenantId: 'tenant-bouake-kennedy',
       tableNumber: activeTable,
       items: itemsFormatted,
       status: 'paid',
@@ -680,12 +682,14 @@ export default function POSManager({
     const extraDesc = ` [MM Tél: ${intent.phoneNumber}, Réf MM: ${intent.providerReference || 'N/A'}]`;
     const transaction: Transaction = {
       id: `TXN-${Date.now().toString().slice(-5)}`,
+      tenantId: 'tenant-bouake-kennedy',
       type: 'pos_sale',
       amount: intent.amount,
       method: intent.provider,
       description: `Vente POS Maquis - ${activeTable} (${cart.length} articles)${extraDesc}`,
       date: new Date().toISOString(),
-      referenceId: orderId
+      referenceId: orderId,
+      idempotencyKey: `idem-pos-gw-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     };
     onAddTransaction(transaction);
 
@@ -760,6 +764,7 @@ export default function POSManager({
 
     const newOrder: TableOrder = {
       id: orderId,
+      tenantId: 'tenant-bouake-kennedy',
       tableNumber: activeTable,
       items: itemsFormatted,
       status: billingMode === 'charge_to_room' ? 'preparing' : 'paid',
@@ -798,12 +803,14 @@ export default function POSManager({
       }
       const transaction: Transaction = {
         id: `TXN-${Date.now().toString().slice(-5)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'pos_sale',
         amount: totalToPay,
         method: selectedPaymentMethod,
         description: `Vente POS Maquis - ${activeTable} (${cart.length} articles)${extraDesc}`,
         date: new Date().toISOString(),
-        referenceId: orderId
+        referenceId: orderId,
+        idempotencyKey: `idem-pos-dir-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       };
       onAddTransaction(transaction);
     }

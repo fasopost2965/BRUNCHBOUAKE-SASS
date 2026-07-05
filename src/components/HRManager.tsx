@@ -354,6 +354,7 @@ export default function HRManager({
     } else {
       const newEmp: HREmployee = {
         id: `emp-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         name: empName,
         customStatus: empStatus,
         phone: empPhone,

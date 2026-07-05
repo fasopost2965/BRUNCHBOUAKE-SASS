@@ -202,11 +202,13 @@ export default function ERPBilling({
 
     const newExpense: Transaction = {
       id: `DEP-${Date.now().toString().slice(-4)}`,
+      tenantId: 'tenant-bouake-kennedy',
       type: 'expense',
       amount: expenseAmount,
       method: expenseMethod,
       description: expenseDescription,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      idempotencyKey: `idem-dep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     };
 
     onAddTransaction(newExpense);
@@ -251,6 +253,7 @@ export default function ERPBilling({
 
     const newInvoice: Invoice = {
       id: `FAC-${Date.now().toString().slice(-5)}`,
+      tenantId: 'tenant-bouake-kennedy',
       clientName: invClientName,
       clientPhone: invClientPhone,
       clientEmail: invClientEmail || undefined,
@@ -274,12 +277,14 @@ export default function ERPBilling({
     if (invStatus === 'paid') {
       const newTx: Transaction = {
         id: `TX-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment', // General revenue category
         amount: totalAmount,
         method: invPaymentMethod,
         description: `Règlement facture ${newInvoice.id} - ${invClientName}`,
         date: new Date().toISOString(),
-        referenceId: newInvoice.id
+        referenceId: newInvoice.id,
+        idempotencyKey: `idem-tx-fac-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       };
       onAddTransaction(newTx);
     }
@@ -301,12 +306,14 @@ export default function ERPBilling({
         // Also log corresponding cash ledger entry
         const newTx: Transaction = {
           id: `TX-${Date.now().toString().slice(-4)}`,
+          tenantId: 'tenant-bouake-kennedy',
           type: 'lodging_payment',
           amount: inv.totalAmount,
           method: method,
           description: `Règlement différé facture ${inv.id} - ${inv.clientName}`,
           date: new Date().toISOString(),
-          referenceId: inv.id
+          referenceId: inv.id,
+          idempotencyKey: `idem-settle-fac-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
         };
         onAddTransaction(newTx);
 
@@ -352,17 +359,20 @@ export default function ERPBilling({
       // Log ERP Cash Transaction
       const newTx: Transaction = {
         id: `TX-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'pos_sale',
         amount: avInitialDeposit,
         method: avPaymentMethod,
         description: `Dépôt initial Compte d'Avoir de ${avClientName}`,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        idempotencyKey: `idem-av-open-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       };
       onAddTransaction(newTx);
     }
 
     const newAvoir: CustomerAvoir = {
       id: `AVO-${Date.now().toString().slice(-4)}`,
+      tenantId: 'tenant-bouake-kennedy',
       clientName: avClientName,
       clientPhone: avClientPhone,
       balance: initialBalance,
@@ -416,11 +426,13 @@ export default function ERPBilling({
     if (type === 'credit') {
       const newTx: Transaction = {
         id: `TX-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'pos_sale',
         amount: avTxAmount,
         method: avTxMethod,
         description: `Crédit Compte d'Avoir (${avTxReason}) - ${avoir.clientName}`,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        idempotencyKey: `idem-av-apply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       };
       onAddTransaction(newTx);
     }
@@ -448,11 +460,13 @@ export default function ERPBilling({
     // Log ERP Cash Transaction
     const newTx: Transaction = {
       id: `TX-${Date.now().toString().slice(-4)}`,
+      tenantId: 'tenant-bouake-kennedy',
       type: 'pos_sale',
       amount: avoirAmount,
       method: avoirInitialPaymentMethod,
       description: `Création Avoir de ${avoirClientName} - ${avoirReason}`,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      idempotencyKey: `idem-av-create-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     };
     onAddTransaction(newTx);
 
@@ -479,6 +493,7 @@ export default function ERPBilling({
         // Create new CustomerAvoir
         const newAvoir: CustomerAvoir = {
           id: `AVO-${Date.now().toString().slice(-4)}`,
+          tenantId: 'tenant-bouake-kennedy',
           clientName: avoirClientName.trim(),
           clientPhone: avoirClientPhone.trim() || 'N/A',
           balance: avoirAmount,

@@ -3,7 +3,8 @@ export type RoomStatus = 'available' | 'occupied' | 'dirty' | 'maintenance';
 
 export interface Room {
   id: string;
-  name: string; // e.g., "Studio 101", "Appartement A", "Chambre 205"
+  tenantId: string;
+  name: string; // e.g., "Studio Bouaké Chic", "Chambre Standard Gbêkê"
   type: RoomType;
   pricePerNight: number; // in XOF (FCFA)
   status: RoomStatus;
@@ -26,6 +27,7 @@ export interface RoomHistoryLog {
 
 export interface Reservation {
   id: string;
+  tenantId: string;
   roomId: string;
   guestName: string;
   guestPhone: string;
@@ -53,8 +55,14 @@ export interface Reservation {
   sourceModule?: string;
 }
 
+export interface MenuItemIngredient {
+  stockItemId: string;
+  quantityRequired: number;
+}
+
 export interface MenuItem {
   id: string;
+  tenantId: string;
   name: string;
   category: 'plat' | 'boisson' | 'accompagnement' | 'dessert';
   price: number; // in XOF (FCFA)
@@ -63,11 +71,12 @@ export interface MenuItem {
   description?: string;
   isMaquisOnly?: boolean;
   isRestaurantOnly?: boolean;
-  linkedStockItemId?: string; // Link to inventory item for auto-deduction
+  ingredients?: MenuItemIngredient[];
 }
 
 export interface StockItem {
   id: string;
+  tenantId: string;
   name: string;
   category: 'boisson' | 'nourriture' | 'ingredient' | 'lingerie' | 'autre';
   quantity: number;
@@ -100,6 +109,7 @@ export interface OrderItem {
 
 export interface TableOrder {
   id: string;
+  tenantId: string;
   tableNumber: string; // e.g., "Table 1", "Bar 3", "Terrasse A"
   items: OrderItem[];
   status: 'pending' | 'preparing' | 'served' | 'paid';
@@ -131,12 +141,14 @@ export interface Task {
 
 export interface Transaction {
   id: string;
+  tenantId: string;
   type: 'lodging_payment' | 'pos_sale' | 'expense';
   amount: number;
   method: 'wave' | 'orange_money' | 'mtn' | 'cash' | 'card';
   description: string;
   date: string;
   referenceId?: string; // Reservation ID or Order ID
+  idempotencyKey: string;
 }
 
 export interface GuestRecord {
@@ -267,12 +279,14 @@ export type UserRole = 'admin' | 'receptionist' | 'waiter' | 'manager' | 'housek
 
 export interface UserAccount {
   id: string;
+  tenantId: string;
   name: string;
   username: string;
   email: string;
   phone: string;
   role: UserRole;
   status: 'active' | 'inactive' | 'blocked';
+  // EXCLUSION DE SÉCURITÉ : Ne pas stocker en clair en production, exclure de la sérialisation locale non sécurisée
   passwordHash: string; // Plain text or hash for mock persistence
   isTemporaryPassword?: boolean;
   lastLoginAt?: string;
@@ -289,6 +303,7 @@ export interface UserAccount {
 
 export interface HREmployee {
   id: string;
+  tenantId: string;
   name: string;
   customStatus: string; // e.g., "Gérant", "Serveur de nuit", "Chef de Cuisine" (Not fixed)
   phone: string;
@@ -344,6 +359,7 @@ export interface HRContract {
 
 export interface OfflineSyncItem {
   id: string;
+  idempotencyKey: string;
   transaction: Transaction;
   status: 'pending' | 'syncing' | 'failed';
   attempts: number;
@@ -365,6 +381,7 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: string; // e.g. FAC-XXXX
+  tenantId: string;
   clientName: string;
   clientPhone: string;
   clientEmail?: string;
@@ -393,6 +410,7 @@ export interface AvoirMovement {
 
 export interface CustomerAvoir {
   id: string; // e.g. AVO-XXXX or CustPhone
+  tenantId: string;
   clientName: string;
   clientPhone: string;
   balance: number; // Active unused balance (FCFA)

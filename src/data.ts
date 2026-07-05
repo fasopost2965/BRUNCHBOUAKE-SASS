@@ -3,6 +3,7 @@ import { Room, Reservation, MenuItem, StaffMember, Task, Transaction, GuestRecor
 export const INITIAL_ROOMS: Room[] = [
   {
     id: '101',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Studio Bouaké Chic',
     type: 'studio',
     pricePerNight: 25000,
@@ -18,6 +19,7 @@ export const INITIAL_ROOMS: Room[] = [
   },
   {
     id: '102',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Chambre Standard Gbêkê',
     type: 'room',
     pricePerNight: 18000,
@@ -33,6 +35,7 @@ export const INITIAL_ROOMS: Room[] = [
   },
   {
     id: '103',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Appartement F2 VIP',
     type: 'apartment',
     pricePerNight: 45000,
@@ -48,6 +51,7 @@ export const INITIAL_ROOMS: Room[] = [
   },
   {
     id: '104',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Studio L\'Harmattan',
     type: 'studio',
     pricePerNight: 25000,
@@ -62,6 +66,7 @@ export const INITIAL_ROOMS: Room[] = [
   },
   {
     id: '105',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Chambre Confort Kénédougou',
     type: 'room',
     pricePerNight: 20000,
@@ -76,6 +81,7 @@ export const INITIAL_ROOMS: Room[] = [
   },
   {
     id: '106',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Appartement Suite Prestige',
     type: 'apartment',
     pricePerNight: 60000,
@@ -130,6 +136,7 @@ export const INITIAL_GUESTS: GuestRecord[] = [
 export const INITIAL_RESERVATIONS: Reservation[] = [
   {
     id: 'res-101',
+    tenantId: 'tenant-bouake-kennedy',
     roomId: '101',
     guestName: 'Konan Koffi Serge',
     guestPhone: '+225 07 48 29 10 11',
@@ -145,6 +152,7 @@ export const INITIAL_RESERVATIONS: Reservation[] = [
   },
   {
     id: 'res-103',
+    tenantId: 'tenant-bouake-kennedy',
     roomId: '103',
     guestName: 'Marc-Antoine Dubois',
     guestPhone: '+33 6 12 34 56 78',
@@ -160,6 +168,7 @@ export const INITIAL_RESERVATIONS: Reservation[] = [
   },
   {
     id: 'res-102',
+    tenantId: 'tenant-bouake-kennedy',
     roomId: '102',
     guestName: 'Awa Diop',
     guestPhone: '+221 77 123 45 67',
@@ -178,13 +187,19 @@ export const INITIAL_RESERVATIONS: Reservation[] = [
 export const INITIAL_MENU: MenuItem[] = [
   {
     id: 'm1',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Kedjenou de Poulet de Brousse (M)',
     category: 'plat',
     price: 6500,
-    available: true
+    available: true,
+    ingredients: [
+      { stockItemId: 'st-i-2', quantityRequired: 1 }, // 1 carton/unité de poulet découpé
+      { stockItemId: 'st-i-3', quantityRequired: 0.5 } // 0.5 kg de piment d'Alépé
+    ]
   },
   {
     id: 'm2',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Poisson Carpe Braisé d\'Ayame',
     category: 'plat',
     price: 7000,
@@ -192,6 +207,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm3',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Choukouya de Mouton Tendre',
     category: 'plat',
     price: 8000,
@@ -199,13 +215,19 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm4',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Alloco Spécial Giga (Bananes mûres)',
     category: 'accompagnement',
     price: 2000,
-    available: true
+    available: true,
+    ingredients: [
+      { stockItemId: 'st-f-2', quantityRequired: 2 }, // 2 régimes/unités de bananes plantains
+      { stockItemId: 'st-i-1', quantityRequired: 0.25 } // 0.25 litre d'huile de palme
+    ]
   },
   {
     id: 'm5',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Attiéké de Qualité Supérieure',
     category: 'accompagnement',
     price: 1000,
@@ -213,6 +235,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm6',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Bissap Glacé Maison (Hibiscus)',
     category: 'boisson',
     price: 1500,
@@ -220,6 +243,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm7',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Gnamankoudji Intense (Gingembre)',
     category: 'boisson',
     price: 1500,
@@ -227,6 +251,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm8',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Bière Ivoirienne Bock de 65cl',
     category: 'boisson',
     price: 1500,
@@ -234,6 +259,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm9',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Brunch Signature Brunch Bouaké',
     category: 'plat',
     price: 12000,
@@ -241,6 +267,7 @@ export const INITIAL_MENU: MenuItem[] = [
   },
   {
     id: 'm10',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Salade de fruits tropicaux parfumée',
     category: 'dessert',
     price: 2500,
@@ -303,37 +330,45 @@ export const INITIAL_TASKS: Task[] = [
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: 'tr-001',
+    tenantId: 'tenant-bouake-kennedy',
     type: 'lodging_payment',
     amount: 50000,
     method: 'wave',
     description: 'Acompte réservation res-101 (Konan Koffi Serge)',
     date: '2026-06-28T10:15:00Z',
-    referenceId: 'res-101'
+    referenceId: 'res-101',
+    idempotencyKey: 'idem-tr-001'
   },
   {
     id: 'tr-002',
+    tenantId: 'tenant-bouake-kennedy',
     type: 'lodging_payment',
     amount: 270000,
     method: 'orange_money',
     description: 'Paiement intégral chambre 103 (Marc-Antoine Dubois)',
     date: '2026-06-29T14:30:00Z',
-    referenceId: 'res-103'
+    referenceId: 'res-103',
+    idempotencyKey: 'idem-tr-002'
   },
   {
     id: 'tr-003',
+    tenantId: 'tenant-bouake-kennedy',
     type: 'pos_sale',
     amount: 17500,
     method: 'cash',
     description: 'Addition maquis - Table 4 (Kedjenou x2, Alloco x1, Boissons x3)',
-    date: '2026-06-30T13:10:00Z'
+    date: '2026-06-30T13:10:00Z',
+    idempotencyKey: 'idem-tr-003'
   },
   {
     id: 'tr-004',
+    tenantId: 'tenant-bouake-kennedy',
     type: 'expense',
     amount: 35000,
     method: 'cash',
     description: 'Achat bouteilles de gaz pour les cuisines du maquis',
-    date: '2026-06-30T09:00:00Z'
+    date: '2026-06-30T09:00:00Z',
+    idempotencyKey: 'idem-tr-004'
   }
 ];
 
@@ -447,6 +482,7 @@ export const INITIAL_ROOM_HISTORY_LOGS: RoomHistoryLog[] = [
 export const INITIAL_INVOICES: Invoice[] = [
   {
     id: 'FAC-2026-0001',
+    tenantId: 'tenant-bouake-kennedy',
     clientName: 'Koffi Anderson',
     clientPhone: '+225 07 01 02 03 04',
     date: '2026-06-30',
@@ -465,6 +501,7 @@ export const INITIAL_INVOICES: Invoice[] = [
   },
   {
     id: 'FAC-2026-0002',
+    tenantId: 'tenant-bouake-kennedy',
     clientName: 'Amina Doukouré',
     clientPhone: '+225 05 11 22 33 44',
     date: '2026-07-01',
@@ -482,6 +519,7 @@ export const INITIAL_INVOICES: Invoice[] = [
   },
   {
     id: 'FAC-2026-0003',
+    tenantId: 'tenant-bouake-kennedy',
     clientName: 'Dr. Bakayoko Sylla',
     clientPhone: '+225 07 88 99 00 11',
     date: '2026-07-02',
@@ -502,6 +540,7 @@ export const INITIAL_INVOICES: Invoice[] = [
 export const INITIAL_CUSTOMER_AVOIRS: CustomerAvoir[] = [
   {
     id: 'AVO-001',
+    tenantId: 'tenant-bouake-kennedy',
     clientName: 'Amadou Coulibaly (Client Fidèle)',
     clientPhone: '+225 07 47 48 49 50',
     balance: 45000,
@@ -527,6 +566,7 @@ export const INITIAL_CUSTOMER_AVOIRS: CustomerAvoir[] = [
   },
   {
     id: 'AVO-002',
+    tenantId: 'tenant-bouake-kennedy',
     clientName: 'Sékou Sangaré',
     clientPhone: '+225 05 06 07 08 09',
     balance: 15000,
@@ -548,6 +588,7 @@ export const INITIAL_CUSTOMER_AVOIRS: CustomerAvoir[] = [
 export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
   {
     id: 'emp-1',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Zadi Richard',
     customStatus: 'Manager Général Établissement',
     phone: '+225 07 44 55 66 77',
@@ -561,6 +602,7 @@ export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
   },
   {
     id: 'emp-2',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Yao Amenan Chantal',
     customStatus: 'Chef Comptable & Caissière Principal',
     phone: '+225 07 11 22 33 44',
@@ -574,6 +616,7 @@ export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
   },
   {
     id: 'emp-3',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Kouassi Kouamé Jean',
     customStatus: 'Maître d\'Hôtel & Chef de Rang',
     phone: '+225 05 99 88 77 66',
@@ -587,6 +630,7 @@ export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
   },
   {
     id: 'emp-4',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Aka Florence',
     customStatus: 'Gouvernante Principale des Appartements',
     phone: '+225 01 22 33 44 55',
@@ -601,6 +645,7 @@ export const INITIAL_HR_EMPLOYEES: HREmployee[] = [
   },
   {
     id: 'emp-5',
+    tenantId: 'tenant-bouake-kennedy',
     name: 'Traoré Bakary',
     customStatus: 'Braiseur de Choukouya & Viandes',
     phone: '+225 07 88 12 34 56',

@@ -364,6 +364,7 @@ export default function PMSManager({
       // Walk-In check-in: create new reservation stay
       const newReservation: Reservation = {
         id: targetReservationId,
+        tenantId: 'tenant-bouake-kennedy',
         roomId: selectedRoom.id,
         guestName,
         guestPhone,
@@ -395,12 +396,14 @@ export default function PMSManager({
     if (prepaidAmount > 0) {
       onAddTransaction({
         id: `tr-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment',
         amount: prepaidAmount,
         method: 'cash',
         description: `Acompte check-in ${selectedRoom.name} - ${finalGuestName} [Encaissé par: ${staffMemberName}]`,
         date: new Date().toISOString(),
-        referenceId: targetReservationId
+        referenceId: targetReservationId,
+        idempotencyKey: `idem-prepaid-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       });
     }
 
@@ -505,12 +508,14 @@ export default function PMSManager({
     // 1. Log lodging payment transaction
     onAddTransaction({
       id: `tr-${Date.now().toString().slice(-4)}`,
+      tenantId: 'tenant-bouake-kennedy',
       type: 'lodging_payment',
       amount: intent.amount,
       method: intent.provider,
       description: `Solde séjour + extras - ${selectedRoom.name} (${activeRes.guestName}) [MM Tél: ${intent.phoneNumber}, Réf MM: ${intent.providerReference || 'N/A'}]`,
       date: new Date().toISOString(),
-      referenceId: activeRes.id
+      referenceId: activeRes.id,
+      idempotencyKey: `idem-settle-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     });
 
     // 1.1 Mark active restaurant orders charged to this room as paid
@@ -611,12 +616,14 @@ export default function PMSManager({
     if (finalBillAmount > 0 && !authorizeDebtorCheckout) {
       onAddTransaction({
         id: `tr-${Date.now().toString().slice(-4)}`,
+        tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment',
         amount: finalBillAmount,
         method: checkoutPaymentMethod,
         description: `Solde séjour + extras resto - ${selectedRoom.name} (${activeRes.guestName})`,
         date: new Date().toISOString(),
-        referenceId: activeRes.id
+        referenceId: activeRes.id,
+        idempotencyKey: `idem-direct-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       });
     }
 
@@ -807,6 +814,7 @@ export default function PMSManager({
 
       const newRoom: Room = {
         id: generatedId,
+        tenantId: 'tenant-bouake-kennedy',
         name: roomFormName.trim(),
         type: roomFormType,
         pricePerNight: roomFormPrice,
