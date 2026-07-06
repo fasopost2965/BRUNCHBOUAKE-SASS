@@ -201,7 +201,7 @@ export default function ERPBilling({
     if (!expenseDescription || expenseAmount <= 0) return;
 
     const newExpense: Transaction = {
-      id: `DEP-${Date.now().toString().slice(-4)}`,
+      id: `DEP-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       tenantId: 'tenant-bouake-kennedy',
       type: 'expense',
       amount: expenseAmount,
@@ -252,7 +252,7 @@ export default function ERPBilling({
     const totalAmount = subtotal + taxAmount;
 
     const newInvoice: Invoice = {
-      id: `FAC-${Date.now().toString().slice(-5)}`,
+      id: `FAC-${Date.now().toString().slice(-5)}-${Math.floor(1000 + Math.random() * 9000)}`,
       tenantId: 'tenant-bouake-kennedy',
       clientName: invClientName,
       clientPhone: invClientPhone,
@@ -276,7 +276,7 @@ export default function ERPBilling({
     // If marked as Paid immediately, log it as an ERP transaction!
     if (invStatus === 'paid') {
       const newTx: Transaction = {
-        id: `TX-${Date.now().toString().slice(-4)}`,
+        id: `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment', // General revenue category
         amount: totalAmount,
@@ -305,7 +305,7 @@ export default function ERPBilling({
       if (inv.id === invoiceId) {
         // Also log corresponding cash ledger entry
         const newTx: Transaction = {
-          id: `TX-${Date.now().toString().slice(-4)}`,
+          id: `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
           tenantId: 'tenant-bouake-kennedy',
           type: 'lodging_payment',
           amount: inv.totalAmount,
@@ -348,7 +348,7 @@ export default function ERPBilling({
     if (avInitialDeposit > 0) {
       initialBalance = avInitialDeposit;
       initialMover.push({
-        id: `mov-${Date.now().toString().slice(-4)}`,
+        id: `mov-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         type: 'credit',
         amount: avInitialDeposit,
         reason: 'Dépôt de garantie initial à l\'ouverture du compte',
@@ -358,7 +358,7 @@ export default function ERPBilling({
 
       // Log ERP Cash Transaction
       const newTx: Transaction = {
-        id: `TX-${Date.now().toString().slice(-4)}`,
+        id: `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         tenantId: 'tenant-bouake-kennedy',
         type: 'pos_sale',
         amount: avInitialDeposit,
@@ -371,7 +371,7 @@ export default function ERPBilling({
     }
 
     const newAvoir: CustomerAvoir = {
-      id: `AVO-${Date.now().toString().slice(-4)}`,
+      id: `AVO-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       tenantId: 'tenant-bouake-kennedy',
       clientName: avClientName,
       clientPhone: avClientPhone,
@@ -401,7 +401,7 @@ export default function ERPBilling({
     }
 
     const newMov: AvoirMovement = {
-      id: `mov-${Date.now().toString().slice(-4)}`,
+      id: `mov-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       type: type,
       amount: avTxAmount,
       reason: avTxReason,
@@ -425,7 +425,7 @@ export default function ERPBilling({
     // If it's a CREDIT recharge with real external payment, log an ERP cash inflow!
     if (type === 'credit') {
       const newTx: Transaction = {
-        id: `TX-${Date.now().toString().slice(-4)}`,
+        id: `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         tenantId: 'tenant-bouake-kennedy',
         type: 'pos_sale',
         amount: avTxAmount,
@@ -449,7 +449,7 @@ export default function ERPBilling({
     if (!avoirClientName || avoirAmount <= 0 || !avoirReason) return;
 
     const newMovement: AvoirMovement = {
-      id: `mov-${Date.now().toString().slice(-4)}`,
+      id: `mov-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       type: 'credit',
       amount: avoirAmount,
       reason: avoirReason,
@@ -459,7 +459,7 @@ export default function ERPBilling({
 
     // Log ERP Cash Transaction
     const newTx: Transaction = {
-      id: `TX-${Date.now().toString().slice(-4)}`,
+      id: `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       tenantId: 'tenant-bouake-kennedy',
       type: 'pos_sale',
       amount: avoirAmount,
@@ -492,7 +492,7 @@ export default function ERPBilling({
       } else {
         // Create new CustomerAvoir
         const newAvoir: CustomerAvoir = {
-          id: `AVO-${Date.now().toString().slice(-4)}`,
+          id: `AVO-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
           tenantId: 'tenant-bouake-kennedy',
           clientName: avoirClientName.trim(),
           clientPhone: avoirClientPhone.trim() || 'N/A',

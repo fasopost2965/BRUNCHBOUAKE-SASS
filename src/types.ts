@@ -434,7 +434,7 @@ export interface WhatsAppMessage {
   id: string;
   tenantId: string;
   to: string;
-  template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert';
+  template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification';
   variables: Record<string, string>;
   status: 'pending' | 'sending' | 'failed' | 'sent';
   attempts: number;

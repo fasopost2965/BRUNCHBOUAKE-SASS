@@ -202,7 +202,17 @@ export default function App() {
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    return safeJSONParse('bb_transactions', INITIAL_TRANSACTIONS);
+    const rawTx = safeJSONParse('bb_transactions', INITIAL_TRANSACTIONS);
+    const seenIds = new Set<string>();
+    return rawTx.map(tx => {
+      let uniqueId = tx.id;
+      let counter = 1;
+      while (!uniqueId || seenIds.has(uniqueId)) {
+        uniqueId = `${tx.id || 'tr'}_dup${counter++}`;
+      }
+      seenIds.add(uniqueId);
+      return { ...tx, id: uniqueId };
+    });
   });
 
   const [activeOrders, setActiveOrders] = useState<TableOrder[]>(() => {
@@ -1965,6 +1975,7 @@ export default function App() {
                   setPayslips={setHrPayslips}
                   contracts={hrContracts}
                   setContracts={setHrContracts}
+                  onAddTransaction={handleAddTransaction}
                 />
               )}
 

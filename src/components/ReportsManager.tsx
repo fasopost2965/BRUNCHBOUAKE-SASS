@@ -148,7 +148,22 @@ export default function ReportsManager({ currentUser }: ReportsManagerProps) {
     // Load data from LocalStorage with appropriate fallbacks
     const savedTx = localStorage.getItem('bb_transactions');
     if (savedTx) {
-      setTransactions(JSON.parse(savedTx));
+      try {
+        const parsedTx: Transaction[] = JSON.parse(savedTx);
+        const seenIds = new Set<string>();
+        const sanitized = parsedTx.map(tx => {
+          let uniqueId = tx.id;
+          let counter = 1;
+          while (!uniqueId || seenIds.has(uniqueId)) {
+            uniqueId = `${tx.id || 'tr'}_dup${counter++}`;
+          }
+          seenIds.add(uniqueId);
+          return { ...tx, id: uniqueId };
+        });
+        setTransactions(sanitized);
+      } catch (e) {
+        setTransactions([]);
+      }
     } else {
       setTransactions([
         { id: 'tr-001', tenantId: 'tenant-bouake-kennedy', type: 'lodging_payment', amount: 50000, method: 'wave', description: 'Acompte réservation res-101 (Konan Koffi Serge)', date: '2026-06-28T10:15:00Z', idempotencyKey: 'idem-tr-001' },

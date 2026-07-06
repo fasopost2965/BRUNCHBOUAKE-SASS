@@ -25,7 +25,8 @@ import {
   BookOpen,
   Info
 } from 'lucide-react';
-import { HREmployee, Payslip, HRContract, UserAccount } from '../types';
+import { HREmployee, Payslip, HRContract, UserAccount, Transaction } from '../types';
+import { WhatsAppOrchestrator } from '../services/whatsappService';
 
 interface HRManagerProps {
   currentUser: UserAccount;
@@ -35,6 +36,7 @@ interface HRManagerProps {
   setPayslips: React.Dispatch<React.SetStateAction<Payslip[]>>;
   contracts: HRContract[];
   setContracts: React.Dispatch<React.SetStateAction<HRContract[]>>;
+  onAddTransaction?: (tx: Transaction) => void;
 }
 
 // Helper function to generate a complete 10-article employment contract in French
@@ -144,8 +146,18 @@ export default function HRManager({
   payslips,
   setPayslips,
   contracts,
-  setContracts
+  setContracts,
+  onAddTransaction
 }: HRManagerProps) {
+  // ACTIVE TENANT FOR ISOLATION
+  const activeTenantId = currentUser?.tenantId || 'tenant-bouake-kennedy';
+
+  // Strict multi-tenant isolation lists
+  const tenantEmployees = employees.filter(e => e.tenantId === activeTenantId);
+  const tenantEmployeeIds = new Set(tenantEmployees.map(e => e.id));
+  const tenantPayslips = payslips.filter(p => tenantEmployeeIds.has(p.employeeId));
+  const tenantContracts = contracts.filter(c => tenantEmployeeIds.has(c.employeeId));
+
   // 1. SECURITY / RESTRICTION STATES
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     // Managers and admins don't need initial lock if they are logged in,
@@ -251,30 +263,30 @@ export default function HRManager({
   // Pre-fill fields for generating a contract or payslip when employee changes
   useEffect(() => {
     if (activeEmployeeId) {
-      const emp = employees.find(e => e.id === activeEmployeeId);
+      const emp = tenantEmployees.find(e => e.id === activeEmployeeId);
       if (emp) {
         setCustomTransport(20000);
         setSlipNotes(`Règlement de salaire de la période. Établissement de Kennedy.`);
       }
     }
-  }, [activeEmployeeId, employees]);
+  }, [activeEmployeeId, tenantEmployees]);
 
   // Autofill form inputs from chosen employee
   useEffect(() => {
     if (contractEmpId) {
-      const emp = employees.find(e => e.id === contractEmpId);
+      const emp = tenantEmployees.find(e => e.id === contractEmpId);
       if (emp) {
         setContractSalary(emp.baseSalary);
         setContractType(emp.contractType);
         setContractTrialPeriod(emp.contractType === 'CDI' ? '1 mois' : '15 jours');
       }
     }
-  }, [contractEmpId, employees]);
+  }, [contractEmpId, tenantEmployees]);
 
   // Live dynamic 10-article contract terms generation
   useEffect(() => {
     if (contractEmpId) {
-      const emp = employees.find(e => e.id === contractEmpId);
+      const emp = tenantEmployees.find(e => e.id === contractEmpId);
       if (emp) {
         const terms = generateTenArticlesContract({
           employeeName: emp.name,
@@ -307,7 +319,7 @@ export default function HRManager({
     contractHousingAllowance,
     contractTransportAllowance,
     contractAdditionalClauses,
-    employees
+    tenantEmployees
   ]);
 
   // senior years helper
@@ -423,7 +435,7 @@ export default function HRManager({
       return;
     }
 
-    const emp = employees.find(emp => emp.id === activeEmployeeId);
+    const emp = tenantEmployees.find(emp => emp.id === activeEmployeeId);
     if (!emp) return;
 
     // Calculation logic
@@ -503,23 +515,84 @@ export default function HRManager({
     setViewedContract(newContract);
   };
 
+  const [waSendingSlipId, setWaSendingSlipId] = useState<string | null>(null);
+
+  const handleSendWhatsAppNotification = async (slip: Payslip) => {
+    const emp = tenantEmployees.find(e => e.id === slip.employeeId);
+    if (!emp || !emp.phone) {
+      alert(`Impossible d'envoyer la notification : aucun numéro de téléphone configuré pour ${slip.employeeName}.`);
+      return;
+    }
+
+    setWaSendingSlipId(slip.id);
+    try {
+      const response = await WhatsAppOrchestrator.sendTemplateMessage(
+        emp.phone,
+        'salary_notification',
+        {
+          employeeName: emp.name,
+          period: slip.period,
+          netSalary: slip.netSalary.toString()
+        },
+        activeTenantId
+      );
+
+      if (response.status === 'sent') {
+        alert(`Notification de salaire envoyée avec succès par WhatsApp à ${emp.name} (${emp.phone}) !`);
+      } else if (response.status === 'queued') {
+        alert(`Le message WhatsApp pour ${emp.name} a été mis en attente (hors-ligne). Il sera envoyé dès le retour de la connexion.`);
+      } else {
+        alert(`Erreur d'envoi WhatsApp : ${response.error || 'Échec d\'envoi'}`);
+      }
+    } catch (err: any) {
+      alert(`Erreur technique d'envoi : ${err.message}`);
+    } finally {
+      setWaSendingSlipId(null);
+    }
+  };
+
   const handlePayPayslip = (id: string) => {
-    setPayslips(prev => prev.map(s => s.id === id ? { ...s, status: 'paid' } : s));
+    setPayslips(prev => {
+      return prev.map(s => {
+        if (s.id === id) {
+          if (s.status === 'paid') return s;
+          const paidSlip: Payslip = { ...s, status: 'paid' };
+          
+          if (onAddTransaction) {
+            const txId = `TX-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newTx: Transaction = {
+              id: txId,
+              tenantId: activeTenantId,
+              type: 'expense',
+              amount: s.netSalary,
+              method: 'cash',
+              description: `Paiement Salaire Net - ${s.employeeName} (${s.period})`,
+              date: new Date().toISOString(),
+              referenceId: s.id,
+              idempotencyKey: `idem-salary-${s.id}-${s.period.replace(/\s+/g, '-')}`
+            };
+            onAddTransaction(newTx);
+          }
+          return paidSlip;
+        }
+        return s;
+      });
+    });
   };
 
   // Filter lists based on search
-  const filteredEmployees = employees.filter(e => 
+  const filteredEmployees = tenantEmployees.filter(e => 
     e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.customStatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredPayslips = payslips.filter(p => 
+  const filteredPayslips = tenantPayslips.filter(p => 
     p.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.period.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredContracts = contracts.filter(c => 
+  const filteredContracts = tenantContracts.filter(c => 
     c.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -646,21 +719,21 @@ export default function HRManager({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-5 border-t border-slate-800">
           <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-2xl">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Effectif Actif</span>
-            <span className="text-xl font-black text-white mt-1 block">{employees.filter(e => e.status === 'active').length} agents</span>
+            <span className="text-xl font-black text-white mt-1 block">{tenantEmployees.filter(e => e.status === 'active').length} agents</span>
           </div>
           <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-2xl">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Masse Salariale Base</span>
             <span className="text-xl font-black text-orange-400 mt-1 block">
-              {employees.filter(e => e.status === 'active').reduce((acc, curr) => acc + curr.baseSalary, 0).toLocaleString('fr-FR')} F
+              {tenantEmployees.filter(e => e.status === 'active').reduce((acc, curr) => acc + curr.baseSalary, 0).toLocaleString('fr-FR')} F
             </span>
           </div>
           <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-2xl">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Bulletins Émis (Ce mois)</span>
-            <span className="text-xl font-black text-white mt-1 block">{payslips.length} fiches</span>
+            <span className="text-xl font-black text-white mt-1 block">{tenantPayslips.length} fiches</span>
           </div>
           <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-2xl">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Contrats Actifs</span>
-            <span className="text-xl font-black text-amber-500 mt-1 block">{contracts.filter(c => c.status === 'active').length} CDI/CDD</span>
+            <span className="text-xl font-black text-amber-500 mt-1 block">{tenantContracts.filter(c => c.status === 'active').length} CDI/CDD</span>
           </div>
         </div>
       </div>
@@ -733,11 +806,11 @@ export default function HRManager({
             {hrSubTab === 'payslips' && (
               <button
                 onClick={() => {
-                  if (employees.length === 0) {
+                  if (tenantEmployees.length === 0) {
                     alert("Veuillez d'abord ajouter un travailleur !");
                     return;
                   }
-                  setActiveEmployeeId(employees[0].id);
+                  setActiveEmployeeId(tenantEmployees[0].id);
                   setShowPayslipModal(true);
                 }}
                 className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -750,11 +823,11 @@ export default function HRManager({
             {hrSubTab === 'contracts' && (
               <button
                 onClick={() => {
-                  if (employees.length === 0) {
+                  if (tenantEmployees.length === 0) {
                     alert("Veuillez d'abord ajouter un travailleur !");
                     return;
                   }
-                  setContractEmpId(employees[0].id);
+                  setContractEmpId(tenantEmployees[0].id);
                   setShowContractModal(true);
                 }}
                 className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -945,6 +1018,16 @@ export default function HRManager({
                                 </button>
                               )}
                               
+                              <button
+                                onClick={() => handleSendWhatsAppNotification(slip)}
+                                disabled={waSendingSlipId === slip.id}
+                                className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-slate-950 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1"
+                                title="Envoyer par WhatsApp"
+                              >
+                                <Activity className="w-3 h-3" />
+                                <span>{waSendingSlipId === slip.id ? 'Envoi...' : 'WhatsApp'}</span>
+                              </button>
+
                               <button
                                 onClick={() => setViewedPayslip(slip)}
                                 className="p-1.5 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
@@ -1247,7 +1330,7 @@ export default function HRManager({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
                     required
                   >
-                    {employees.map(e => (
+                    {tenantEmployees.map(e => (
                       <option key={e.id} value={e.id}>{e.name} ({e.customStatus} - {e.baseSalary.toLocaleString('fr-FR')} F)</option>
                     ))}
                   </select>
@@ -1454,7 +1537,7 @@ export default function HRManager({
                     required
                   >
                     <option value="">-- Sélectionner un travailleur --</option>
-                    {employees.map(e => (
+                    {tenantEmployees.map(e => (
                       <option key={e.id} value={e.id}>{e.name} ({e.customStatus})</option>
                     ))}
                   </select>
@@ -1630,6 +1713,14 @@ export default function HRManager({
               </span>
               <div className="flex gap-2">
                 <button
+                  onClick={() => handleSendWhatsAppNotification(viewedPayslip)}
+                  disabled={waSendingSlipId === viewedPayslip.id}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>{waSendingSlipId === viewedPayslip.id ? 'Envoi...' : 'Envoyer par WhatsApp'}</span>
+                </button>
+                <button
                   onClick={handlePrint}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                 >
@@ -1676,11 +1767,11 @@ export default function HRManager({
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-1">
                   <h4 className="font-extrabold text-slate-900 uppercase text-[9px] tracking-wider text-slate-500">SALARIÉ</h4>
                   <p className="font-black text-slate-900">{viewedPayslip.employeeName}</p>
-                  <p>Date d'embauche : {employees.find(e => e.id === viewedPayslip.employeeId)?.hireDate || 'N/A'}</p>
+                  <p>Date d'embauche : {tenantEmployees.find(e => e.id === viewedPayslip.employeeId)?.hireDate || 'N/A'}</p>
                   <p className="font-bold text-orange-600 uppercase">
-                    Fonction: {employees.find(e => e.id === viewedPayslip.employeeId)?.customStatus || 'Travailleur'}
+                    Fonction: {tenantEmployees.find(e => e.id === viewedPayslip.employeeId)?.customStatus || 'Travailleur'}
                   </p>
-                  <p>Numéro CNPS: {employees.find(e => e.id === viewedPayslip.employeeId)?.cnpsNumber || 'Non Affilié'}</p>
+                  <p>Numéro CNPS: {tenantEmployees.find(e => e.id === viewedPayslip.employeeId)?.cnpsNumber || 'Non Affilié'}</p>
                 </div>
               </div>
 

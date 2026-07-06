@@ -396,7 +396,7 @@ export default function PMSManager({
     // Add transaction if prepaidAmount > 0
     if (prepaidAmount > 0) {
       onAddTransaction({
-        id: `tr-${Date.now().toString().slice(-4)}`,
+        id: `tr-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment',
         amount: prepaidAmount,
@@ -536,7 +536,7 @@ export default function PMSManager({
 
     // 1. Log lodging payment transaction
     onAddTransaction({
-      id: `tr-${Date.now().toString().slice(-4)}`,
+      id: `tr-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
       tenantId: 'tenant-bouake-kennedy',
       type: 'lodging_payment',
       amount: intent.amount,
@@ -644,7 +644,7 @@ export default function PMSManager({
     // Direct Cash / Card / Free checkout flow or Authorized Debt Checkout
     if (finalBillAmount > 0 && !authorizeDebtorCheckout) {
       onAddTransaction({
-        id: `tr-${Date.now().toString().slice(-4)}`,
+        id: `tr-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`,
         tenantId: 'tenant-bouake-kennedy',
         type: 'lodging_payment',
         amount: finalBillAmount,
