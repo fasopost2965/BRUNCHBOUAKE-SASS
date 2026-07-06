@@ -105,18 +105,10 @@ class ChannelManagerController extends Controller
             ->first();
 
         if (!$room) {
-            // If no exact free room is found, fallback to pre-assignment of ANY room of that type
-            // The administrator can re-assign it manually later inside the PMS calendar
-            $room = Room::where('tenant_id', $tenantId)
-                ->where('type', $data['room_type'])
-                ->first();
-
-            if (!$room) {
-                return response()->json([
-                    'error' => 'No rooms of type ' . $data['room_type'] . ' are registered in the system for this tenant.',
-                    'code' => 'ROOM_TYPE_NOT_FOUND'
-                ], 404);
-            }
+            return response()->json([
+                'error' => 'Aucune chambre de type ' . $data['room_type'] . ' n\'est libre pour les dates sélectionnées.',
+                'code' => 'OVERBOOKING_PREVENTION'
+            ], 422);
         }
 
         // 5. Atomic database insertion to ensure safety
@@ -145,6 +137,18 @@ class ChannelManagerController extends Controller
                     'external_reservation_id' => $externalId,
                     'staff_member' => 'API Gateway',
                 ]);
+            ]);
+
+            // Simulate WhatsApp Notification Trigger
+            Log::info("WhatsApp dispatch triggered", [
+                'recipient' => $reservation->guest_phone,
+                'template' => 'reservation_confirm',
+                'variables' => [
+                    'guest_name' => $reservation->guest_name,
+                    'security_pin' => $reservation->security_pin,
+                    'access_code' => $reservation->access_code,
+                    'check_in_date' => $reservation->check_in_date instanceof \Carbon\Carbon ? $reservation->check_in_date->format('Y-m-d') : $reservation->check_in_date,
+                ]
             ]);
 
             return response()->json([

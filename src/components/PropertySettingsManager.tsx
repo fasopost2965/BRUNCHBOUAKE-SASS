@@ -20,10 +20,15 @@ import {
   Tags,
   TrendingUp,
   Plus,
-  Trash2
+  Trash2,
+  Database,
+  Download,
+  Upload,
+  MessageSquare
 } from 'lucide-react';
 import { PropertySettings, UserAccount } from '../types';
 import { DEFAULT_PROPERTY_SETTINGS } from '../data';
+import { WhatsAppOrchestrator } from '../services/whatsappService';
 
 interface PropertySettingsProps {
   settings: PropertySettings;
@@ -34,6 +39,8 @@ interface PropertySettingsProps {
   currentUser?: UserAccount | null;
   onResetToDemo?: () => void;
   onResetToProductionWipe?: () => void;
+  onBackupSystem?: () => string;
+  onRestoreSystem?: (backupJson: string) => boolean;
 }
 
 type SettingsSection = 'general' | 'pms' | 'finance' | 'pricing' | 'system' | 'design';
@@ -46,7 +53,9 @@ export default function PropertySettingsManager({
   isProductionMode = false,
   currentUser,
   onResetToDemo,
-  onResetToProductionWipe
+  onResetToProductionWipe,
+  onBackupSystem,
+  onRestoreSystem
 }: PropertySettingsProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const [localSettings, setLocalSettings] = useState<PropertySettings>({ 
@@ -101,6 +110,82 @@ export default function PropertySettingsManager({
       }
     }));
     setIsSaved(false);
+  };
+
+  const handleBackupClick = () => {
+    if (!onBackupSystem) return;
+    try {
+      const dataStr = onBackupSystem();
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      link.href = url;
+      link.download = `brunch_bouake_sauvegarde_${dateStr}_${timeStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erreur lors de la création de la sauvegarde.");
+    }
+  };
+
+  const handleRestoreClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onRestoreSystem) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (window.confirm("⚠️ ATTENTION : Vous allez écraser l'INTEGRALITE de la base de données actuelle (réservations, clients, comptabilité) avec les données de ce fichier de sauvegarde.\n\nCette action est irréversible.\n\nVoulez-vous restaurer cette sauvegarde maintenant ?")) {
+        onRestoreSystem(content);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const [waTestStatus, setWaTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [waTestError, setWaTestError] = useState('');
+  const [waTestResponse, setWaTestResponse] = useState('');
+
+  const handleTestWhatsApp = async () => {
+    setWaTestStatus('sending');
+    setWaTestError('');
+    setWaTestResponse('');
+    try {
+      const testPhone = (import.meta as any).env.VITE_WHATSAPP_TEST_NUMBER || "+212777346787";
+      const response = await WhatsAppOrchestrator.sendTemplateMessage(
+        testPhone,
+        'reservation_confirm',
+        {
+          guestName: currentUser?.name || 'Administrateur Test',
+          roomName: 'Studio Suite 101',
+          checkInDate: new Date().toLocaleDateString('fr-FR'),
+          checkOutDate: new Date(Date.now() + 86400000 * 3).toLocaleDateString('fr-FR'),
+          securityPin: '7787'
+        },
+        'tenant-bouake-kennedy',
+        localSettings
+      );
+
+      if (response.status === 'sent') {
+        setWaTestStatus('success');
+        setWaTestResponse(response.message || "Message envoyé avec succès via la passerelle WhatsApp Business !");
+      } else if (response.status === 'queued') {
+        setWaTestStatus('success');
+        setWaTestResponse("Mode Hors-ligne / File d'attente : Message de test mis en attente pour envoi différé.");
+      } else {
+        setWaTestStatus('error');
+        setWaTestError(response.error || "Échec de l'envoi");
+      }
+    } catch (err: any) {
+      setWaTestStatus('error');
+      setWaTestError(err.message || "Une erreur inconnue est survenue.");
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -775,6 +860,67 @@ export default function PropertySettingsManager({
                       </div>
                     </div>
 
+                    {/* WHATSAPP BUSINESS GATEWAY TEST INTEGRATION */}
+                    <div className="md:col-span-2 border-t border-slate-100 pt-6 mt-4 space-y-4">
+                      <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
+                        <div className="flex items-start gap-3.5">
+                          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shrink-0">
+                            <MessageSquare className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1 flex-1">
+                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-tight">Test d'Intégration de la Passerelle WhatsApp Business</h4>
+                            <p className="text-[11px] text-slate-500 leading-normal">
+                              Vérifiez la réception immédiate d'un message type de confirmation de réservation sur votre compte WhatsApp de test. Le numéro de destination est configuré via la variable d'environnement de l'application.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 bg-white p-4 border border-slate-100 rounded-xl space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                              <span className="text-[11px] font-black uppercase text-slate-800 block">Numéro WhatsApp de Test Actif</span>
+                              <span className="text-xs font-bold font-mono text-blue-600 block mt-1">
+                                {(import.meta as any).env.VITE_WHATSAPP_TEST_NUMBER || "+212777346787"}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                (Défini par la variable d'environnement VITE_WHATSAPP_TEST_NUMBER)
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleTestWhatsApp}
+                              disabled={waTestStatus === 'sending'}
+                              className="py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-extrabold text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shrink-0 font-sans"
+                            >
+                              {waTestStatus === 'sending' ? (
+                                <>
+                                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  <span>Envoi du Test...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <MessageSquare className="w-4 h-4" />
+                                  <span>Envoyer un Message de Test</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {waTestStatus === 'success' && (
+                            <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-lg text-[11px] font-bold">
+                              {waTestResponse}
+                            </div>
+                          )}
+
+                          {waTestStatus === 'error' && (
+                            <div className="p-3 bg-rose-50 border border-rose-100 text-rose-800 rounded-lg text-[11px] font-bold">
+                              ⚠️ {waTestError}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1 md:col-span-2">
                       <label className="block text-slate-600 font-bold">Catégories d'Articles d'Exploitation du Maquis POS</label>
                       <div className="flex flex-wrap gap-2 py-1">
@@ -782,6 +928,70 @@ export default function PropertySettingsManager({
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 font-extrabold rounded-lg">Boissons (Bock, Sucrés)</span>
                         <span className="px-3 py-1 bg-yellow-100 text-yellow-800 font-extrabold rounded-lg">Accompagnements (Alloco, Attiéké)</span>
                         <span className="px-3 py-1 bg-purple-100 text-purple-800 font-extrabold rounded-lg">Desserts glacés</span>
+                      </div>
+                    </div>
+
+                    {/* BACKUP & RESTORE SYSTEM */}
+                    <div className="md:col-span-2 border-t border-slate-100 pt-6 mt-4 space-y-4">
+                      <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
+                        <div className="flex items-start gap-3.5">
+                          <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl border border-orange-100 shrink-0">
+                            <Database className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1 flex-1">
+                            <h4 className="text-xs font-black uppercase text-slate-800 tracking-tight">Sauvegarde & Restauration de la Base de Données</h4>
+                            <p className="text-[11px] text-slate-500 leading-normal">
+                              Exportez l'intégralité de vos données d'activité (fiches clients, historique de réservations, ventes POS du maquis, données financières de l'ERP) pour éviter des pertes financières ou opérationnelles, ou restaurez une sauvegarde précédente.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-200/50">
+                          {/* Backup Box */}
+                          <div className="bg-white p-4 border border-slate-100 rounded-xl space-y-3 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[11px] font-black uppercase text-slate-800 block">Exporter la Base de Données</span>
+                              <span className="text-[10px] text-slate-400 block leading-tight mt-1">
+                                Téléchargez un fichier sécurisé .json contenant l'ensemble des données de l'application Brunch Bouaké.
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleBackupClick}
+                              className="w-full py-2.5 px-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Télécharger la Sauvegarde (.json)</span>
+                            </button>
+                          </div>
+
+                          {/* Restore Box */}
+                          <div className="bg-white p-4 border border-slate-100 rounded-xl space-y-3 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[11px] font-black uppercase text-slate-800 block">Restaurer une Sauvegarde</span>
+                              <span className="text-[10px] text-slate-400 block leading-tight mt-1">
+                                Importez un fichier de sauvegarde précédemment exporté pour restaurer l'état complet du système.
+                              </span>
+                            </div>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                id="restore-file-input"
+                                accept=".json"
+                                onChange={handleRestoreClick}
+                                className="hidden"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById('restore-file-input')?.click()}
+                                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[10px] uppercase rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
+                              >
+                                <Upload className="w-4 h-4" />
+                                <span>Sélectionner et Restaurer</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 

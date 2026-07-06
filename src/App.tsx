@@ -1148,6 +1148,107 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  const handleBackupSystem = (): string => {
+    const backupObj = {
+      backupVersion: "1.0.0",
+      backupDate: new Date().toISOString(),
+      establishmentName: settings.establishmentName || "Brunch Bouaké",
+      rooms,
+      guests,
+      reservations,
+      menu,
+      staff,
+      tasks,
+      transactions,
+      activeOrders,
+      paymentIntents,
+      paymentTransactions,
+      webhookEvents,
+      processedEvents,
+      settings,
+      users,
+      stockItems,
+      stockMovements,
+      invoices,
+      customerAvoirs,
+      hrEmployees,
+      hrPayslips,
+      hrContracts,
+      roomHistoryLogs
+    };
+    return JSON.stringify(backupObj, null, 2);
+  };
+
+  const handleRestoreSystem = (backupJson: string): boolean => {
+    try {
+      const backupData = JSON.parse(backupJson);
+      
+      if (!backupData || typeof backupData !== 'object') {
+        throw new Error("Format de fichier invalide. Veuillez sélectionner un fichier JSON de sauvegarde valide.");
+      }
+      
+      if (!backupData.rooms || !backupData.settings || !backupData.users) {
+        throw new Error("Ce fichier ne semble pas être une sauvegarde valide de Brunch Bouaké (champs obligatoires manquants).");
+      }
+
+      if (backupData.rooms) setRooms(backupData.rooms);
+      if (backupData.guests) setGuests(backupData.guests);
+      if (backupData.reservations) setReservations(backupData.reservations);
+      if (backupData.menu) setMenu(backupData.menu);
+      if (backupData.staff) setStaff(backupData.staff);
+      if (backupData.tasks) setTasks(backupData.tasks);
+      if (backupData.transactions) setTransactions(backupData.transactions);
+      if (backupData.activeOrders) setActiveOrders(backupData.activeOrders);
+      if (backupData.paymentIntents) setPaymentIntents(backupData.paymentIntents);
+      if (backupData.paymentTransactions) setPaymentTransactions(backupData.paymentTransactions || backupData.payment_transactions || []);
+      if (backupData.webhookEvents) setWebhookEvents(backupData.webhookEvents);
+      if (backupData.processedEvents) setProcessedEvents(backupData.processedEvents);
+      if (backupData.settings) setSettings(backupData.settings);
+      if (backupData.users) setUsers(backupData.users);
+      if (backupData.stockItems) setStockItems(backupData.stockItems || backupData.stock_items || []);
+      if (backupData.stockMovements) setStockMovements(backupData.stockMovements || backupData.stock_movements || []);
+      if (backupData.invoices) setInvoices(backupData.invoices);
+      if (backupData.customerAvoirs) setCustomerAvoirs(backupData.customerAvoirs || backupData.customer_avoirs || []);
+      if (backupData.hrEmployees) setHrEmployees(backupData.hrEmployees || backupData.hr_employees || []);
+      if (backupData.hrPayslips) setHrPayslips(backupData.hrPayslips || backupData.hr_payslips || []);
+      if (backupData.hrContracts) setHrContracts(backupData.hrContracts || backupData.hr_contracts || []);
+      if (backupData.roomHistoryLogs) setRoomHistoryLogs(backupData.roomHistoryLogs || backupData.room_history_logs || []);
+
+      localStorage.setItem('bb_rooms', JSON.stringify(backupData.rooms));
+      localStorage.setItem('bb_guests', JSON.stringify(backupData.guests));
+      localStorage.setItem('bb_reservations', JSON.stringify(backupData.reservations));
+      localStorage.setItem('bb_menu', JSON.stringify(backupData.menu));
+      localStorage.setItem('bb_staff', JSON.stringify(backupData.staff));
+      localStorage.setItem('bb_tasks', JSON.stringify(backupData.tasks));
+      localStorage.setItem('bb_transactions', JSON.stringify(backupData.transactions));
+      localStorage.setItem('bb_active_orders', JSON.stringify(backupData.activeOrders));
+      localStorage.setItem('bb_payment_intents', JSON.stringify(backupData.paymentIntents));
+      localStorage.setItem('bb_payment_transactions', JSON.stringify(backupData.paymentTransactions || backupData.payment_transactions || []));
+      localStorage.setItem('bb_webhook_events', JSON.stringify(backupData.webhookEvents));
+      localStorage.setItem('bb_processed_events', JSON.stringify(backupData.processedEvents));
+      localStorage.setItem('bb_settings', JSON.stringify(backupData.settings));
+      localStorage.setItem('bb_users', JSON.stringify(backupData.users));
+      localStorage.setItem('bb_stock_items', JSON.stringify(backupData.stockItems || backupData.stock_items || []));
+      localStorage.setItem('bb_stock_movements', JSON.stringify(backupData.stockMovements || backupData.stock_movements || []));
+      localStorage.setItem('bb_invoices', JSON.stringify(backupData.invoices));
+      localStorage.setItem('bb_customer_avoirs', JSON.stringify(backupData.customerAvoirs || backupData.customer_avoirs || []));
+      localStorage.setItem('bb_hr_employees', JSON.stringify(backupData.hrEmployees || backupData.hr_employees || []));
+      localStorage.setItem('bb_hr_payslips', JSON.stringify(backupData.hrPayslips || backupData.hr_payslips || []));
+      localStorage.setItem('bb_hr_contracts', JSON.stringify(backupData.hrContracts || backupData.hr_contracts || []));
+      localStorage.setItem('bb_room_history_logs', JSON.stringify(backupData.roomHistoryLogs || backupData.room_history_logs || []));
+      
+      if (backupData.settings?.appTheme) {
+        setAppTheme(backupData.settings.appTheme);
+      }
+
+      showToast("💾 Restauration du système effectuée avec succès !", "success");
+      return true;
+    } catch (err: any) {
+      showAlert("Échec de Restauration", `Erreur d'analyse ou de structure : ${err.message}`);
+      return false;
+    }
+  };
+
   const handleSwitchToProduction = () => {
     // 1. Wipe all transactional/customer data
     setReservations([]);
@@ -1900,6 +2001,12 @@ export default function App() {
                   onQuickPOSOrder={() => setActiveTab('pos')}
                   onQuickAddTask={() => setActiveTab('staff')}
                   currentRole={currentRole}
+                  onAddReservation={(newRes) => setReservations(prev => [...prev, newRes])}
+                  onAddGuest={(newGuest) => setGuests(prev => {
+                    const exists = prev.some(g => g.phone === newGuest.phone);
+                    if (exists) return prev;
+                    return [...prev, newGuest];
+                  })}
                 />
               )}
 
@@ -1926,6 +2033,8 @@ export default function App() {
                   onActiveSubTabChange={setPmsActiveSubTab}
                   roomHistoryLogs={roomHistoryLogs}
                   onUpdateRoomHistoryLogs={setRoomHistoryLogs}
+                  guests={guests}
+                  onUpdateGuests={setGuests}
                 />
               )}
 
@@ -2044,6 +2153,8 @@ export default function App() {
                   currentUser={currentUser}
                   onResetToDemo={handleResetToDemo}
                   onResetToProductionWipe={handleResetToProductionWipe}
+                  onBackupSystem={handleBackupSystem}
+                  onRestoreSystem={handleRestoreSystem}
                 />
               )}
 

@@ -8,6 +8,27 @@ export function validateAndNormalizeCIPhone(phone: string): { isValid: boolean; 
   // Strip spaces, dashes, parentheses
   let cleaned = phone.replace(/[\s\-\(\)]/g, '');
   
+  // If it starts with + and has 10 to 15 digits, it's a valid international number
+  if (cleaned.startsWith('+')) {
+    if (/^\+\d{10,15}$/.test(cleaned)) {
+      return {
+        isValid: true,
+        normalized: cleaned
+      };
+    }
+  }
+
+  // If starts with 212 (Morocco without +), prepend +
+  if (cleaned.startsWith('212') && (cleaned.length === 12 || cleaned.length === 13)) {
+    cleaned = '+' + cleaned;
+    if (/^\+212\d{9,10}$/.test(cleaned)) {
+      return {
+        isValid: true,
+        normalized: cleaned
+      };
+    }
+  }
+
   // If starts with 225 (without +), prepend +
   if (cleaned.startsWith('225') && cleaned.length === 13) {
     cleaned = '+' + cleaned;
@@ -24,7 +45,7 @@ export function validateAndNormalizeCIPhone(phone: string): { isValid: boolean; 
   if (!isValid) {
     return {
       isValid: false,
-      error: "Format de numéro de téléphone WhatsApp invalide pour la Côte d'Ivoire. Requis: +225 suivi de 10 chiffres (ex: +2250701020304)."
+      error: "Format de numéro de téléphone WhatsApp invalide. Requis : Format Côte d'Ivoire (+225 suivi de 10 chiffres), Maroc (+212 suivi de 9 chiffres) ou format international (+ suivi de l'indicatif pays)."
     };
   }
 

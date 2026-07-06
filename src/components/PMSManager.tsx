@@ -64,6 +64,8 @@ interface PMSProps {
   onActiveSubTabChange?: (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control') => void;
   roomHistoryLogs?: RoomHistoryLog[];
   onUpdateRoomHistoryLogs?: (updated: RoomHistoryLog[]) => void;
+  guests?: GuestRecord[];
+  onUpdateGuests?: (updated: GuestRecord[]) => void;
 }
 
 export default function PMSManager({
@@ -87,7 +89,9 @@ export default function PMSManager({
   activeSubTab: propActiveSubTab,
   onActiveSubTabChange,
   roomHistoryLogs = [],
-  onUpdateRoomHistoryLogs
+  onUpdateRoomHistoryLogs,
+  guests = [],
+  onUpdateGuests
 }: PMSProps) {
   
   const [filterType, setFilterType] = useState<'all' | 'studio' | 'room' | 'apartment'>('all');
@@ -283,6 +287,12 @@ export default function PMSManager({
     const saved = localStorage.getItem('bb_guests');
     return saved ? JSON.parse(saved) : [];
   });
+
+  React.useEffect(() => {
+    if (guests && guests.length > 0) {
+      setSavedGuestsList(guests);
+    }
+  }, [guests]);
 
   // Debtor / Manager checkout authorization fields
   const [authorizeDebtorCheckout, setAuthorizeDebtorCheckout] = useState(false);
@@ -509,6 +519,9 @@ export default function PMSManager({
         const updatedGList = [...currentGuestsList, newGuestRecord];
         localStorage.setItem('bb_guests', JSON.stringify(updatedGList));
         setSavedGuestsList(updatedGList);
+        if (onUpdateGuests) {
+          onUpdateGuests(updatedGList);
+        }
       } else {
         const updatedGList = currentGuestsList.map(g => {
           if (g.phone === normalizedPhone) {
@@ -527,6 +540,9 @@ export default function PMSManager({
         });
         localStorage.setItem('bb_guests', JSON.stringify(updatedGList));
         setSavedGuestsList(updatedGList);
+        if (onUpdateGuests) {
+          onUpdateGuests(updatedGList);
+        }
       }
       window.dispatchEvent(new Event('storage'));
     }

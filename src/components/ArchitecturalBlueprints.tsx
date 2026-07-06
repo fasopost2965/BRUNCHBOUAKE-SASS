@@ -1140,10 +1140,10 @@ class ChannelManagerController extends Controller
             })->first();
 
         if (!$room) {
-            $room = Room::where('tenant_id', $tenantId)->where('type', $data['room_type'])->first();
-            if (!$room) {
-                return response()->json(['error' => 'No rooms of this type', 'code' => 'ROOM_NOT_FOUND'], 404);
-            }
+            return response()->json([
+                'error' => 'Aucune chambre de type ' . $data['room_type'] . ' n\'est libre pour les dates sélectionnées.',
+                'code' => 'OVERBOOKING_PREVENTION'
+            ], 422);
         }
 
         // 5. Enregistrement transactionnel
@@ -1168,6 +1168,18 @@ class ChannelManagerController extends Controller
                     'external_reservation_id' => $data['booking_id'],
                     'staff_member' => 'API Gateway',
                 ]);
+            ]);
+
+            // Simulation d'envoi de notification WhatsApp
+            Log::info("WhatsApp dispatch triggered", [
+                'recipient' => $reservation->guest_phone,
+                'template' => 'reservation_confirm',
+                'variables' => [
+                    'guest_name' => $reservation->guest_name,
+                    'security_pin' => $reservation->security_pin,
+                    'access_code' => $reservation->access_code,
+                    'check_in_date' => $data['check_in_date'],
+                ]
             ]);
 
             return response()->json([

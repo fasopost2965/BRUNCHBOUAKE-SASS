@@ -10,9 +10,18 @@ import {
   ArrowDownRight,
   Plus, 
   Calendar,
-  Layers
+  Layers,
+  Server,
+  Terminal,
+  CheckCircle2,
+  XCircle,
+  Info,
+  ShieldAlert,
+  RefreshCw,
+  Play,
+  Send
 } from 'lucide-react';
-import { Room, Reservation, Transaction, Task } from '../types';
+import { Room, Reservation, Transaction, Task, GuestRecord } from '../types';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -36,6 +45,8 @@ interface DashboardProps {
   onQuickPOSOrder: () => void;
   onQuickAddTask: () => void;
   currentRole?: string;
+  onAddReservation?: (res: Reservation) => void;
+  onAddGuest?: (guest: GuestRecord) => void;
 }
 
 export default function DashboardOverview({
@@ -47,9 +58,265 @@ export default function DashboardOverview({
   onQuickCheckIn,
   onQuickPOSOrder,
   onQuickAddTask,
-  currentRole
+  currentRole,
+  onAddReservation,
+  onAddGuest
 }: DashboardProps) {
   
+  // Laravel 11 API Gateway live monitor state
+  const [apiLogs, setApiLogs] = React.useState<any[]>([
+    {
+      id: 1,
+      timestamp: new Date(Date.now() - 5000).toISOString(),
+      method: 'POST',
+      path: '/api/v1/channel-manager/ingest',
+      status: 201,
+      statusText: 'Created',
+      clientIp: '185.230.124.5',
+      tenantId: 'tenant-bouake-kennedy',
+      source: 'Booking.com',
+      payload: {
+        booking_id: 'B-8739201',
+        room_type: 'studio',
+        guest_name: 'Amadou Diallo',
+        guest_phone: '+225 07 45 89 12 34',
+        check_in_date: '2026-07-10',
+        check_out_date: '2026-07-15',
+        number_of_guests: 2,
+        total_amount: 125000,
+        source: 'Booking.com'
+      },
+      response: {
+        success: true,
+        message: 'Booking successfully ingested',
+        data: {
+          id: 'res-9483',
+          tenant_id: 'tenant-bouake-kennedy',
+          room_id: 'rm-102',
+          guest_name: 'Amadou Diallo',
+          status: 'confirmed',
+          total_amount: 125000,
+          security_pin: '3941',
+          access_code: '483921',
+          source_of_stay: 'Booking.com'
+        },
+        idempotency_status: 'CREATED'
+      },
+      whatsAppTriggered: true,
+      whatsAppPhone: '+225 07 45 89 12 34'
+    },
+    {
+      id: 2,
+      timestamp: new Date(Date.now() - 35000).toISOString(),
+      method: 'POST',
+      path: '/api/v1/channel-manager/ingest',
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      clientIp: '185.230.124.5',
+      tenantId: 'tenant-bouake-kennedy',
+      source: 'Airbnb',
+      payload: {
+        booking_id: 'A-2049581',
+        room_type: 'apartment',
+        guest_name: 'Clarisse Kouamé',
+        guest_phone: '+225 05 66 12 99 88',
+        check_in_date: '2026-07-06',
+        check_out_date: '2026-07-12',
+        number_of_guests: 4,
+        total_amount: 350000,
+        source: 'Airbnb'
+      },
+      response: {
+        error: "Aucune chambre de type apartment n'est libre pour les dates sélectionnées.",
+        code: 'OVERBOOKING_PREVENTION'
+      },
+      whatsAppTriggered: false
+    },
+    {
+      id: 3,
+      timestamp: new Date(Date.now() - 120000).toISOString(),
+      method: 'POST',
+      path: '/api/v1/channel-manager/ingest',
+      status: 401,
+      statusText: 'Unauthorized',
+      clientIp: '82.102.45.18',
+      tenantId: 'tenant-bouake-kennedy',
+      source: 'Unknown',
+      payload: {
+        booking_id: 'B-9920194'
+      },
+      response: {
+        error: 'Unauthorized integration token',
+        code: 'UNAUTHORIZED'
+      },
+      whatsAppTriggered: false
+    }
+  ]);
+
+  const [expandedLogId, setExpandedLogId] = React.useState<number | null>(null);
+
+  const handleSimulateApiCall = (type: 'success' | 'overbooking' | 'unauthorized' | 'bad_request') => {
+    const randomBookingId = Math.floor(1000000 + Math.random() * 9000000);
+    const guestNames = ['Koffi Yao', 'Mariam Koné', 'Zana Soro', 'Adjoua Kouassi', 'Fatou Sylla', 'Test WhatsApp Pro'];
+    const selectedGuestName = guestNames[Math.floor(Math.random() * guestNames.length)];
+    
+    // Default to the user's specific test WhatsApp Business number if they select "Test WhatsApp Pro"
+    const randomPhone = selectedGuestName === 'Test WhatsApp Pro' 
+      ? '+212777346787' 
+      : `+225 07 ${Math.floor(10 + Math.random() * 89)} ${Math.floor(10 + Math.random() * 89)} ${Math.floor(10 + Math.random() * 89)} ${Math.floor(10 + Math.random() * 89)}`;
+      
+    const randomSecPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const randomAccessCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    let newLog: any = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      method: 'POST',
+      path: '/api/v1/channel-manager/ingest',
+      clientIp: '185.230.124.' + Math.floor(1 + Math.random() * 254),
+    };
+
+    if (type === 'success') {
+      const reservationId = `res-${Math.floor(1000 + Math.random() * 9000)}`;
+      newLog = {
+        ...newLog,
+        status: 201,
+        statusText: 'Created',
+        tenantId: 'tenant-bouake-kennedy',
+        source: 'Booking.com',
+        payload: {
+          booking_id: `B-${randomBookingId}`,
+          room_type: 'studio',
+          guest_name: selectedGuestName,
+          guest_phone: randomPhone,
+          check_in_date: '2026-07-15',
+          check_out_date: '2026-07-18',
+          number_of_guests: 2,
+          total_amount: 75000,
+          source: 'Booking.com'
+        },
+        response: {
+          success: true,
+          message: 'Booking successfully ingested',
+          data: {
+            id: reservationId,
+            tenant_id: 'tenant-bouake-kennedy',
+            room_id: 'rm-101',
+            guest_name: selectedGuestName,
+            status: 'confirmed',
+            total_amount: 75000,
+            security_pin: randomSecPin,
+            access_code: randomAccessCode,
+            source_of_stay: 'Booking.com'
+          },
+          idempotency_status: 'CREATED'
+        },
+        whatsAppTriggered: true,
+        whatsAppPhone: randomPhone
+      };
+
+      if (onAddReservation) {
+        onAddReservation({
+          id: reservationId,
+          tenantId: 'tenant-bouake-kennedy',
+          roomId: 'rm-101',
+          guestName: selectedGuestName,
+          guestPhone: randomPhone,
+          guestEmail: `${selectedGuestName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+          checkInDate: '2026-07-15',
+          checkOutDate: '2026-07-18',
+          numberOfGuests: 2,
+          status: 'confirmed',
+          totalAmount: 75000,
+          paidAmount: 0,
+          paymentStatus: 'unpaid',
+          specialRequests: 'Réservation de test simulée via l\'API REST Gateway Laravel.',
+          securityPin: randomSecPin,
+          accessCode: randomAccessCode,
+          createdAt: new Date().toISOString(),
+          createdBy: 'API Laravel 11 Gateway',
+          sourceModule: 'Laravel API Gateway'
+        });
+      }
+
+      if (onAddGuest) {
+        onAddGuest({
+          id: `g-${Date.now().toString().slice(-4)}`,
+          name: selectedGuestName,
+          phone: randomPhone,
+          email: `${selectedGuestName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+          nationality: 'Ivoirienne',
+          idNumber: '',
+          address: 'Bouaké, Kennedy',
+          notes: 'Client importé automatiquement de Booking.com via l\'API REST Laravel 11.',
+          visitCount: 1,
+          totalSpent: 0
+        });
+      }
+    } else if (type === 'overbooking') {
+      newLog = {
+        ...newLog,
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        tenantId: 'tenant-bouake-kennedy',
+        source: 'Airbnb',
+        payload: {
+          booking_id: `A-${randomBookingId}`,
+          room_type: 'room',
+          guest_name: selectedGuestName,
+          guest_phone: randomPhone,
+          check_in_date: '2026-07-06',
+          check_out_date: '2026-07-08',
+          number_of_guests: 1,
+          total_amount: 30000,
+          source: 'Airbnb'
+        },
+        response: {
+          error: "Aucune chambre de type room n'est libre pour les dates sélectionnées.",
+          code: 'OVERBOOKING_PREVENTION'
+        },
+        whatsAppTriggered: false
+      };
+    } else if (type === 'unauthorized') {
+      newLog = {
+        ...newLog,
+        status: 401,
+        statusText: 'Unauthorized',
+        tenantId: 'tenant-bouake-kennedy',
+        source: 'Unknown',
+        payload: {
+          booking_id: `X-${randomBookingId}`,
+          room_type: 'studio'
+        },
+        response: {
+          error: 'Unauthorized integration token',
+          code: 'UNAUTHORIZED'
+        },
+        whatsAppTriggered: false
+      };
+    } else if (type === 'bad_request') {
+      newLog = {
+        ...newLog,
+        status: 400,
+        statusText: 'Bad Request',
+        tenantId: '',
+        source: 'Expedia',
+        payload: {
+          booking_id: `E-${randomBookingId}`,
+          room_type: 'apartment'
+        },
+        response: {
+          error: 'Missing Tenant Isolation Header',
+          code: 'MISSING_TENANT_ID'
+        },
+        whatsAppTriggered: false
+      };
+    }
+
+    setApiLogs(prev => [newLog, ...prev.slice(0, 9)]);
+    setExpandedLogId(newLog.id);
+  };
+
   // Calculations
   const occupiedRoomsCount = rooms.filter(r => r.status === 'occupied').length;
   const occupancyRate = Math.round((occupiedRoomsCount / rooms.length) * 100) || 0;
@@ -758,6 +1025,198 @@ export default function DashboardOverview({
 
         </div>
 
+      </div>
+
+      {/* 🖥️ LARAVEL 11 REST API GATEWAY REAL-TIME MONITOR */}
+      <div className="bg-slate-900 text-slate-100 rounded-[24px] p-6 border border-slate-800 shadow-xl space-y-6 mt-6">
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-slate-800 pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <h4 className="font-extrabold text-white text-base uppercase tracking-wider flex items-center gap-2">
+                <Server className="w-5 h-5 text-blue-400" />
+                <span>Laravel 11 API Gateway - Moniteur en Temps Réel</span>
+              </h4>
+            </div>
+            <p className="text-xs text-slate-400">
+              Journal d'activité de l'API REST multi-tenant pour l'ingestion des réservations externes (OTAs, Channel Manager) et la prévention du surbooking.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <span className="px-2.5 py-1 bg-blue-500/10 text-blue-300 border border-blue-500/20 font-mono text-[10px] font-bold rounded-lg uppercase">
+              Host: localhost:8000
+            </span>
+            <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono text-[10px] font-bold rounded-lg uppercase">
+              Laravel v11.x
+            </span>
+            <span className="px-2.5 py-1 bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono text-[10px] font-bold rounded-lg uppercase">
+              PHP v8.2
+            </span>
+          </div>
+        </div>
+
+        {/* Action simulators */}
+        <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-3">
+          <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5 font-mono">
+            <Terminal className="w-4 h-4 text-orange-400" />
+            <span>CONSOLE DE SIMULATION DE REQUÊTES (TEST API)</span>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Cliquez sur un des scénarios ci-dessous pour déclencher un appel HTTP simulé vers l'API Laravel et observer la réponse du contrôleur de passerelle (ChannelManagerController) :
+          </p>
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <button
+              onClick={() => handleSimulateApiCall('success')}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-emerald-900/30 transition-all cursor-pointer active:scale-95"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Simuler Ingestion OK (201)</span>
+            </button>
+            <button
+              onClick={() => handleSimulateApiCall('overbooking')}
+              className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-orange-900/30 transition-all cursor-pointer active:scale-95"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Simuler Surbooking (422)</span>
+            </button>
+            <button
+              onClick={() => handleSimulateApiCall('unauthorized')}
+              className="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-slate-900/30 transition-all cursor-pointer active:scale-95"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Simuler Jeton Invalide (401)</span>
+            </button>
+            <button
+              onClick={() => handleSimulateApiCall('bad_request')}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-slate-900/10 transition-all cursor-pointer active:scale-95"
+            >
+              <Info className="w-3.5 h-3.5 text-blue-400" />
+              <span>Simuler Tenant Manquant (400)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Logs Live List */}
+        <div className="space-y-3">
+          <div className="text-xs font-bold text-slate-400 flex items-center justify-between px-1">
+            <span>FLUX DES REQUÊTES ENTRANTES (Derniers événements)</span>
+            <span className="font-mono text-[10px] text-slate-500">Mise à jour en direct</span>
+          </div>
+
+          <div className="divide-y divide-slate-850 bg-slate-950/40 rounded-2xl border border-slate-800/60 overflow-hidden">
+            {apiLogs.map((log) => {
+              const isSuccess = log.status >= 200 && log.status < 300;
+              const isOverbooking = log.status === 422;
+              const isClientError = log.status >= 400 && log.status < 500 && log.status !== 422;
+              
+              const statusBadgeColor = isSuccess 
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                : isOverbooking 
+                ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+
+              const methodColor = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+
+              return (
+                <div key={log.id} className="p-4 hover:bg-slate-900/40 transition-all">
+                  <div 
+                    onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer"
+                  >
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {/* Method Badge */}
+                      <span className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-md border ${methodColor}`}>
+                        {log.method}
+                      </span>
+                      
+                      {/* Path & Source */}
+                      <span className="font-mono text-xs text-slate-200 font-semibold">{log.path}</span>
+                      
+                      {/* Source Badge */}
+                      {log.source && (
+                        <span className="px-2 py-0.5 bg-slate-800 text-slate-300 font-sans text-[10px] font-semibold rounded-md border border-slate-700/50">
+                          {log.source}
+                        </span>
+                      )}
+
+                      {/* Tenant Badge */}
+                      {log.tenantId ? (
+                        <span className="text-[10px] text-slate-400 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded font-mono">
+                          Tenant: {log.tenantId}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-rose-400 bg-rose-950/20 border border-rose-900/30 px-1.5 py-0.5 rounded font-mono">
+                          Tenant: None
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end md:self-auto">
+                      {/* WhatsApp Sent Notification Status */}
+                      {log.whatsAppTriggered && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/30 border border-emerald-900/40 px-2 py-0.5 rounded-full font-sans font-bold uppercase tracking-wider animate-pulse">
+                          <Send className="w-3 h-3" />
+                          <span>WhatsApp envoyé</span>
+                        </div>
+                      )}
+
+                      {/* Status Badge */}
+                      <span className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-lg border ${statusBadgeColor}`}>
+                        {log.status} {log.statusText}
+                      </span>
+
+                      {/* IP / Timestamp */}
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {new Date(log.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded JSON details for payload/response */}
+                  {expandedLogId === log.id && (
+                    <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+                      {/* Request Payload */}
+                      <div className="space-y-1.5 text-left">
+                        <div className="text-[10px] font-bold text-slate-400 font-mono flex items-center gap-1.5 uppercase">
+                          <span>Request Payload (Entrante)</span>
+                          <span className="text-slate-600">| IP: {log.clientIp}</span>
+                        </div>
+                        <pre className="p-3 bg-slate-950 text-blue-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[160px] border border-slate-900 shadow-inner leading-relaxed">
+                          {JSON.stringify(log.payload, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* Response JSON */}
+                      <div className="space-y-1.5 text-left">
+                        <div className="text-[10px] font-bold text-slate-400 font-mono uppercase">
+                          Response JSON (Sortante)
+                        </div>
+                        <pre className={`p-3 bg-slate-950 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[160px] border border-slate-900 shadow-inner leading-relaxed ${isSuccess ? 'text-emerald-400' : 'text-orange-400'}`}>
+                          {JSON.stringify(log.response, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Helper Badge explain */}
+        <div className="p-4 bg-blue-950/30 border border-blue-900/40 rounded-2xl text-xs text-blue-300 flex items-start gap-2.5">
+          <Info className="w-4.5 h-4.5 text-blue-400 shrink-0 mt-0.5" />
+          <div className="space-y-1 text-left">
+            <span className="font-bold block text-white">Pourquoi est-ce utile pour le débogage ?</span>
+            <p className="text-[11px] text-blue-300/80 leading-relaxed">
+              Ce panneau reflète les règles d'intégrité de notre API Laravel 11. Notamment, si vous simulez un cas de <strong>Surbooking (422)</strong>, l'API renvoie le code <code>OVERBOOKING_PREVENTION</code> et empêche l'enregistrement pour éviter la surréservation. De plus, pour chaque réservation réussie (201), le webhook simule le déclenchement asynchrone des notifications WhatsApp pour envoyer le code PIN et l'access_code.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
