@@ -26,7 +26,8 @@ import {
   Activity,
   Calendar,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Key
 } from 'lucide-react';
 
 // Seed data
@@ -612,7 +613,7 @@ export default function App() {
 
   // Active view state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pms' | 'pos' | 'erp' | 'staff' | 'crm' | 'blueprints' | 'settings' | 'users' | 'tour'>('dashboard');
-  const [pmsActiveSubTab, setPmsActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly'>('rooms');
+  const [pmsActiveSubTab, setPmsActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control'>('rooms');
   
   // Simulation role-based selector
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
@@ -1384,6 +1385,27 @@ export default function App() {
               </div>
               {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
                 <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
+              )}
+            </button>
+
+            {/* 5. Contrôle d'Accès Serrure (Admins & Managers) */}
+            <button
+              onClick={() => {
+                setActiveTab('pms');
+                setPmsActiveSubTab('access-control');
+              }}
+              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                activeTab === 'pms' && pmsActiveSubTab === 'access-control'
+                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <Key className="w-4 h-4 opacity-75 text-amber-500" />
+                <span>Contrôle d'Accès SERRURES</span>
+              </div>
+              {!(currentRole === 'admin' || currentRole === 'manager') && (
+                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès restreint aux Managers/Admins" />
               )}
             </button>
           </div>

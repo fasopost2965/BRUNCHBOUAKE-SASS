@@ -34,6 +34,7 @@ export default function CRMGuests({
   const [selectedGuest, setSelectedGuest] = useState<GuestRecord | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Profile edit fields
   const [editName, setEditName] = useState('');
@@ -84,7 +85,7 @@ export default function CRMGuests({
     setEditNationality(g.nationality || 'Ivoirienne');
     setEditIdNumber(g.idNumber || '');
     setEditAddress(g.address || '');
-    setIsEditingProfile(true);
+    setIsEditModalOpen(true);
   };
 
   const handleSaveProfile = () => {
@@ -120,6 +121,7 @@ export default function CRMGuests({
     const updatedGuest = updated.find(g => g.id === selectedGuest.id);
     if (updatedGuest) setSelectedGuest(updatedGuest);
     setIsEditingProfile(false);
+    setIsEditModalOpen(false);
     alert("Les informations du client ont été mises à jour avec succès !");
   };
 
@@ -217,10 +219,19 @@ export default function CRMGuests({
             <BookOpen className="w-5 h-5 text-orange-500" />
             <h4 className="font-bold text-slate-900 text-sm">Fiche Préférences Client</h4>
           </div>
-          {selectedGuest && !isEditingProfile && (
+          {selectedGuest && (
             <button
               type="button"
-              onClick={() => setIsEditingProfile(true)}
+              onClick={() => {
+                setEditName(selectedGuest.name || '');
+                setEditPhone(selectedGuest.phone || '');
+                setEditEmail(selectedGuest.email || '');
+                setEditNationality(selectedGuest.nationality || 'Ivoirienne');
+                setEditIdNumber(selectedGuest.idNumber || '');
+                setEditAddress(selectedGuest.address || '');
+                setEditingNotes(selectedGuest.notes || '');
+                setIsEditModalOpen(true);
+              }}
               className="flex items-center gap-1 px-2.5 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 font-extrabold rounded-lg text-[10px] transition-all cursor-pointer shadow-2xs"
               title="Modifier les informations de ce client"
             >
@@ -404,6 +415,130 @@ export default function CRMGuests({
         )}
       </div>
 
+      {/* EDIT GUEST MODAL */}
+      {isEditModalOpen && selectedGuest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 flex justify-between items-center">
+              <div>
+                <span className="text-[9px] uppercase font-mono tracking-widest text-orange-400 font-extrabold block">CRM FICHIER CLIENT</span>
+                <h4 className="text-sm font-black text-white flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-orange-400" />
+                  Modifier le Profil de {selectedGuest.name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Nom Complet *</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-bold text-slate-800 text-xs"
+                    placeholder="Nom du voyageur"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Téléphone *</label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800 text-xs"
+                    placeholder="+225..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Adresse E-mail</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono text-slate-700 text-xs"
+                    placeholder="email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Nationalité</label>
+                  <input
+                    type="text"
+                    value={editNationality}
+                    onChange={(e) => setEditNationality(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-700 text-xs"
+                    placeholder="Ex: Ivoirienne"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">N° CNI / Passeport</label>
+                  <input
+                    type="text"
+                    value={editIdNumber}
+                    onChange={(e) => setEditIdNumber(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono text-slate-700 text-xs"
+                    placeholder="Ex: C01..."
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Adresse de résidence</label>
+                  <input
+                    type="text"
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-700 text-xs"
+                    placeholder="Ex: Bouaké, Quartier Kennedy"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Préférences, Allergies & Notes Internes</label>
+                  <textarea
+                    value={editingNotes}
+                    onChange={(e) => setEditingNotes(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-700 h-24 text-xs"
+                    placeholder="Chambre calme, piment à part, café le matin..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="w-1/2 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                className="w-1/2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Enregistrer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

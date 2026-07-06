@@ -32,7 +32,9 @@ import {
   PlusCircle,
   Home,
   Eye,
-  EyeOff
+  EyeOff,
+  Key,
+  ShieldCheck
 } from 'lucide-react';
 import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, RoomHistoryLog } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
@@ -58,8 +60,8 @@ interface PMSProps {
   onUpdateWebhookEvents: React.Dispatch<React.SetStateAction<WebhookEvent[]>>;
   onUpdateProcessedEvents: React.Dispatch<React.SetStateAction<ProcessedEvent[]>>;
   settings: PropertySettings;
-  activeSubTab?: 'kpis' | 'rooms' | 'calendar' | 'monthly';
-  onActiveSubTabChange?: (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly') => void;
+  activeSubTab?: 'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control';
+  onActiveSubTabChange?: (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control') => void;
   roomHistoryLogs?: RoomHistoryLog[];
   onUpdateRoomHistoryLogs?: (updated: RoomHistoryLog[]) => void;
 }
@@ -303,9 +305,9 @@ export default function PMSManager({
   const [invoiceReservation, setInvoiceReservation] = useState<Reservation | null>(null);
 
   // Sub-tab state for Room Cards vs. Reservation Calendar vs. Monthly Calendar
-  const [localActiveSubTab, setLocalActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly'>('rooms');
+  const [localActiveSubTab, setLocalActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control'>('rooms');
   const activeSubTab = propActiveSubTab !== undefined ? propActiveSubTab : localActiveSubTab;
-  const setActiveSubTab = (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly') => {
+  const setActiveSubTab = (subTab: 'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control') => {
     setLocalActiveSubTab(subTab);
     if (onActiveSubTabChange) {
       onActiveSubTabChange(subTab);
@@ -360,6 +362,9 @@ export default function PMSManager({
     e.preventDefault();
     if (!selectedRoom) return;
 
+    const nights = calculateNights(checkInDate, checkOutDate);
+    const totalLodgingPrice = selectedRoom.pricePerNight * nights;
+
     // Zod runtime validation
     const validation = validateReservation({
       roomId: selectedRoom.id,
@@ -369,7 +374,9 @@ export default function PMSManager({
       checkInDate,
       checkOutDate,
       numberOfGuests: numGuests,
-      prepaidAmount,
+      totalAmount: totalLodgingPrice,
+      paidAmount: prepaidAmount,
+      specialRequests: specialRequests.trim(),
       securityPin: securityPin.trim(),
       creditLimit
     });
@@ -384,9 +391,6 @@ export default function PMSManager({
       alert(`ERREUR VALIDATION: La chambre ${selectedRoom.name} est actuellement en statut "${selectedRoom.status}". Enregistrement impossible.`);
       return;
     }
-
-    const nights = calculateNights(checkInDate, checkOutDate);
-    const totalLodgingPrice = selectedRoom.pricePerNight * nights;
 
     let targetReservationId = `res-${Date.now().toString().slice(-4)}`;
     let updatedReservationsList = [...reservations];
@@ -406,7 +410,7 @@ export default function PMSManager({
 
       updatedReservationsList = reservations.map(r => {
         if (r.id === selectedReservationId) {
-          const generatedAccessCode = `ACC-${r.id.replace('res-', '').toUpperCase()}-${(finalGuestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`;
+          const generatedAccessCode = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
           return {
             ...r,
             status: 'checked-in' as const,
@@ -435,7 +439,7 @@ export default function PMSManager({
       });
     } else {
       // Walk-In check-in: create new reservation stay
-      const generatedAccessCode = `ACC-${targetReservationId.replace('res-', '').toUpperCase()}-${(guestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`;
+      const generatedAccessCode = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
       const newReservation: Reservation = {
         id: targetReservationId,
         tenantId: 'tenant-bouake-kennedy',
@@ -2156,6 +2160,128 @@ export default function PMSManager({
         );
       })()}
 
+      {activeSubTab === 'access-control' && (
+        <div className="space-y-6 animate-fade-in text-slate-800">
+          <div className="bg-slate-950 text-white rounded-3xl p-6 border border-slate-800/80 shadow-xl relative overflow-hidden">
+            <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col md:flex-row gap-6 justify-between md:items-center relative z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 bg-amber-500 text-slate-950 font-mono text-[9px] font-black rounded-md uppercase tracking-wider">
+                    SÉCURITÉ PHYSIQUE
+                  </span>
+                  <span className="text-slate-400 text-xs font-semibold">• Contrôle des Serrures Connectées</span>
+                </div>
+                <h3 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-500" />
+                  Console de Contrôle d'Accès & Serrures
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                  Cette console affiche en temps réel les codes d'accès uniques de 6 caractères générés lors du check-in des clients. Ces codes permettent aux voyageurs d'ouvrir les serrures électroniques de leurs chambres respectives en toute autonomie.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="text-sm font-black text-slate-950 uppercase tracking-tight">
+                  Codes d'Accès Actifs par Chambre
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Liste en lecture seule réservée aux Administrateurs et Managers pour l'audit et l'assistance client.
+                </p>
+              </div>
+              <div className="text-xs bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 font-bold text-slate-600 font-mono">
+                Total Codes Actifs : <span className="font-mono text-slate-900">{reservations.filter(r => r.status === 'checked-in').length}</span>
+              </div>
+            </div>
+
+            {(() => {
+              const currentUserRole = localStorage.getItem('bb_current_user') 
+                ? JSON.parse(localStorage.getItem('bb_current_user') || '{}').role 
+                : 'admin';
+              
+              const isAllowed = currentUserRole === 'admin' || currentUserRole === 'manager';
+              
+              if (!isAllowed) {
+                return (
+                  <div className="p-6 bg-rose-50 border border-rose-100 rounded-2xl text-center space-y-2">
+                    <ShieldAlert className="w-8 h-8 text-rose-500 mx-auto" />
+                    <h5 className="font-bold text-rose-800 text-sm">Accès Sécurisé Restreint</h5>
+                    <p className="text-xs text-rose-600 max-w-md mx-auto">
+                      Désolé, vos privilèges de service actuels ne vous permettent pas d'accéder aux codes de serrure physiques. Veuillez contacter un Administrateur ou un Manager pour obtenir de l'assistance.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-4">Voyageur / Client</th>
+                        <th className="py-3 px-4">Hébergement / Chambre</th>
+                        <th className="py-3 px-4">Dates du Séjour</th>
+                        <th className="py-3 px-4">Code PIN Validation</th>
+                        <th className="py-3 px-4">Serrure (6-Caractères)</th>
+                        <th className="py-3 px-4">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {reservations.filter(r => r.status === 'checked-in').length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400 font-medium italic">
+                            Aucun voyageur n'est actuellement enregistré (en chambre) dans l'établissement.
+                          </td>
+                        </tr>
+                      ) : (
+                        reservations.filter(r => r.status === 'checked-in').map(res => {
+                          const roomObj = rooms.find(rm => rm.id === res.roomId);
+                          return (
+                            <tr key={res.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <span className="font-bold text-slate-800 block text-xs">{res.guestName}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">{res.guestPhone || 'Pas de tél'}</span>
+                              </td>
+                              <td className="py-3.5 px-4 font-semibold text-slate-700">
+                                {roomObj ? roomObj.name : `Chambre #${res.roomId}`}
+                                <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded ml-1.5 font-bold uppercase">
+                                  {roomObj ? roomObj.type : 'N/A'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-slate-500 font-medium">
+                                Du {new Date(res.checkInDate).toLocaleDateString('fr-FR')} au {new Date(res.checkOutDate).toLocaleDateString('fr-FR')}
+                              </td>
+                              <td className="py-3.5 px-4 font-mono font-bold text-slate-600 text-sm">
+                                {res.securityPin || '1234'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="px-3 py-1.5 bg-slate-900 text-orange-400 border border-slate-800 rounded-lg font-mono font-black text-sm tracking-widest uppercase">
+                                  {res.accessCode || (res.id ? `B9K${res.id.slice(-3).toUpperCase()}` : 'B8X7L2')}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-wide">
+                                  En Chambre
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Selected Room Action Panel */}
       {selectedRoom && (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 transition-all space-y-4">
@@ -2331,10 +2457,15 @@ export default function PMSManager({
                         <p className="text-[10px] text-slate-400">
                           Séjour du {new Date(activeRes.checkInDate).toLocaleDateString('fr-FR')} au {new Date(activeRes.checkOutDate).toLocaleDateString('fr-FR')}
                         </p>
-                        <div className="mt-2 p-2 bg-orange-100/50 border border-orange-200 rounded-lg">
-                          <span className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-orange-800 block">Code d'accès unique (Serrure) :</span>
-                          <span className="text-xs font-black font-mono text-slate-900 tracking-wider">
-                            {activeRes.accessCode || `ACC-${activeRes.id.replace('res-', '').toUpperCase()}-${(activeRes.guestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`}
+                        <div className="mt-2 p-2 bg-slate-900 text-white rounded-xl border border-slate-800 flex justify-between items-center">
+                          <div>
+                            <span className="text-[8px] uppercase font-mono tracking-widest text-slate-400 block font-black">Code d'accès unique (Serrure)</span>
+                            <span className="text-sm font-black font-mono tracking-widest text-orange-400">
+                              {activeRes.accessCode || (activeRes.id ? `B9K${activeRes.id.slice(-3).toUpperCase()}` : 'B8X7L2')}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-slate-800 text-slate-300 text-[8px] font-bold rounded-md font-mono uppercase">
+                            6-Digit Pin
                           </span>
                         </div>
                       </div>
