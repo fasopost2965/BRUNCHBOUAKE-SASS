@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function ArchitecturalBlueprints() {
-  const [activeSec, setActiveSec] = useState<'ia' | 'flows' | 'screens' | 'mobile' | 'design' | 'exploitation'>('ia');
+  const [activeSec, setActiveSec] = useState<'ia' | 'flows' | 'screens' | 'mobile' | 'design' | 'exploitation' | 'backend'>('ia');
   const [activeSchemaTab, setActiveSchemaTab] = useState<'audit' | 'shift' | 'recipes'>('audit');
   const [activeRoadmapPhase, setActiveRoadmapPhase] = useState<1 | 2 | 3 | 4>(1);
 
@@ -95,6 +95,15 @@ export default function ArchitecturalBlueprints() {
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             6. Exploitation & SaaS Terrain
+          </button>
+          <button
+            onClick={() => setActiveSec('backend')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+              activeSec === 'backend' ? 'bg-white text-blue-700 shadow-sm border border-blue-100 bg-blue-50/50' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Code className="w-3.5 h-3.5 text-blue-600" />
+            7. Architecture Backend API (Laravel 11)
           </button>
         </div>
       </div>
@@ -858,6 +867,380 @@ CREATE TABLE recipe_ingredients (
                   </div>
                 )}
 
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSec === 'backend' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header / Intro */}
+            <div className="p-5 bg-gradient-to-r from-blue-950 via-slate-900 to-slate-900 text-white rounded-2xl border border-blue-500/20 shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              <div className="relative z-10">
+                <span className="px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono text-[10px] font-bold rounded-full uppercase tracking-wider">
+                  Architecture & Spécifications API REST
+                </span>
+                <h3 className="text-xl font-extrabold text-white mt-3 leading-snug tracking-tight">
+                  SaaS Multi-Tenant API (PHP 8.2 / Laravel 11)
+                </h3>
+                <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                  Cette section présente les schémas, modèles, contrôleurs et fichiers d'environnement pour l'API Rest de notre serveur "Brunch Bouaké". Il assure l'isolation multi-tenant stricte par base de données MySQL et fournit une passerelle d'ingestion de webhooks pour les réservations externes.
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-tabs switch */}
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Left Selector Rail */}
+              <div className="w-full lg:w-1/4 space-y-4">
+                <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 space-y-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 pb-1 border-b border-slate-200/60 font-mono">
+                    Composants Backend
+                  </div>
+                  
+                  <button
+                    onClick={() => setActiveSchemaTab('audit')} // Reuse activeSchemaTab for sub-navigation
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'audit'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5" />
+                      <span>1. Migrations MySQL</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSchemaTab('shift')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'shift'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Code className="w-3.5 h-3.5" />
+                      <span>2. Contrôleur d'Ingestion</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSchemaTab('recipes')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left text-xs font-semibold ${
+                      activeSchemaTab === 'recipes'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FolderTree className="w-3.5 h-3.5" />
+                      <span>3. Arborescence & .env</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+                </div>
+
+                <div className="p-4 bg-amber-50/50 border border-amber-200/70 rounded-2xl space-y-2.5">
+                  <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                    <ShieldAlert className="w-4 h-4 text-amber-700" />
+                    Sécurité Multi-Tenant
+                  </h4>
+                  <p className="text-[11px] text-amber-900 leading-relaxed">
+                    Toutes les tables possèdent une colonne <strong>tenant_id</strong>. Un Header HTTP <code>X-Tenant-ID</code> doit accompagner chaque requête pour isoler de manière hermétique les données de chaque établissement (ex: Studio 101 vs Restaurant).
+                  </p>
+                </div>
+              </div>
+
+              {/* Right content view */}
+              <div className="w-full lg:w-3/4 space-y-4">
+                {activeSchemaTab === 'audit' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <Database className="w-4 h-4 text-blue-600" />
+                        Schémas de Migrations Laravel (MySQL)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Ces scripts de migration créent les tables prioritaires `rooms`, `reservations` et `transactions` en base de données avec des index optimisés et des UUID.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <div className="font-semibold text-slate-800 mb-1">1. Migration: Rooms Table (`rooms`)</div>
+                        <pre className="p-3.5 bg-slate-950 text-blue-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[160px]">
+{`Schema::create('rooms', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->string('tenant_id')->index(); // Multi-Tenant Isolation Key
+    $table->string('name'); // e.g. "Studio Bouaké Chic"
+    $table->enum('type', ['studio', 'room', 'apartment']);
+    $table->unsignedInteger('price_per_night'); // FCFA/XOF
+    $table->enum('status', ['available', 'occupied', 'dirty', 'maintenance'])->default('available');
+    $table->unsignedSmallInteger('max_guests')->default(2);
+    $table->json('features')->nullable();
+    $table->string('image')->nullable();
+    $table->json('images')->nullable();
+    $table->timestamps();
+
+    $table->index(['tenant_id', 'status']);
+});`}
+                        </pre>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="font-semibold text-slate-800 mb-1">2. Migration: Reservations Table (`reservations`)</div>
+                        <pre className="p-3.5 bg-slate-950 text-blue-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[160px]">
+{`Schema::create('reservations', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->string('tenant_id')->index(); // Multi-Tenant Isolation Key
+    $table->foreignUuid('room_id')->constrained('rooms')->onDelete('cascade');
+    $table->string('guest_name');
+    $table->string('guest_phone');
+    $table->string('guest_email')->nullable();
+    $table->date('check_in_date');
+    $table->date('check_out_date');
+    $table->unsignedSmallInteger('number_of_guests')->default(1);
+    $table->enum('status', ['confirmed', 'checked-in', 'checked-out', 'cancelled'])->default('confirmed');
+    $table->unsignedInteger('total_amount'); // FCFA/XOF
+    $table->unsignedInteger('paid_amount')->default(0);
+    $table->enum('payment_status', ['unpaid', 'partially-paid', 'fully-paid'])->default('unpaid');
+    $table->text('special_requests')->nullable();
+    $table->string('security_pin', 4)->nullable(); // 4-digit code for POS transfers
+    $table->string('access_code', 10)->nullable();
+    $table->unsignedInteger('credit_limit')->default(0);
+    
+    // Audit & source fields
+    $table->string('nationality')->nullable();
+    $table->string('id_number')->nullable();
+    $table->string('address')->nullable();
+    $table->string('source_of_stay')->default('Direct'); // "Walk-in", "Booking.com", "Airbnb"
+    $table->string('staff_member')->nullable();
+    $table->string('source_module')->nullable();
+    $table->string('external_reservation_id')->nullable()->index(); // ID Booking/Airbnb
+    
+    $table->timestamps();
+
+    $table->index(['tenant_id', 'status']);
+    $table->index(['tenant_id', 'check_in_date', 'check_out_date']);
+});`}
+                        </pre>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="font-semibold text-slate-800 mb-1">3. Migration: Transactions Table (`transactions`)</div>
+                        <pre className="p-3.5 bg-slate-950 text-blue-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[160px]">
+{`Schema::create('transactions', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->string('tenant_id')->index(); // Multi-Tenant Isolation Key
+    $table->string('idempotency_key')->unique(); // STRICT constraint to prevent duplicates
+    $table->enum('type', ['lodging_payment', 'pos_sale', 'expense']);
+    $table->unsignedInteger('amount'); // Amount in FCFA/XOF
+    $table->enum('method', ['wave', 'orange_money', 'mtn', 'cash', 'card', 'room_charge']);
+    $table->string('description');
+    $table->string('reference_id')->nullable()->index(); // Reservation ID or Order ID
+    $table->timestamps();
+
+    $table->index(['tenant_id', 'type']);
+});`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSchemaTab === 'shift' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <Code className="w-4 h-4 text-blue-600" />
+                        Contrôleur d'Ingestion & Passerelle Booking (Laravel 11)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Le contrôleur gère l'ingestion asynchrone des réservations envoyées par les OTAs via le webhook du Channel Manager.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <pre className="p-4 bg-slate-950 text-emerald-400 rounded-xl font-mono text-[11px] overflow-x-auto leading-relaxed max-h-[350px] border border-slate-800 shadow-inner">
+{`<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Models\Reservation;
+use App\Models\Room;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+
+class ChannelManagerController extends Controller
+{
+    public function ingestBooking(Request $request)
+    {
+        // 1. Isolation multi-tenant et vérification du jeton de sécurité
+        $tenantId = $request->header('X-Tenant-ID');
+        $integrationToken = $request->header('X-Integration-Token') ?: $request->bearerToken();
+
+        if (empty($tenantId)) {
+            return response()->json(['error' => 'Missing Tenant Isolation Header', 'code' => 'MISSING_TENANT_ID'], 400);
+        }
+
+        if (empty($integrationToken) || $integrationToken !== config('services.channel_manager.token')) {
+            return response()->json(['error' => 'Unauthorized integration token', 'code' => 'UNAUTHORIZED'], 401);
+        }
+
+        // 2. Validation du payload
+        $validator = Validator::make($request->all(), [
+            'booking_id' => 'required|string',
+            'room_type' => 'required|in:studio,room,apartment',
+            'guest_name' => 'required|string|max:255',
+            'guest_phone' => 'required|string|max:50',
+            'check_in_date' => 'required|date_format:Y-m-d',
+            'check_out_date' => 'required|date_format:Y-m-d|after:check_in_date',
+            'number_of_guests' => 'required|integer|min:1',
+            'total_amount' => 'required|numeric|min:0',
+            'source' => 'required|string|in:Booking.com,Airbnb,Expedia,Direct',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation error', 'details' => $validator->errors()], 422);
+        }
+
+        $data = $request->all();
+
+        // 3. Protection d'idempotence (Double ingestion)
+        $existing = Reservation::where('tenant_id', $tenantId)
+            ->where('external_reservation_id', $data['booking_id'])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Reservation already ingested (Idempotency trigger)',
+                'data' => $existing,
+                'idempotency_status' => 'DUPLICATE_BYPASS'
+            ], 200);
+        }
+
+        // 4. Attribution automatique d'une chambre libre
+        $room = Room::where('tenant_id', $tenantId)
+            ->where('type', $data['room_type'])
+            ->whereDoesntHave('reservations', function ($q) use ($data) {
+                $q->where('status', '!=', 'cancelled')
+                  ->where(function ($sq) use ($data) {
+                      $sq->whereBetween('check_in_date', [$data['check_in_date'], $data['check_out_date']])
+                         ->orWhereBetween('check_out_date', [$data['check_in_date'], $data['check_out_date']]);
+                  });
+            })->first();
+
+        if (!$room) {
+            $room = Room::where('tenant_id', $tenantId)->where('type', $data['room_type'])->first();
+            if (!$room) {
+                return response()->json(['error' => 'No rooms of this type', 'code' => 'ROOM_NOT_FOUND'], 404);
+            }
+        }
+
+        // 5. Enregistrement transactionnel
+        try {
+            $reservation = DB::transaction(function () use ($tenantId, $room, $data) {
+                return Reservation::create([
+                    'id' => (string) Str::uuid(),
+                    'tenant_id' => $tenantId,
+                    'room_id' => $room->id,
+                    'guest_name' => $data['guest_name'],
+                    'guest_phone' => $data['guest_phone'],
+                    'check_in_date' => $data['check_in_date'],
+                    'check_out_date' => $data['check_out_date'],
+                    'number_of_guests' => $data['number_of_guests'],
+                    'status' => 'confirmed',
+                    'total_amount' => (int) $data['total_amount'],
+                    'security_pin' => str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT),
+                    'access_code' => str_pad((string) rand(0, 999999), 6, '0', STR_PAD_LEFT),
+                    'credit_limit' => (int) ($data['total_amount'] * 0.2),
+                    'source_of_stay' => $data['source'],
+                    'source_module' => 'channel_manager',
+                    'external_reservation_id' => $data['booking_id'],
+                    'staff_member' => 'API Gateway',
+                ]);
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking successfully ingested',
+                'data' => $reservation,
+                'idempotency_status' => 'CREATED'
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Database write failure', 'message' => $e->getMessage()], 500);
+        }
+    }
+}`}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {activeSchemaTab === 'recipes' && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-5 space-y-6">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <FolderTree className="w-4 h-4 text-blue-600" />
+                        Arborescence Securisée & Configuration d'Environnement
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Utilisez cette configuration pour déployer le backend Laravel 11 proprement sur votre instance de serveur local (Laragon) ou cloud (Hostinger).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-2">
+                        <div className="font-semibold text-slate-800">Structure des Fichiers Clés :</div>
+                        <div className="bg-slate-900 text-slate-300 p-4 rounded-xl font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[220px]">
+                          <div className="text-emerald-400 font-bold mb-1">app/Http/Controllers/Api/V1/</div>
+                          <div className="pl-4 text-slate-400">└── ChannelManagerController.php</div>
+                          <div className="text-emerald-400 font-bold mt-2">app/Models/</div>
+                          <div className="pl-4 text-slate-400">├── Room.php</div>
+                          <div className="pl-4 text-slate-400">├── Reservation.php</div>
+                          <div className="pl-4 text-slate-400">└── Transaction.php</div>
+                          <div className="text-emerald-400 font-bold mt-2">database/migrations/</div>
+                          <div className="pl-4 text-slate-400">├── 2026_07_06_000001_create_rooms_table.php</div>
+                          <div className="pl-4 text-slate-400">├── 2026_07_06_000002_create_reservations_table.php</div>
+                          <div className="pl-4 text-slate-400">└── 2026_07_06_000003_create_transactions_table.php</div>
+                          <div className="text-emerald-400 font-bold mt-2">routes/</div>
+                          <div className="pl-4 text-slate-400">└── api.php</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="font-semibold text-slate-800">Paramétrage du fichier `.env` :</div>
+                        <pre className="p-4 bg-slate-950 text-blue-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[220px] leading-relaxed">
+{`APP_NAME="Brunch Bouaké Backend API"
+APP_ENV=local
+APP_KEY=base64:3t6qY+gQ+L0vUqV7jE+3vDkO6+X8fE+3vDkO6=
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=brunch_bouake_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+CHANNEL_MANAGER_TOKEN=brunch_bouake_secure_webhook_token_2026
+TENANT_HEADER_KEY=X-Tenant-ID`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
