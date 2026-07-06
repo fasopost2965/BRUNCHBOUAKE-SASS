@@ -176,6 +176,28 @@ function safeJSONParse<T>(key: string, fallback: T): T {
 
 export default function App() {
   
+  /**
+   * =========================================================================
+   * POINT D'ANCRAGE D'INFRASTRUCTURE DE DONNÉES ASYNCHRONE (HOSTINGER / SAAS)
+   * =========================================================================
+   * Ces états locaux initialisés de manière paresseuse (Lazy Initializers) 
+   * représentent l'état offline-first de l'application Brunch Bouaké.
+   * 
+   * MIGRATE TO ASYNC DATABASE / API:
+   * Pour connecter l'application à notre base de données de production distante
+   * hébergée sur Hostinger via des requêtes asynchrones, effectuez les étapes suivantes :
+   * 
+   * 1. Remplacez ou complétez ces initialisations locales par un hook `useEffect` 
+   *    effectuant des requêtes `fetch` ou `axios.get('/api/v1/...')`.
+   * 2. Utilisez un état de chargement global `isLoading` pour afficher un squelette 
+   *    pendant la récupération asynchrone des collections (rooms, reservations, menu, etc.).
+   * 3. Remplacez les modificateurs d'état locaux (comme handleAddTransaction) 
+   *    pour qu'ils émettent des requêtes POST/PUT vers l'API Hostinger, tout en 
+   *    mettant à jour la file d'attente d'IndexedDB (`syncQueue`) en cas d'échec 
+   *    ou d'absence de connexion réseau pour préserver l'idempotence.
+   * =========================================================================
+   */
+
   // 1. STATE WITH LOCAL STORAGE PERSISTENCE
   const [rooms, setRooms] = useState<Room[]>(() => {
     return safeJSONParse('bb_rooms', INITIAL_ROOMS);
@@ -721,6 +743,13 @@ export default function App() {
 
   // Global modifiers passed down to components
   const handleAddTransaction = (newT: Transaction) => {
+    // Vérification des privilèges du rôle actuel pour générer des flux financiers
+    const allowedRoles = ['admin', 'manager', 'accountant'];
+    if (!allowedRoles.includes(currentRole)) {
+      showToast("Action non autorisée pour votre profil de service", "error");
+      return;
+    }
+
     // 1. Instantly update local state (Offline-First)
     setTransactions(prev => [...prev, newT]);
     

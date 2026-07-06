@@ -63,6 +63,12 @@ export const WHATSAPP_TEMPLATES = {
     const period = vars.period || 'ce mois';
     const net = vars.netSalary || '0';
     return `Bonjour *${name}*, votre bulletin de paie pour la période *${period}* a été validé. Salaire Net versé : *${Number(net).toLocaleString('fr-FR')} FCFA*. Contactez la comptabilité pour votre chèque/virement Wave.`;
+  },
+  pin_reminder: (vars: Record<string, string>) => {
+    const guest = vars.guestName || 'Cher Client';
+    const room = vars.roomName || 'chambre';
+    const pin = vars.securityPin || '1234';
+    return `🔑 *Brunch Bouaké - Rappel de PIN* : Bonjour *${guest}*, votre code PIN sécurisé pour la chambre/studio *${room}* est : *${pin}*. Ce code vous permet de transférer vos consommations Bar/Maquis directement sur votre facture de chambre. Gardez-le secret ! 🔒✨`;
   }
 };
 
@@ -80,7 +86,7 @@ export const WhatsAppOrchestrator = {
   /**
    * Compiles template text based on variables
    */
-  renderMessage(templateName: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification', variables: Record<string, string>): string {
+  renderMessage(templateName: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification' | 'pin_reminder', variables: Record<string, string>): string {
     const renderer = WHATSAPP_TEMPLATES[templateName];
     if (!renderer) {
       throw new Error(`Modèle WhatsApp inconnu: ${templateName}`);
@@ -128,7 +134,7 @@ export const WhatsAppOrchestrator = {
    */
   async sendTemplateMessage(
     to: string,
-    template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification',
+    template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification' | 'pin_reminder',
     variables: Record<string, string>,
     tenantId: string = 'tenant-bouake-kennedy',
     tenantSettings?: any // Optional: can pass settings from UI context directly

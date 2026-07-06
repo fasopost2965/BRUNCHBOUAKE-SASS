@@ -10,6 +10,7 @@ import {
   Clock, 
   CreditCard,
   User,
+  Users,
   Phone,
   Mail,
   Receipt,
@@ -29,7 +30,9 @@ import {
   Image,
   History,
   PlusCircle,
-  Home
+  Home,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Room, Reservation, GuestRecord, MenuItem, TableOrder, Transaction, PaymentIntent, PaymentTransaction, WebhookEvent, ProcessedEvent, PaymentProvider, PropertySettings, RoomHistoryLog } from '../types';
 import { PaymentOrchestrator, WaveAdapter, OrangeMoneyAdapter } from '../services/paymentService';
@@ -102,11 +105,52 @@ export default function PMSManager({
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
 
+  // Guest PIN Recovery states & handlers
+  const [revealGuestPin, setRevealGuestPin] = useState(false);
+  const [waSendingPinId, setWaSendingPinId] = useState<string | null>(null);
+
+  const handleUpdateResPin = (resId: string, newPin: string) => {
+    const updated = reservations.map(r => r.id === resId ? { ...r, securityPin: newPin } : r);
+    onUpdateReservations(updated);
+  };
+
+  const handleSendPinWhatsApp = async (res: Reservation) => {
+    if (!res.guestPhone) {
+      alert("Erreur: Aucun numéro de téléphone associé à ce voyageur.");
+      return;
+    }
+    setWaSendingPinId(res.id);
+    try {
+      const response = await WhatsAppOrchestrator.sendTemplateMessage(
+        res.guestPhone,
+        'pin_reminder',
+        {
+          guestName: res.guestName,
+          roomName: rooms.find(r => r.id === res.roomId)?.name || 'Chambre',
+          securityPin: res.securityPin || '1234'
+        },
+        settings.tenantId || 'tenant-bouake-kennedy'
+      );
+      if (response.status === 'sent') {
+        alert(`🔑 Le rappel de code PIN a été envoyé avec succès par WhatsApp à ${res.guestName} (${res.guestPhone}) !`);
+      } else if (response.status === 'queued') {
+        alert(`Le message WhatsApp a été mis en attente (hors-ligne). Il sera envoyé dès la reconnexion.`);
+      } else {
+        alert(`Erreur d'envoi WhatsApp : ${response.error || "Échec de l'envoi"}`);
+      }
+    } catch (err: any) {
+      alert(`Erreur technique d'envoi: ${err.message}`);
+    } finally {
+      setWaSendingPinId(null);
+    }
+  };
+
   React.useEffect(() => {
     setSelectedRoomPanelTab('actions');
     setNewPhotoUrl('');
     setNewLogTitle('');
     setNewLogDesc('');
+    setRevealGuestPin(false);
   }, [selectedRoom]);
 
   const handleAddPhotoToRoom = (roomId: string) => {
@@ -194,8 +238,34 @@ export default function PMSManager({
   const [numGuests, setNumGuests] = useState(1);
   const [prepaidAmount, setPrepaidAmount] = useState(0);
   const [specialRequests, setSpecialRequests] = useState('');
-  const [securityPin, setSecurityPin] = useState('1234');
+  const [securityPin, setSecurityPin] = useState('');
   const [creditLimit, setCreditLimit] = useState(50000);
+
+  // Dynamic automatic security PIN generation based on selected room name and guest name
+  React.useEffect(() => {
+    if (showCheckInModal && selectedRoom) {
+      const roomNum = selectedRoom.name || '101';
+      const gName = guestName || '';
+      
+      // Extract numeric characters from room number (e.g. "Studio 204" -> "204")
+      const roomDigits = roomNum.replace(/\D/g, '');
+      const roomVal = parseInt(roomDigits) || 101;
+      
+      // Calculate a simple ASCII hash based on guest name letters
+      let nameSum = 0;
+      const cleanName = gName.trim();
+      for (let i = 0; i < cleanName.length; i++) {
+        nameSum += cleanName.charCodeAt(i);
+      }
+      
+      // Fallback seed if name is empty
+      const baseSum = nameSum || 123;
+      
+      // Combine room digits and name hash to produce a deterministic 4-digit numeric code
+      const combined = (baseSum * roomVal * 17) % 9000 + 1000;
+      setSecurityPin(combined.toString());
+    }
+  }, [showCheckInModal, selectedRoom?.id, guestName]);
 
   // Additional Identity, Stay Source, and Audit states
   const [guestNationality, setGuestNationality] = useState('Ivoirienne');
@@ -336,6 +406,7 @@ export default function PMSManager({
 
       updatedReservationsList = reservations.map(r => {
         if (r.id === selectedReservationId) {
+          const generatedAccessCode = `ACC-${r.id.replace('res-', '').toUpperCase()}-${(finalGuestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`;
           return {
             ...r,
             status: 'checked-in' as const,
@@ -347,6 +418,7 @@ export default function PMSManager({
             paymentStatus: (r.paidAmount + prepaidAmount) === 0 ? 'unpaid' : (r.paidAmount + prepaidAmount) >= totalLodgingPrice ? 'fully-paid' : 'partially-paid',
             specialRequests,
             securityPin: securityPin.trim() || '1234',
+            accessCode: r.accessCode || generatedAccessCode,
             creditLimit: creditLimit || 50000,
             // Capture identity and operational audit trail
             nationality: guestNationality,
@@ -363,6 +435,7 @@ export default function PMSManager({
       });
     } else {
       // Walk-In check-in: create new reservation stay
+      const generatedAccessCode = `ACC-${targetReservationId.replace('res-', '').toUpperCase()}-${(guestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`;
       const newReservation: Reservation = {
         id: targetReservationId,
         tenantId: 'tenant-bouake-kennedy',
@@ -379,6 +452,7 @@ export default function PMSManager({
         paymentStatus: prepaidAmount === 0 ? 'unpaid' : prepaidAmount >= totalLodgingPrice ? 'fully-paid' : 'partially-paid',
         specialRequests,
         securityPin: securityPin.trim() || '1234',
+        accessCode: generatedAccessCode,
         creditLimit: creditLimit || 50000,
         // Capture identity and operational audit trail
         nationality: guestNationality,
@@ -2229,6 +2303,92 @@ export default function PMSManager({
                   Supprimer
                 </button>
               </div>
+
+              {/* Security & PIN Recovery widget for occupied rooms */}
+              {selectedRoom.status === 'occupied' && (() => {
+                const activeRes = reservations.find(r => r.roomId === selectedRoom.id && r.status === 'checked-in');
+                if (!activeRes) return null;
+                return (
+                  <div className="w-full mt-4 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-mono tracking-widest font-extrabold text-orange-700 flex items-center gap-1">
+                        <ShieldAlert className="w-3.5 h-3.5 text-orange-600" />
+                        Sécurité Voyageur (Contrôle PIN)
+                      </span>
+                      <span className="bg-orange-100 text-orange-800 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                        Actif
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left: Guest & Info */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500 font-semibold">Voyageur actuellement en chambre :</p>
+                        <p className="text-sm font-black text-slate-800">{activeRes.guestName}</p>
+                        <p className="text-xs font-mono text-slate-600 flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" /> {activeRes.guestPhone || 'Non spécifié'}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Séjour du {new Date(activeRes.checkInDate).toLocaleDateString('fr-FR')} au {new Date(activeRes.checkOutDate).toLocaleDateString('fr-FR')}
+                        </p>
+                        <div className="mt-2 p-2 bg-orange-100/50 border border-orange-200 rounded-lg">
+                          <span className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-orange-800 block">Code d'accès unique (Serrure) :</span>
+                          <span className="text-xs font-black font-mono text-slate-900 tracking-wider">
+                            {activeRes.accessCode || `ACC-${activeRes.id.replace('res-', '').toUpperCase()}-${(activeRes.guestName || '').trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'GUEST'}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: Security code check & actions */}
+                      <div className="bg-white p-3 border border-orange-100 rounded-xl flex flex-col justify-between gap-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">Code de Validation Actuel</span>
+                          <button
+                            type="button"
+                            onClick={() => setRevealGuestPin(!revealGuestPin)}
+                            className="p-1 hover:bg-slate-50 rounded text-slate-600 flex items-center gap-1 text-[10px] font-semibold cursor-pointer"
+                            title={revealGuestPin ? "Masquer le code" : "Afficher le code"}
+                          >
+                            {revealGuestPin ? <EyeOff className="w-3.5 h-3.5 text-slate-400" /> : <Eye className="w-3.5 h-3.5 text-orange-600" />}
+                            <span>{revealGuestPin ? "Masquer" : "Afficher"}</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-black tracking-widest font-mono text-orange-700 bg-orange-50/50 px-3 py-1 rounded-lg border border-orange-100 flex-1 text-center">
+                            {revealGuestPin ? (activeRes.securityPin || '1234') : '••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("Voulez-vous vraiment régénérer un nouveau code PIN aléatoire pour ce voyageur ?")) {
+                                const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+                                handleUpdateResPin(activeRes.id, newPin);
+                                alert(`Nouveau code PIN généré avec succès : ${newPin}. Communiquez-le au client !`);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer border border-slate-200 animate-pulse"
+                            title="Générer un nouveau PIN en cas d'oubli"
+                          >
+                            Régénérer 🔄
+                          </button>
+                        </div>
+
+                        {/* WhatsApp reminder button */}
+                        <button
+                          type="button"
+                          onClick={() => handleSendPinWhatsApp(activeRes)}
+                          disabled={waSendingPinId === activeRes.id}
+                          className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-extrabold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Activity className="w-3.5 h-3.5" />
+                          <span>{waSendingPinId === activeRes.id ? 'Envoi du SMS...' : 'Envoyer le PIN par WhatsApp'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -2432,394 +2592,434 @@ export default function PMSManager({
       {/* MODAL 1: CHECK-IN REGISTRATION */}
       {showCheckInModal && selectedRoom && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[95vh] overflow-y-auto p-6 shadow-xl space-y-5">
-            <div className="flex justify-between items-start pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Enregistrement d'Arrivée (Check-In)</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Studio : <strong className="text-orange-600 font-extrabold">{selectedRoom.name}</strong> • Max: {selectedRoom.maxGuests} pers.</p>
+          <div className="bg-slate-50 rounded-3xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl border border-slate-150 flex flex-col">
+            {/* Elegant Header Banner */}
+            <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-6 py-5 text-white flex justify-between items-center rounded-t-3xl">
+              <div className="text-left">
+                <h3 className="text-lg font-black tracking-tight">Enregistrement d'Arrivée (Check-In)</h3>
+                <p className="text-xs text-orange-100 mt-0.5">
+                  Studio : <strong className="text-white font-black underline decoration-2">{selectedRoom.name}</strong> • Capacité Maximale : <strong className="text-white font-black">{selectedRoom.maxGuests} voyageurs</strong>
+                </p>
               </div>
               <button 
                 onClick={() => setShowCheckInModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-semibold text-lg"
+                className="bg-white/10 hover:bg-white/20 transition-all text-white font-bold p-2 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer"
+                title="Fermer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCheckInSubmit} className="space-y-4 text-xs">
-              {/* Check-In Type Selector */}
-              <div>
-                <label className="block text-slate-500 font-semibold mb-1">Type d'Arrivée</label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCheckInType('walk-in');
-                      setSelectedReservationId('');
-                    }}
-                    className={`py-1.5 px-3 text-center rounded-lg font-bold transition-all ${
-                      checkInType === 'walk-in'
-                        ? 'bg-white text-orange-600 shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Walk-In (Arrivée Directe)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCheckInType('reservation')}
-                    className={`py-1.5 px-3 text-center rounded-lg font-bold transition-all ${
-                      checkInType === 'reservation'
-                        ? 'bg-white text-orange-600 shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Depuis Réservation
-                  </button>
+            <form id="pms-checkin-form" onSubmit={handleCheckInSubmit} className="p-6 space-y-6 text-xs">
+              {/* Check-In Type Selector & CRM Search Block */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                {/* Type Selector */}
+                <div className="text-left">
+                  <label className="block text-slate-500 font-extrabold mb-1.5 uppercase text-[10px] tracking-wider">Type d'Arrivée *</label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-150">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckInType('walk-in');
+                        setSelectedReservationId('');
+                      }}
+                      className={`py-2 px-3 text-center rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                        checkInType === 'walk-in'
+                          ? 'bg-white text-orange-600 shadow-sm border border-slate-100'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Walk-In (Direct)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckInType('reservation')}
+                      className={`py-2 px-3 text-center rounded-lg font-extrabold text-xs transition-all cursor-pointer ${
+                        checkInType === 'reservation'
+                          ? 'bg-white text-orange-600 shadow-sm border border-slate-100'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Depuis Réservation
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* If type is reservation, show pending reservations dropdown */}
-              {checkInType === 'reservation' && (
-                <div className="bg-amber-50/50 p-3 rounded-2xl border border-amber-100/50 space-y-2">
-                  <label className="block text-amber-900 font-bold">Sélectionner la Réservation Confirmée :</label>
-                  <select
-                    value={selectedReservationId}
-                    onChange={(e) => {
-                      const resId = e.target.value;
-                      setSelectedReservationId(resId);
-                      const matched = reservations.find(r => r.id === resId);
-                      if (matched) {
-                        setGuestName(matched.guestName);
-                        setGuestPhone(matched.guestPhone);
-                        setGuestEmail(matched.guestEmail);
-                        setCheckInDate(matched.checkInDate);
-                        setCheckOutDate(matched.checkOutDate);
-                        setNumGuests(matched.numberOfGuests);
-                        setPrepaidAmount(matched.paidAmount);
-                        if (matched.nationality) setGuestNationality(matched.nationality);
-                        if (matched.idNumber) setGuestIdNumber(matched.idNumber);
-                        if (matched.address) setGuestAddress(matched.address);
-                        if (matched.sourceOfStay) setSourceOfStay(matched.sourceOfStay);
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="">-- Choisir une réservation --</option>
-                    {reservations
-                      .filter(r => r.status === 'confirmed' && (r.roomId === selectedRoom.id || !r.roomId))
-                      .map(r => (
-                        <option key={r.id} value={r.id}>
-                          {r.guestName} ({r.guestPhone}) - Du {r.checkInDate} au {r.checkOutDate} [Acompte: {r.paidAmount.toLocaleString('fr-FR')} F]
-                        </option>
-                      ))}
-                  </select>
-                  {reservations.filter(r => r.status === 'confirmed' && (r.roomId === selectedRoom.id || !r.roomId)).length === 0 && (
-                    <span className="text-[10px] text-amber-700 block italic">Aucune réservation confirmée en attente pour cette chambre.</span>
+                {/* Dynamic Search lookup depending on selected check-in type */}
+                <div className="flex flex-col justify-center text-left">
+                  {checkInType === 'reservation' ? (
+                    <div className="space-y-1">
+                      <label className="block text-amber-900 font-black uppercase text-[10px] tracking-wider">Sélectionner la Réservation Confirmée :</label>
+                      <select
+                        value={selectedReservationId}
+                        onChange={(e) => {
+                          const resId = e.target.value;
+                          setSelectedReservationId(resId);
+                          const matched = reservations.find(r => r.id === resId);
+                          if (matched) {
+                            setGuestName(matched.guestName);
+                            setGuestPhone(matched.guestPhone);
+                            setGuestEmail(matched.guestEmail);
+                            setCheckInDate(matched.checkInDate);
+                            setCheckOutDate(matched.checkOutDate);
+                            setNumGuests(matched.numberOfGuests);
+                            setPrepaidAmount(matched.paidAmount);
+                            if (matched.nationality) setGuestNationality(matched.nationality);
+                            if (matched.idNumber) setGuestIdNumber(matched.idNumber);
+                            if (matched.address) setGuestAddress(matched.address);
+                            if (matched.sourceOfStay) setSourceOfStay(matched.sourceOfStay);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-xl focus:border-orange-500 focus:outline-none font-bold text-amber-950 text-xs"
+                      >
+                        <option value="">-- Choisir une réservation --</option>
+                        {reservations
+                          .filter(r => r.status === 'confirmed' && (r.roomId === selectedRoom.id || !r.roomId))
+                          .map(r => (
+                            <option key={r.id} value={r.id}>
+                              {r.guestName} ({r.guestPhone}) - Du {r.checkInDate} au {r.checkOutDate} [Acompte: {r.paidAmount.toLocaleString('fr-FR')} F]
+                            </option>
+                          ))}
+                      </select>
+                      {reservations.filter(r => r.status === 'confirmed' && (r.roomId === selectedRoom.id || !r.roomId)).length === 0 && (
+                        <span className="text-[10px] text-amber-700 block italic font-medium">Aucune réservation confirmée en attente pour cette chambre.</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-slate-700 font-extrabold uppercase text-[10px] tracking-wider">Client Existant (Recherche CRM) :</label>
+                        <span className="text-[9px] font-mono text-slate-400 font-bold">Base : {savedGuestsList.length}</span>
+                      </div>
+                      <select
+                        onChange={(e) => {
+                          const guestId = e.target.value;
+                          if (!guestId) {
+                            resetForm();
+                          } else {
+                            const matched = savedGuestsList.find(g => g.id === guestId);
+                            if (matched) {
+                              setGuestName(matched.name);
+                              setGuestPhone(matched.phone);
+                              setGuestEmail(matched.email || '');
+                              if (matched.nationality) setGuestNationality(matched.nationality);
+                              if (matched.idNumber) setGuestIdNumber(matched.idNumber);
+                              if (matched.address) setGuestAddress(matched.address);
+                              if (matched.notes) setSpecialRequests(matched.notes);
+                            }
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800 text-xs font-semibold"
+                      >
+                        <option value="">-- Saisie libre (Nouveau client) --</option>
+                        {savedGuestsList.map(g => (
+                          <option key={g.id} value={g.id}>
+                            {g.name} ({g.phone}) - {g.visitCount} séjour(s)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
-              )}
-
-              {/* CRM Guest Profile Lookup (Available for both walk-in and reservation to update profile) */}
-              {checkInType === 'walk-in' && (
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-100 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-slate-700 font-bold">Client Existant (Recherche CRM) :</label>
-                    <span className="text-[9px] font-mono text-slate-400 font-bold">Base Clients : {savedGuestsList.length}</span>
-                  </div>
-                  <select
-                    onChange={(e) => {
-                      const guestId = e.target.value;
-                      if (!guestId) {
-                        resetForm();
-                      } else {
-                        const matched = savedGuestsList.find(g => g.id === guestId);
-                        if (matched) {
-                          setGuestName(matched.name);
-                          setGuestPhone(matched.phone);
-                          setGuestEmail(matched.email || '');
-                          if (matched.nationality) setGuestNationality(matched.nationality);
-                          if (matched.idNumber) setGuestIdNumber(matched.idNumber);
-                          if (matched.address) setGuestAddress(matched.address);
-                          if (matched.notes) setSpecialRequests(matched.notes);
-                        }
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="">-- Saisie libre (Nouveau client) --</option>
-                    {savedGuestsList.map(g => (
-                      <option key={g.id} value={g.id}>
-                        {g.name} ({g.phone}) - {g.visitCount} séjour(s)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Core Guest Information */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Nom Complet du Client *</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      required
-                      disabled={checkInType === 'reservation' && !!selectedReservationId}
-                      placeholder="Konan Koffi Serge"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Téléphone de contact *</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                    <input
-                      type="tel"
-                      required
-                      disabled={checkInType === 'reservation' && !!selectedReservationId}
-                      placeholder="+225 07 48 29 10 11"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                    />
-                  </div>
-                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      placeholder="koffi.konan@example.com"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
+              {/* Two-Column Form Details */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* Left Column: Guest Identiy Card */}
+                <div className="space-y-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs text-left">
+                  <h4 className="text-xs font-black uppercase text-slate-800 border-b border-slate-100 pb-2.5 flex items-center gap-1.5 tracking-wider">
+                    <Users className="w-4 h-4 text-orange-500" />
+                    Fiche Voyageur & Identité
+                  </h4>
 
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Nationalité du voyageur *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Ivoirienne, Sénégalaise, Française"
-                    value={guestNationality}
-                    onChange={(e) => setGuestNationality(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Guest Identity Card & Location Address */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">N° de Pièce d'Identité (CNI/Passeport) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: C01482910, ID-225-449"
-                    value={guestIdNumber}
-                    onChange={(e) => setGuestIdNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Adresse de Résidence Habituelle</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Abidjan Cocody, Bouaké N'Gattakro"
-                    value={guestAddress}
-                    onChange={(e) => setGuestAddress(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Booking Channel and Staff Auditor */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Canal de Réservation / Source *</label>
-                  <select
-                    value={sourceOfStay}
-                    onChange={(e) => setSourceOfStay(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="Walk-in">Walk-in (Arrivée imprévue)</option>
-                    <option value="Booking.com">Booking.com</option>
-                    <option value="Airbnb">Airbnb</option>
-                    <option value="Direct-Email">Direct-Email / Site web</option>
-                    <option value="Téléphone">Téléphone / WhatsApp</option>
-                    <option value="Agence">Agence de voyage</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Agent Réceptionniste (Saisie) *</label>
-                  <select
-                    value={staffMemberName}
-                    onChange={(e) => setStaffMemberName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="Jean Dupont">Jean Dupont (Réception)</option>
-                    <option value="Mariam Diallo">Mariam Diallo (Chef d'équipe)</option>
-                    <option value="Koffi Kouassi">Koffi Kouassi (Gérant)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Date d'Arrivée *</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Date de Départ *</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkOutDate}
-                    onChange={(e) => setCheckOutDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Nombre d'adultes *</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={selectedRoom.maxGuests}
-                    value={numGuests}
-                    onChange={(e) => setNumGuests(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-semibold mb-1">Acompte à encaisser (FCFA)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Encaisser un montant d'avance"
-                    value={prepaidAmount}
-                    onChange={(e) => setPrepaidAmount(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 font-semibold mb-1">Demandes Spéciales / Notes</label>
-                <textarea
-                  placeholder="Ex: Lit de bébé requis, allergies, Check-out tardif..."
-                  value={specialRequests}
-                  onChange={(e) => setSpecialRequests(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none h-16"
-                />
-              </div>
-
-              {/* Security PIN and Credit Limit configuration for POS integration */}
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-                <h4 className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5 uppercase tracking-wider">
-                  <ShieldAlert className="w-4 h-4 text-orange-500" />
-                  Contrôle & Sécurité (Transferts Maquis/Resto)
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-500 font-semibold mb-1">Code PIN de Validation POS</label>
-                    <input
-                      type="text"
-                      maxLength={4}
-                      placeholder="Ex: 1234"
-                      value={securityPin}
-                      onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold tracking-widest text-slate-800 bg-white"
-                    />
-                    <span className="text-[10px] text-slate-400 block mt-0.5">Code à 4 chiffres requis en caisse</span>
-                  </div>
-                  <div>
-                    <label className="block text-slate-500 font-semibold mb-1">Limite de Crédit Extras (FCFA)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="Ex: 50000"
-                      value={creditLimit}
-                      onChange={(e) => setCreditLimit(parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800 bg-white"
-                    />
-                    <span className="text-[10px] text-slate-400 block mt-0.5">Blocage automatique si dépassée</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic pricing and tax calculations based on Property Settings */}
-              {(() => {
-                const nights = calculateNights(checkInDate, checkOutDate);
-                const rawPrice = selectedRoom.pricePerNight * nights;
-                
-                // Exclude VAT first to show HT
-                const priceHT = Math.round(rawPrice / (1 + (settings.vatRate / 100)));
-                const vatAmount = Math.round(priceHT * (settings.vatRate / 100));
-                
-                // Tourist Tax
-                const touristTax = settings.touristTaxPerNight * nights;
-                const grandTotal = rawPrice + touristTax;
-
-                return (
-                  <div className="p-4 bg-orange-50/70 rounded-2xl border border-orange-100 font-medium space-y-1.5">
-                    <div className="flex justify-between text-slate-600 font-mono text-[10px]">
-                      <span>Séjour hôtelier (HT) :</span>
-                      <span>{priceHT.toLocaleString('fr-FR')} FCFA</span>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Nom Complet du Voyageur *</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          disabled={checkInType === 'reservation' && !!selectedReservationId}
+                          placeholder="Konan Koffi Serge"
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 font-bold text-slate-800"
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-between text-slate-600 font-mono text-[10px]">
-                      <span>TVA ({settings.vatRate}%) :</span>
-                      <span>{vatAmount.toLocaleString('fr-FR')} FCFA</span>
+
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Téléphone de Contact (WhatsApp) *</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                        <input
+                          type="tel"
+                          required
+                          disabled={checkInType === 'reservation' && !!selectedReservationId}
+                          placeholder="+225 07 48 29 10 11"
+                          value={guestPhone}
+                          onChange={(e) => setGuestPhone(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 font-mono font-bold text-slate-800"
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-between text-slate-600 font-mono text-[10px]">
-                      <span>Taxe de Séjour ({settings.touristTaxPerNight.toLocaleString('fr-FR')} F/nuit) :</span>
-                      <span>{touristTax.toLocaleString('fr-FR')} FCFA</span>
+
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Adresse E-mail</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                        <input
+                          type="email"
+                          placeholder="koffi.konan@example.com"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800"
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-between text-orange-950 font-bold border-t border-orange-200/50 pt-2 mt-1.5 text-xs">
-                      <span>Montant global dû ({nights} nuits) :</span>
-                      <span className="font-mono">{grandTotal.toLocaleString('fr-FR')} FCFA</span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Nationalité du voyageur *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: Ivoirienne"
+                          value={guestNationality}
+                          onChange={(e) => setGuestNationality(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-medium text-slate-800"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">N° CNI / Passeport *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: C01482910"
+                          value={guestIdNumber}
+                          onChange={(e) => setGuestIdNumber(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Adresse de Résidence Habituelle</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Abidjan Cocody, Bouaké N'Gattakro"
+                        value={guestAddress}
+                        onChange={(e) => setGuestAddress(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Demandes Spéciales / Notes</label>
+                      <textarea
+                        placeholder="Ex: Lit de bébé requis, allergies, Check-out tardif..."
+                        value={specialRequests}
+                        onChange={(e) => setSpecialRequests(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none h-16 text-slate-800"
+                      />
                     </div>
                   </div>
-                );
-              })()}
+                </div>
 
-              <div className="flex gap-2 pt-1.5">
+                {/* Right Column: Stay details, Security & Financials */}
+                <div className="space-y-4 text-left">
+                  {/* Stay Details Card */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                    <h4 className="text-xs font-black uppercase text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-1.5 tracking-wider">
+                      <Calendar className="w-4 h-4 text-orange-500" />
+                      Détails du Séjour & Distribution
+                    </h4>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Date d'Arrivée *</label>
+                        <input
+                          type="date"
+                          required
+                          value={checkInDate}
+                          onChange={(e) => setCheckInDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-bold text-slate-800"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Date de Départ *</label>
+                        <input
+                          type="date"
+                          required
+                          value={checkOutDate}
+                          onChange={(e) => setCheckOutDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-bold text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Nombre d'adultes *</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={selectedRoom.maxGuests}
+                          value={numGuests}
+                          onChange={(e) => setNumGuests(parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-bold text-slate-800"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Acompte Reçu (FCFA)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Ex: 25000"
+                          value={prepaidAmount}
+                          onChange={(e) => setPrepaidAmount(parseInt(e.target.value) || 0)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Canal de Réservation *</label>
+                        <select
+                          value={sourceOfStay}
+                          onChange={(e) => setSourceOfStay(e.target.value)}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800 font-semibold text-xs cursor-pointer"
+                        >
+                          <option value="Walk-in">Walk-in (Imprévue)</option>
+                          <option value="Booking.com">Booking.com</option>
+                          <option value="Airbnb">Airbnb</option>
+                          <option value="Direct-Email">Direct-Email / Site</option>
+                          <option value="Téléphone">Téléphone / WhatsApp</option>
+                          <option value="Agence">Agence de voyage</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1">Agent de Réception *</label>
+                        <select
+                          value={staffMemberName}
+                          onChange={(e) => setStaffMemberName(e.target.value)}
+                          className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none text-slate-800 font-semibold text-xs cursor-pointer"
+                        >
+                          <option value="Jean Dupont">Jean Dupont (Réception)</option>
+                          <option value="Mariam Diallo">Mariam Diallo (Cheffe)</option>
+                          <option value="Koffi Kouassi">Koffi Kouassi (Gérant)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security Extras and Validation PIN Card */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                    <h4 className="text-xs font-black uppercase text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-1.5 tracking-wider">
+                      <ShieldAlert className="w-4 h-4 text-orange-500" />
+                      Sécurisation Extras & Validation POS
+                    </h4>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1 flex justify-between items-center text-[10px]">
+                          <span>Code PIN Validation</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+                              setSecurityPin(randomPin);
+                            }}
+                            className="text-[9px] text-orange-600 hover:text-orange-700 font-black cursor-pointer uppercase tracking-wider underline decoration-dashed"
+                            title="Générer un code aléatoire de haute sécurité"
+                          >
+                            Générer 🎲
+                          </button>
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={4}
+                          placeholder="Ex: 1234"
+                          value={securityPin}
+                          onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ''))}
+                          className="w-full px-3 py-2 border border-amber-300 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold tracking-widest text-orange-700 bg-orange-50/50 text-center text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-500 font-semibold mb-1 text-[10px]">Limite Crédit Maquis (FCFA)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Ex: 50000"
+                          value={creditLimit}
+                          onChange={(e) => setCreditLimit(parseInt(e.target.value) || 0)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none font-mono font-bold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial calculation summary */}
+                  {(() => {
+                    const nights = calculateNights(checkInDate, checkOutDate);
+                    const rawPrice = selectedRoom.pricePerNight * nights;
+                    
+                    // Exclude VAT first to show HT
+                    const priceHT = Math.round(rawPrice / (1 + (settings.vatRate / 100)));
+                    const vatAmount = Math.round(priceHT * (settings.vatRate / 100));
+                    
+                    // Tourist Tax
+                    const touristTax = settings.touristTaxPerNight * nights;
+                    const grandTotal = rawPrice + touristTax;
+
+                    return (
+                      <div className="p-4 bg-orange-50/80 rounded-2xl border border-orange-100 font-medium space-y-1.5 shadow-2xs">
+                        <span className="text-[10px] font-black uppercase text-orange-800 tracking-wider block border-b border-orange-100 pb-1.5 mb-1">
+                          Synthèse Financière Prévisionnelle ({nights} nuit{nights > 1 ? 's' : ''})
+                        </span>
+                        <div className="flex justify-between text-slate-600 font-mono text-[10px]">
+                          <span>Séjour hôtelier (HT) :</span>
+                          <span>{priceHT.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600 font-mono text-[10px]">
+                          <span>TVA ({settings.vatRate}%) :</span>
+                          <span>{vatAmount.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600 font-mono text-[10px]">
+                          <span>Taxe de Séjour ({settings.touristTaxPerNight.toLocaleString('fr-FR')} F/nuit) :</span>
+                          <span>{touristTax.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div className="flex justify-between text-orange-950 font-black border-t border-orange-200/50 pt-2 mt-1.5 text-xs">
+                          <span>Montant global dû :</span>
+                          <span className="font-mono text-sm">{grandTotal.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Actions Footer row */}
+              <div className="flex gap-3 pt-3 border-t border-slate-150">
                 <button
                   type="button"
                   onClick={() => setShowCheckInModal(false)}
-                  className="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl"
+                  className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl cursor-pointer text-center text-xs uppercase tracking-wider transition-all"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-xs"
+                  className="w-1/2 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer text-center text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
                 >
-                  Valider l'Arrivée (Check-In)
+                  Valider l'Arrivée (Check-In) ✅
                 </button>
               </div>
             </form>

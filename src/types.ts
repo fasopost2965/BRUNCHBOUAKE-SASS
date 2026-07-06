@@ -41,6 +41,7 @@ export interface Reservation {
   paymentStatus: 'unpaid' | 'partially-paid' | 'fully-paid';
   specialRequests?: string;
   securityPin?: string; // 4-digit code for POS transfers verification
+  accessCode?: string; // Generated unique access code for room entry
   creditLimit?: number; // Credit limit for restaurant/bar charges (FCFA)
   // Identity and operational audit fields
   nationality?: string;
@@ -434,7 +435,7 @@ export interface WhatsAppMessage {
   id: string;
   tenantId: string;
   to: string;
-  template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification';
+  template: 'reservation_confirm' | 'pos_receipt' | 'cleaning_alert' | 'salary_notification' | 'pin_reminder';
   variables: Record<string, string>;
   status: 'pending' | 'sending' | 'failed' | 'sent';
   attempts: number;
