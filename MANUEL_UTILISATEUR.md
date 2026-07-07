@@ -1,420 +1,258 @@
-\documentclass[11pt, a4paper]{article}
-\usepackage[a4paper, top=2.2cm, bottom=2.2cm, left=2cm, right=2cm, headheight=20pt, footskip=30pt]{geometry}
-\usepackage{fontspec}
+# 🌴 MANUEL D'UTILISATION OFFICIEL
+## Plateforme SaaS Multi-Tenant : **Brunch Bouaké Hospitality**
+*Édition de Production Complète 2026 — Manuel de Référence Opérationnelle et Technique*
 
-% --- BLOC DE CONFIGURATION LINGUISTIQUE ET TYPOGRAPHIQUE ---
-\usepackage[french, bidi=basic, provide=*]{babel}
-\babelprovide[import, onchar=ids fonts]{french}
-\babelprovide[import, onchar=ids fonts]{english}
+---
 
-% Définition de la police par défaut (Sans Serif moderne pour un guide de terrain)
-\babelfont{rm}{Noto Sans}
+## 🏛️ AKWABA & PRÉSENTATION GÉNÉRALE
 
-\usepackage{enumitem}
-\setlist[itemize]{label=--}
+Bienvenue dans le manuel officiel de **Brunch Bouaké Hospitality**, la plateforme de gestion tout-en-un (PMS, POS, CRM, ERP, RH, BI) spécialement conçue pour les hôtels, résidences et restaurants de Côte d'Ivoire. 
 
-% --- PACKAGES SUPPLÉMENTAIRES ---
-\usepackage{amsmath}
-\usepackage{booktabs}
-\usepackage{tabularx}
-\usepackage{xcolor}
-\usepackage{titlesec}
-\usepackage{fancyhdr}
+### 🔒 Sécurité et Isolation Multi-Tenant
+L'application repose sur une architecture multi-locataire (Multi-Tenant). Toutes les données de votre établissement sont hermétiquement isolées sous l'identifiant unique de votre locataire : **`tenant-bouake-kennedy`** (L'Hôtel Bouaké Kennedy).
+* **Isolation Absolue :** Aucune autre entité sur le réseau ne peut lire ou modifier vos fiches clients, vos états financiers, votre inventaire ou vos bulletins de paie.
+* **Traçabilité Totale :** Chaque action (prise de commande, check-in, sortie d'espèces) est associée à l'utilisateur connecté et enregistrée avec un horodatage précis.
 
-% --- PALETTE DE COULEURS BRUNCH BOUAKÉ ---
-\definecolor{primary}{HTML}{0D5C3A}    % Vert Tropical / Palmier
-\definecolor{secondary}{HTML}{E67E22}  % Orange Coucher de soleil
-\definecolor{darkgray}{HTML}{2C3E50}   % Gris anthracite pour le texte
-\definecolor{lightgray}{HTML}{F8F9FA}  % Fond de bloc
-\definecolor{bordergray}{HTML}{BDC3C7} % Ligne de séparation
-\definecolor{success}{HTML}{27AE60}    % Vert opérationnel
-\definecolor{warning}{HTML}{F1C40F}    % Jaune d'alerte (texte noir)
-\definecolor{danger}{HTML}{C0392B}     % Rouge d'interdiction / alerte critique
+---
 
-% --- STYLE DES TITRES ---
-\titleformat{\section}{\color{primary}\normalfont\Large\bfseries}{\thesection.}{1em}{}[{\titlerule[1.5pt]}]
-\titleformat{\subsection}{\color{secondary}\normalfont\large\bfseries}{\thesubsection}{1em}{}
-\titleformat{\subsubsection}{\color{darkgray}\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+## ⚙️ CHAPITRE 1 : CONFIGURATION INITIALE & PREMIÈRE UTILISATION
 
-% --- CONFIGURATION EN-TÊTE ET PIED DE PAGE ---
-\pagestyle{fancy}
-\fancyhf{}
-\renewcommand{\headrulewidth}{0.5pt}
-\renewcommand{\footrulewidth}{0.5pt}
-\fancyhead[L]{\textcolor{primary}{\textbf{Brunch Bouaké Hospitality}} \ -- \ Manuel Opérationnel}
-\fancyhead[R]{\textcolor{darkgray}{Édition Production Complète 2026}}
-\fancyfoot[C]{\thepage}
+Avant de lancer l'exploitation en direct, l'administrateur ou le gérant de l'établissement doit effectuer les étapes de configuration initiales dans le panneau **Property Settings**.
 
-% --- COMMANDES SPÉCIALES ---
-\newcommand{\badge}[3]{%
-  \colorbox{#1}{\textcolor{#2}{\,\textbf{#3}\,}}%
-}
+### 1. Configuration des Informations de l'Établissement
+1. Allez dans le module **Configuration** (icône d'engrenage ou onglet *Paramètres de l'établissement*).
+2. Vérifiez le nom de l'établissement (**Brunch Bouaké - Kennedy**) et l'identifiant de la succursale active (`CI-BKE-01`).
+3. Définissez le taux de Taxe sur la Valeur Ajoutée (TVA) par défaut (généralement 18% en Côte d'Ivoire pour l'hébergement et la restauration).
 
-\newcommand{\noteimportante}[1]{%
-  \medskip
-  \noindent\colorbox{lightgray}{%
-    \parbox{\dimexpr\linewidth-2\fboxsep}{%
-      \textcolor{primary}{\textbf{NOTE OPÉRATIONNELLE :}} \textit{#1}%
-    }%
-  }\medskip
-}
+### 2. Paramétrage des Chambres et Tarifs (PMS)
+1. Déclarez la liste de vos hébergements (ex : *Chambre Standard 101, Suite VIP 202, Studio Meublé 303*).
+2. Associez à chaque chambre un tarif de nuitée de base en Francs CFA (XOF).
+3. Définissez la **limite de crédit par défaut** autorisée pour les transferts de consommations du maquis/restaurant vers le folio de la chambre (ex: *100 000 FCFA*).
 
-\newcommand{\code}[1]{\texttt{#1}}
+### 3. Création des Fiches Ingrédients & Articles du Menu (POS)
+Pour que la gestion automatique des stocks et les alertes fonctionnent, vous devez lier vos plats du menu à des ingrédients bruts :
+1. **Ingrédients :** Renseignez vos stocks initiaux d'ingrédients bruts (poulet, huile de friture, banane plantain, sacs de riz, bouteilles de bière, sucre). Définissez le seuil d'alerte critique pour chaque ingrédient.
+2. **Menu :** Créez vos articles de vente (ex : *Alloco Giga, Kedjenou de Poulet, Bière Bock*). Spécifiez pour chaque plat la quantité d'ingrédients déduite du stock à chaque vente.
 
-\begin{document}
+### 4. Configuration des Employés & Profils (RH)
+1. Ajoutez chaque membre de l'équipe dans l'annuaire du personnel.
+2. Renseignez leur salaire de base, leur poste (Réceptionniste, Serveur, Cuisinier, Gouvernant, Comptable) et leur numéro WhatsApp professionnel.
+3. Configurez le taux CNPS de cotisation ouvrière obligatoire (fixé à **6.3%**).
 
-% --- EN-TÊTE DU DOCUMENT ---
-\begin{center}
-  \textcolor{primary}{\Huge\textbf{BRUNCH BOUAKÉ HOSPITALITY}} \\
-  \vspace{0.2cm}
-  \textcolor{secondary}{\large\textbf{Manuel d'Utilisation Officiel \ --- \ Édition Complète 2026}} \\
-  \vspace{0.4cm}
-  \textbf{Établissement :} L'Hôtel Bouaké Kennedy \quad | \quad \textbf{Tenant ID :} \code{tenant-bouake-kennedy} \\
-  \vspace{0.1cm}
-  \small\textit{Manuel de Référence Opérationnelle et Technique de Production \ --- \ Standard de Terrain}
-\end{center}
-\vspace{0.3cm}
-\hrule height 1.5pt
-\vspace{0.6cm}
+### 5. Configuration de la Passerelle WhatsApp Business
+Pour envoyer automatiquement les codes de chambre (PIN) et les bulletins de paie, la passerelle doit être alimentée par les variables d'environnement appropriées :
+* **Numéro WhatsApp de Test Actif :** Configuré à l'adresse globale `VITE_WHATSAPP_TEST_NUMBER` dans le fichier `.env.example` (par défaut `+212777346787` pour l'envoi de messages de vérification).
+* **Bouton de Test de Connexion :** Un bouton *"Envoyer un Message de Test"* est disponible dans le panneau d'administration pour valider immédiatement le bon fonctionnement de l'API WhatsApp Business en envoyant un message type à ce numéro.
 
-% --- INTRODUCTION ---
-\section*{AKWABA \ --- \ PRÉSENTATION GÉNÉRALE}
-Bienvenue dans le manuel officiel de \textbf{Brunch Bouaké Hospitality}, la plateforme de gestion intégrée tout-en-un (PMS, POS, CRM, ERP, RH, BI) spécialement conçue pour les hôtels, résidences et restaurants de Côte d'Ivoire. Ce guide exhaustif est directement corrélé au document de référence principal de l'architecture logicielle de notre suite applicative, \code{MANUEL\_UTILISATEUR.md}.
+---
 
-\subsection*{Sécurité et Isolation Multi-Tenant}
-L'application repose sur une architecture multi-locataire (Multi-Tenant). Toutes les données d'exploitation de votre établissement sont isolées de façon étanche sous votre identifiant unique de locataire : \code{tenant-bouake-kennedy} (L'Hôtel Bouaké Kennedy).
-\begin{itemize}
-  \item \textbf{Isolation Absolue :} Aucune autre entité ou succursale présente sur le réseau SaaS ne peut lire, modifier ou intercepter vos données d'hébergement, vos folio-clients, vos fiches d'inventaire, vos états de caisse ou vos bulletins de paie.
-  \item \textbf{Traçabilité Totale :} Chaque action effectuée sur le système (enregistrement, validation, sortie d'espèces) est nominativement rattachée à l'utilisateur connecté, horodatée avec précision et inscrite au journal d'audit de sécurité.
-\end{itemize}
+## 🛌 CHAPITRE 2 : LE GUIDE DU RÉCEPTIONNISTE (Module PMS)
 
-\noteimportante{La sécurité commence par la discrétion individuelle. Ne communiquez sous aucun prétexte votre mot de passe d'accès personnel à un autre collaborateur de l'établissement.}
+Le module **PMS (Property Management System)** gère la réception, le planning des chambres et la relation directe avec les clients de l'hôtel.
 
-% --- CHAPITRE 1 ---
-\section{CONFIGURATION INITIALE \& PREMIÈRE UTILISATION}
-Avant d'entamer l'exploitation en direct, l'administrateur ou le gérant de l'établissement doit renseigner et vérifier les paramètres structurants dans le panneau \textbf{Property Settings} (Paramètres de l'Établissement).
+### 📋 TABLEAU RÉCAPITULATIF DU PARCOURS VOYAGEUR
 
-\subsection{Configuration des Informations d'Établissement}
-\begin{enumerate}
-  \item Accédez au module de configuration générale (icône d'engrenage ou onglet \textbf{Paramètres de l'Établissement}).
-  \item Vérifiez la cohérence du nom officiel de l'établissement (\textbf{Brunch Bouaké \ --- \ Kennedy}) et de l'identifiant de la succursale active (\code{CI-BKE-01}).
-  \item Configurez le taux de Taxe sur la Valeur Ajoutée (TVA) par défaut de l'établissement (fixé selon la réglementation à $18\%$ en Côte d'Ivoire pour l'hébergement et la restauration).
-\end{enumerate}
+| Phase Opérationnelle | Action Réception | Données Requises | Automatisation & Actions Système |
+| :--- | :--- | :--- | :--- |
+| **1. Enregistrement** | Créer une Réservation | Nom, Dates de séjour, Téléphone portable au format valide | Réservation inscrite sur le planning. Blocage de la chambre sélectionnée. |
+| **2. Arrivée (Check-In)** | Activer le "Check-In" | Pièce d'identité, Validation des dates | Génération d'un **PIN secret à 4 chiffres**. Envoi instantané du message de bienvenue et du PIN sur le WhatsApp du client. |
+| **3. Durant le Séjour** | Gérer le Folio Client | Suivi des dépenses de chambre | Autorisation de transférer les consommations de table du restaurant vers la chambre sur validation par code PIN. |
+| **4. Départ (Check-Out)** | Déclencher le "Check-Out" | Validation des paiements cumulés | Impression de la facture finale. Libération de la chambre et passage immédiat au statut **Dirty** (Couleur rouge). |
 
-\subsection{Paramétrage des Chambres et Tarifs (PMS)}
-\begin{enumerate}
-  \item Déclarez l'ensemble des hébergements physiques disponibles (ex : \textit{Chambre Standard 101}, \textit{Suite VIP 202}, \textit{Studio Meublé 303}).
-  \item Définissez pour chaque chambre son tarif de nuitée de base exprimé en Francs CFA (XOF).
-  \item Renseignez la \textbf{limite de crédit} maximale par défaut autorisée pour les transferts de consommations du maquis/restaurant vers le folio de la chambre (recommandé : \code{100 000} FCFA).
-\end{enumerate}
+### A. Création d'une Réservation
+1. Cliquez sur **"Créer une Réservation"** depuis le tableau de bord ou le calendrier de la réception.
+2. **Renseignez les champs obligatoires :**
+   * **Nom et Prénom :** Ex : *Yao Kouassi Hermann*.
+   * **Numéro WhatsApp de Contact :** Le système intègre un validateur de format strict pour garantir la délivrabilité des messages automatiques. Le numéro doit obligatoirement être au format international sans espace :
+     * **Côte d'Ivoire (CI) :** `+225` suivi de **10 chiffres** (ex : `+2250708091011`).
+     * **Maroc (MA) :** `+212` suivi de **9 chiffres** (ex : `+212777346787`).
+     * **International :** `+` suivi du code pays et du numéro.
+   * **Source de la Réservation :** Direct (Téléphone/Physique), Booking.com, Airbnb, Expedia, ou Ingestion Automatique (via le Channel Manager).
+3. Cliquez sur **"Sauvegarder"**. La chambre sélectionnée est désormais verrouillée pour les dates choisies.
 
-\subsection{Création des Fiches Ingrédients \& Articles du Menu (POS)}
-Le fonctionnement des alertes automatiques et de la commande tactile repose sur la liaison entre les articles du menu et les ingrédients bruts en stock :
-\begin{enumerate}
-  \item \textbf{Fiches Ingrédients :} Saisissez les stocks physiques initiaux de vos ingrédients bruts (poulet, huile de friture, banane plantain, sacs de riz, bouteilles de bière, sucre). Définissez pour chacun le seuil d'alerte critique sous lequel l'état passera en niveau d'alerte.
-  \item \textbf{Articles du Menu :} Créez vos fiches de vente (ex : \textit{Alloco Giga}, \textit{Kedjenou de Poulet}, \textit{Bière Bock}). Renseignez les ingrédients consommés et leur quantité exacte prélevée du stock d'inventaire lors de la validation d'une portion.
-\end{enumerate}
+### B. Le Check-In (Arrivée du Voyageur)
+À l'arrivée du client :
+1. Retrouvez sa réservation sur le tableau des arrivées du jour.
+2. Cliquez sur le bouton **"Check-In"**.
+3. **Génération du Code PIN Unique :** Le système calcule automatiquement un code d'accès de sécurité à 4 chiffres (ex : `4912`) propre à ce séjour.
+4. **Notification Automatique :** Le système sollicite instantanément la file d'attente de l'orchestrateur WhatsApp pour lui adresser le message type :
+   > *"Akwaba M. Yao Kouassi Hermann ! Nous sommes ravis de vous accueillir à l'Hôtel Bouaké Kennedy. Votre chambre Studio Suite 101 est disponible. Votre code PIN secret d'accès et d'autorisation d'achat est **4912**. Bon séjour !"*
 
-\subsection{Configuration des Employés et Profils (RH)}
-\begin{enumerate}
-  \item Enregistrez chaque collaborateur dans l'annuaire du personnel de l'établissement.
-  \item Définissez leur salaire brut imposable de base, leur poste opérationnel (Réceptionniste, Serveur, Cuisinier, Gouvernant, Comptable) et leur numéro WhatsApp professionnel de contact.
-  \item Configurez le taux de retenue sociale ouvrière obligatoire pour la Caisse Nationale de Prévoyance Sociale (CNPS), réglementairement établi à \textbf{6.3\%}.
-\end{enumerate}
+### C. Le Check-Out (Départ du Voyageur)
+Au moment du départ de l'hôte :
+1. Accédez à la fiche de la chambre occupée et cliquez sur **"Check-Out"**.
+2. **Fermeture du Folio :** Le système calcule le solde final :
+   `Montant Total = (Nuitées × Tarif) + Suppléments Maquis POS + Services annexes - Acomptes versés`
+3. **Règlement de la Facture :** Enregistrez le moyen de paiement utilisé pour solder la facture (Espèces, Wave ou Orange Money).
+4. **Bascule d'État Ménage :** Une fois le check-out validé, la chambre bascule instantanément au statut **Dirty** (Sale/À Nettoyer). Elle apparaît en rouge sur tous les écrans du personnel d'étage et de la réception, empêchant une nouvelle location accidentelle avant désinfection complète.
 
-\subsection{Configuration de la Passerelle WhatsApp Business}
-L'envoi des confirmations de réservation, des codes d'accès et des reçus de paie nécessite une configuration adéquate des variables d'environnement système :
-\begin{itemize}
-  \item \textbf{Numéro WhatsApp de Test Actif :} La variable \code{VITE\_WHATSAPP\_TEST\_NUMBER} définie dans le fichier de configuration de l'environnement applicatif (\code{.env.example}) est paramétrée par défaut sur le numéro de contrôle \code{+212777346787}.
-  \item \textbf{Validation Technique :} Un bouton de validation d'API nommé \textbf{``Envoyer un Message de Test''} est disponible dans le panneau d'administration pour confirmer instantanément l'état de la liaison réseau en envoyant un message type au numéro de contrôle configuré.
-\end{itemize}
+---
 
-\newpage
+## 🍳 CHAPITRE 3 : LE GUIDE DU SERVEUR & BARMAN (Module POS & Restauration)
 
-% --- CHAPITRE 2 ---
-\section{LE GUIDE DU RÉCEPTIONNISTE (Module PMS)}
-Le module \textbf{PMS (Property Management System)} orchestre l'accueil physique et virtuel, la planification dynamique des nuitées et la gestion financière des folios clients.
+Le module **POS (Point of Sale)** est optimisé pour les tablettes tactiles utilisées par le personnel de service en salle et au bar du maquis-restaurant.
 
-\subsection{Tableau Récapitulatif du Parcours Voyageur}
-Le personnel d'accueil à la réception doit exécuter et valider chaque étape selon la grille de procédure ci-dessous :
+### 📦 TABLEAU DE GESTION DE L'INVENTAIRE ET DES ALERTES STOCKS
 
-\vspace{0.3cm}
-\noindent
-\begin{tabularx}{\textwidth}{l p{3.5cm} X X}
-\toprule
-\textbf{Phase Opérationnelle} & \textbf{Action Réception} & \textbf{Données Requises} & \textbf{Automatisation \& Actions Système} \\
-\midrule
-\textbf{1. Enregistrement} & Créer une Réservation & Nom complet, dates de séjour, téléphone portable valide & Blocage de la chambre sélectionnée et inscription immédiate au planning global. \\
-\midrule
-\textbf{2. Arrivée (Check-In)} & Cliquer sur le bouton \textbf{``Check-In''} & Pièce d'identité valide, contrôle des dates & Génération automatique d'un \textbf{code PIN secret à 4 chiffres} et envoi immédiat par WhatsApp. \\
-\midrule
-\textbf{3. Durant le Séjour} & Suivi et gestion du folio client & Ajout des nuitées et extras & Autorisation de report de facture des consommations du maquis sur saisie du PIN client. \\
-\midrule
-\textbf{4. Départ (Check-Out)} & Cliquer sur le bouton \textbf{``Check-Out''} & Encaissement total du solde et clôture & Impression de facture définitive, libération de la chambre et statut \badge{danger}{white}{Dirty} (Sale). \\
-\bottomrule
-\end{tabularx}
-\vspace{0.3cm}
+| Statut du Plat / Boisson | Couleur du Badge | Règle de Prise de Commande | Consignes pour le Personnel de Salle |
+| :--- | :---: | :--- | :--- |
+| **En Stock** | 🟢 Vert | **Autorisée** | Le plat est pleinement disponible. Saisir la commande normalement. |
+| **Seuil Critique** | 🟡 Jaune | **Autorisée** | Le stock d'ingrédients est bas. Informer le client que les portions restantes sont limitées. |
+| **Rupture d'Ingrédient** | 🔴 Rouge | **Interdite (Bloquée)** | Le système bloque la sélection de ce plat. Proposer poliment une alternative au client (ex : remplacer l'Alloco par de l'Attiéké). |
 
-\subsection{Création d'une Réservation}
-\begin{enumerate}
-  \item Cliquez sur le bouton \textbf{``Créer une Réservation''} depuis le planning ou l'accueil du PMS.
-  \item \textbf{Saisie obligatoire des informations clés :}
-  \begin{itemize}
-    \item \textbf{Identité Voyageur :} Nom et prénom complets (ex : \textit{Yao Kouassi Hermann}).
-    \item \textbf{Numéro WhatsApp :} Le système applique un validateur strict pour assurer la délivrabilité des notifications WhatsApp. Le numéro doit être saisi au format international direct sans espace :
-    \begin{itemize}
-      \item \textbf{Côte d'Ivoire (CI) :} \code{+225} suivi de exactement \textbf{10 chiffres} (ex : \code{+2250708091011}).
-      \item \textbf{Maroc (MA) :} \code{+212} suivi de exactement \textbf{9 chiffres} (ex : \code{+212777346787}).
-      \item \textbf{Autre pays :} \code{+} suivi de l'indicatif international et du numéro de téléphone.
-    \end{itemize}
-    \item \textbf{Source de Distribution :} Renseignez l'origine de la réservation (Direct, Téléphonique, Booking.com, Airbnb, Expedia ou synchronisation automatique via notre passerelle Channel Manager intégrée).
-  \end{itemize}
-  \item Cliquez sur \textbf{``Sauvegarder''}. La chambre est instantanément bloquée sur le calendrier.
-\end{enumerate}
+### A. Prise de Commande Rapide
+1. Ouvrez l'application sur la tablette de service.
+2. Sélectionnez le numéro de la table à servir.
+3. Touchez les plats demandés par les clients pour les ajouter au panier (*Brunch Ivoirien, Kedjenou de Poulet, Frites d'Igname, Alloco Giga, Bière Bock*).
+4. **Contrôle d'Ingrédients :** Le système vérifie en arrière-plan la disponibilité des ressources en cuisine. Si un produit est en rupture (Badge Rouge), la tablette affiche une alerte claire et bloque son ajout au panier.
 
-\subsection{Le Check-In (Arrivée du Voyageur)}
-\begin{enumerate}
-  \item Dès l'arrivée physique du voyageur, retrouvez son dossier dans l'onglet \textbf{``Arrivées du Jour''}.
-  \item Procédez à la vérification d'identité réglementaire, puis cliquez sur le bouton \textbf{``Check-In''}.
-  \item \textbf{Génération de la clé d'accès virtuelle :} Le système génère instantanément un code de sécurité aléatoire unique à 4 chiffres (ex : \code{4912}).
-  \item \textbf{Envoi automatique du code d'accès :} Le serveur notifie immédiatement le client sur son compte WhatsApp avec le template officiel standardisé :
-  \begin{quote}
-    \textit{``Akwaba M. Yao Kouassi Hermann ! Nous sommes ravis de vous accueillir à l'Hôtel Bouaké Kennedy. Votre chambre Studio Suite 101 est disponible. Votre code PIN secret d'accès et d'autorisation d'achat est \textbf{4912}. Excellent séjour chez Brunch Bouaké !''}
-  \end{quote}
-\end{enumerate}
+### B. Le Tunnel de Paiement Direct
+1. Appuyez sur le bouton **"Payer"** ou **"Encaisser"**.
+2. Sélectionnez le mode de règlement convenu avec le client :
+   * **Espèces :** Saisissez le montant en Francs CFA (XOF) tendu par le client. L'écran affiche instantanément le rendu de monnaie exact.
+   * **Mobile Money (Wave / Orange Money) :** Saisissez le numéro de téléphone de paiement ivoirien (`+225` obligatoire). La transaction est envoyée pour traitement. Demandez au client de valider le prélèvement sur son mobile. Une fois le reçu virtuel validé par le système, le ticket est clôturé.
 
-\subsection{Le Check-Out (Départ du Voyageur)}
-\begin{enumerate}
-  \item Au moment du départ, sélectionnez la fiche de la chambre concernée et cliquez sur \textbf{``Check-Out''}.
-  \item \textbf{Calcul du Solde Global :} L'application agrège dynamiquement l'ensemble des nuitées et des extras accumulés sur la facture :
-  $$\text{Montant Total} = (\text{Nuitées} \times \text{Tarif Nuitée}) + \text{Extras POS Restaurant} + \text{Services Annexes} - \text{Acomptes}$$
-  \item \textbf{Règlement :} Sélectionnez le mode de paiement effectif (Espèces, Wave ou Orange Money) et saisissez le montant encaissé pour équilibrer le folio.
-  \item \textbf{Mise en Nettoyage :} Dès validation, la chambre est déclarée vacante et son état bascule automatiquement à la couleur rouge d'avertissement \badge{danger}{white}{Dirty} (Sale), alertant l'équipe d'étage.
-\end{enumerate}
+### C. Le Transfert sur Chambre avec Code PIN Sécurisé
+Pour les résidents de l'hôtel souhaitant rattacher l'addition à leur facture de fin de séjour :
+1. Sur l'écran d'encaissement du POS, sélectionnez **"Transférer sur Chambre"**.
+2. Sélectionnez le numéro de la chambre active du client.
+3. **Vérification de la Limite de Crédit :** Le système vérifie instantanément si le montant de la table cumulé aux frais de chambre déjà existants ne dépasse pas la limite de crédit autorisée (ex: *100 000 FCFA*).
+4. **Validation par PIN Secret :** Présentez l'écran de la tablette au client. Celui-ci doit obligatoirement saisir son **code PIN personnel à 4 chiffres** (reçu par WhatsApp à son arrivée).
+5. Si le PIN est valide et la limite de crédit respectée, la commande est immédiatement imputée sur sa facture d'hôtel et la table est clôturée.
 
-\newpage
+---
 
-% --- CHAPITRE 3 ---
-\section{LE GUIDE DU SERVEUR \& BARMAN (Module POS \& Restauration)}
-Le module \textbf{POS (Point of Sale)} équipe les serveurs en salle et les barmans pour la prise de commande mobile sur tablettes tactiles et la mise à jour immédiate des stocks.
+## 👥 CHAPITRE 4 : LE GUIDE DE LA RELATION CLIENT (Module CRM & Marketing)
 
-\subsection{Tableau de Gestion de l'Inventaire et des Alertes Stocks}
-Pour prévenir les ventes d'articles indisponibles, le système applique un contrôle automatique des stocks :
+Le module **CRM (Customer Relationship Management)** permet de fidéliser votre clientèle, de centraliser ses préférences et de mener des campagnes promotionnelles ciblées.
 
-\vspace{0.3cm}
-\noindent
-\begin{tabularx}{\textwidth}{l c p{3.8cm} X}
-\toprule
-\textbf{Statut Ingrédient} & \textbf{Badge Visuel} & \textbf{Prise de Commande} & \textbf{Consignes pour le Personnel de Salle} \\
-\midrule
-\textbf{En Stock Suffisant} & \badge{success}{white}{Vert} & \textbf{Autorisée} & Prendre la commande normalement. \\
-\midrule
-\textbf{Seuil Critique Atteint} & \badge{warning}{black}{Jaune} & \textbf{Autorisée sous réserve} & Stock très limité en cuisine. Prévenir poliment le client qu'il reste peu de portions de ce plat. \\
-\midrule
-\textbf{Rupture Complète} & \badge{danger}{white}{Rouge} & \textbf{Bloquée (Système)} & L'ajout au panier est impossible. Présenter nos excuses et orienter le client vers une alternative (ex : Alloco remplacé par de l'Attiéké). \\
-\bottomrule
-\end{tabularx}
-\vspace{0.3cm}
+### A. Fiche Client et Suivi de Fidélité
+Chaque fiche client enregistrée dans la base compile un historique précieux :
+* **Nombre de visites :** Fréquence globale des nuitées ou des repas consommés au maquis.
+* **Panier Moyen :** Dépense moyenne calculée sur l'historique complet des achats.
+* **Préférences enregistrées :** Préférences de chambre (ex : *climatisation forte, lit king-size*) ou restrictions alimentaires (ex : *allergies*).
+* **Statut de Fidélité :** Attribué automatiquement selon le nombre de séjours ou le chiffre d'affaires généré :
+  * ⚪ **Bronze :** Profil d'accueil standard.
+  * 🥈 **Silver :** À partir de 5 séjours (5% de remise automatique sur l'hébergement).
+  * 🥇 **Gold :** À partir de 15 séjours (10% de remise automatique + priorité de surclassement).
+  * 💎 **Platinum :** Clients d'affaires réguliers et VIP (15% de remise + service d'accueil prioritaire).
 
-\subsection{Prise de Commande Rapide en Salle}
-\begin{enumerate}
-  \item Sur l'écran tactile de votre tablette, sélectionnez le numéro de la table active.
-  \item Touchez les icônes des plats demandés par le client pour composer la commande (\textit{Brunch Ivoirien}, \textit{Kedjenou de Poulet}, \textit{Alloco Giga}, \textit{Bière Bock}).
-  \item \textbf{Vérification d'inventaire :} Si l'ingrédient principal d'un plat est en rupture de stock (badge rouge), l'application désactive l'icône, rendant l'ajout au panier impossible et évitant les déceptions en cours de service.
-\end{enumerate}
+### B. Envoi de Campagnes Marketing WhatsApp ciblées
+Pour stimuler les réservations en basse saison :
+1. Accédez au sous-onglet **"CRM & Marketing"**.
+2. **Filtrage des Destinataires :** Sélectionnez les profils à cibler (ex : *tous les clients de niveau Gold* ou *tous les clients n'ayant pas séjourné depuis 60 jours*).
+3. **Sélection du Template de Message :** Choisissez parmi les modèles validés localement :
+   * **Offre Promotionnelle :** *"Akwaba ! Bénéficiez d'une réduction de 20% sur les séjours du week-end en saisissant le code BOUAKE20."*
+   * **Invitation Brunch :** *"Le grand Brunch de Bouaké revient ce dimanche ! Réservez votre table et venez déguster notre Kedjenou de canard au feu de bois."*
+4. Cliquez sur **"Envoyer la Campagne"**. L'orchestrateur de messagerie dépile la file d'attente pour envoyer les messages nominatifs de manière asynchrone sans surcharger le serveur.
 
-\subsection{Le Tunnel de Paiement Direct}
-\begin{enumerate}
-  \item Appuyez sur le bouton \textbf{``Payer''} de l'interface POS de votre tablette.
-  \item Sélectionnez le moyen de règlement de la table :
-  \begin{itemize}
-    \item \textbf{Espèces :} Renseignez le montant en Francs CFA (XOF) remis par le client. L'écran affiche instantanément la monnaie exacte à restituer.
-    \item \textbf{Mobile Money (Wave / Orange Money) :} Saisissez le numéro de téléphone de paiement ivoirien (\code{+225} obligatoire) pour initier l'appel de fonds. Demandez au client de composer son code d'autorisation personnel sur son propre mobile. Attendez l'affichage du reçu d'autorisation vert avant de libérer la table.
-  \end{itemize}
-\end{enumerate}
+---
 
-\subsection{Le Transfert sur Facture de Chambre}
-Les résidents séjournant à l'hôtel peuvent reporter le règlement de leurs consommations sur leur note finale :
-\begin{enumerate}
-  \item Sur l'écran de paiement du POS, cliquez sur l'option \textbf{``Transférer sur Chambre''}.
-  \item Sélectionnez le numéro de chambre du client concerné.
-  \item \textbf{Vérification de la limite financière :} Le système s'assure instantanément que la dépense cumulée sur le folio ne dépasse pas la limite de crédit autorisée de la chambre.
-  \item \textbf{Saisie Obligatoire du PIN de Sécurité :} Présentez l'écran de la tablette au client afin qu'il saisisse lui-même son \textbf{code PIN personnel à 4 chiffres} (reçu par WhatsApp lors de son check-in).
-  \item Si le code est correct et la limite respectée, le montant est affecté au folio de la chambre et la table est automatiquement libérée en salle.
-\end{enumerate}
+## 🧹 CHAPITRE 5 : LE GUIDE DU GOUVERNANT & ENTRÉTIEN (Module Tasks)
 
-\newpage
+La propreté impeccable et la conformité technique sont essentielles. Le module **Tasks** connecte l'équipe d'entretien avec la réception en temps réel.
 
-% --- CHAPITRE 4 ---
-\section{LE GUIDE DE LA RELATION CLIENT (Module CRM \& Marketing)}
-Le module \textbf{CRM} regroupe les données de fidélisation de l'établissement et permet le lancement de campagnes marketing directes via WhatsApp.
+### A. Attribution et Lecture des Tâches Terrain
+Chaque gouvernant ou agent technique consulte sa liste d'actions du jour depuis un smartphone ou une tablette de service :
+1. **Ménage Prioritaire :** Les chambres libérées par des check-outs récents (affichant le statut *Dirty*) apparaissent en tête de liste pour désinfection immédiate.
+2. **Fiches de Maintenance :** Signalez les pannes ou les réparations nécessaires dès leur détection (ex: *climatisation en panne dans la 102*). Les tâches indiquent le niveau de priorité (Basse, Moyenne, Haute) et la description précise du problème.
 
-\subsection{Fiche Client et Suivi de Fidélité}
-Chaque client de l'hôtel ou du restaurant dispose d'une fiche récapitulative centralisant :
-\begin{itemize}
-  \item \textbf{Nombre total de séjours et dépenses cumulées} pour une visibilité immédiate de sa valeur commerciale.
-  \item \textbf{Préférences mémorisées :} Numéro de chambre préféré, exigences de confort (climatisation active à l'arrivée, lit king-size), ou restrictions diététiques pour le restaurant.
-  \item \textbf{Niveau de Fidélité attribué automatiquement par le système :}
-  \begin{itemize}
-    \item \textbf{Bronze :} Profil d'accueil par défaut.
-    \item \textbf{Silver (dès 5 séjours) :} Application d'une réduction automatique de $5\%$ sur l'hébergement.
-    \item \textbf{Gold (dès 15 séjours) :} Réduction automatique de $10\%$ sur l'hébergement et surclassement prioritaire selon la disponibilité.
-    \item \textbf{Platinum (dès 30 séjours) :} Réduction de $15\%$ sur l'hébergement, accueil VIP et encaissement différé.
-  \end{itemize}
-\end{itemize}
+### B. Mise à jour du Statut de Chambre
+Dès que le nettoyage ou la réparation d'une chambre est terminé sur le terrain :
+1. Sélectionnez la tâche concernée sur votre écran.
+2. Cliquez sur **"Marquer comme Terminée"** (le statut passe de *Pending* à *Completed*).
+3. **Mise à Jour Instantanée de la Réception :** L'état de la chambre bascule automatiquement sur **Available (Disponible/Propre)** sur le planning de la réception. Les réceptionnistes peuvent immédiatement y affecter un nouveau client arrivant sans nécessiter d'appel ou de déplacement physique pour vérification.
 
-\subsection{Envoi de Campagnes Marketing WhatsApp Ciblées}
-Pour optimiser le taux de remplissage en période de basse saison :
-\begin{enumerate}
-  \item Rendez-vous dans le sous-onglet \textbf{``CRM \& Marketing''}.
-  \item \textbf{Ciblage de la clientèle :} Définissez les filtres de votre campagne (ex : \textit{tous les clients au statut Gold} ou \textit{tous les clients sans réservation depuis plus de 60 jours}).
-  \item \textbf{Sélection du modèle de message standardisé (Template) :}
-  \begin{itemize}
-    \item \textbf{Promotion Hébergement :} \textit{``Akwaba ! Profitez de 20\% de réduction sur votre séjour du week-end à l'Hôtel Bouaké Kennedy avec le code KENNEDY20.''}
-    \item \textbf{Événementiel Restauration :} \textit{``Le Grand Brunch de Bouaké revient ce dimanche ! Réservez votre table et venez déguster notre mythique Kedjenou de canard cuit au feu de bois.''}
-  \end{itemize}
-  \item Cliquez sur le bouton \textbf{``Envoyer la Campagne''}. Le serveur d'envoi asynchrone traite la file d'attente pour distribuer les messages nominativement sans saturer la bande passante de la succursale.
-\end{enumerate}
+---
 
-% --- CHAPITRE 5 ---
-\section{LE GUIDE DU GOUVERNANT \& ENTRETIEN (Module Tasks)}
-Le module \textbf{Tasks} assure une coordination fluide et en temps réel entre la réception de l'hôtel, l'équipe d'étage pour le ménage et l'équipe technique de maintenance.
+## 💳 CHAPITRE 6 : LE GUIDE DU MANAGER & COMPTABLE (ERP, Caisse & RH)
 
-\subsection{Attribution et Traitement des Missions sur le Terrain}
-Chaque agent d'entretien ou technicien de maintenance consulte son terminal mobile de service pour connaître ses priorités opérationnelles :
-\begin{enumerate}
-  \item \textbf{Ménage Prioritaire (Dirty Rooms) :} Les chambres dont le check-out vient d'être validé par la réception apparaissent automatiquement en priorité haute avec l'indicateur \badge{danger}{white}{Dirty}.
-  \item \textbf{Tickets de Maintenance :} Les dysfonctionnements techniques signalés (ex : \textit{climatiseur bruyant dans la chambre 102}, \textit{mitigeur de douche fuyant}) apparaissent sous forme de fiches d'intervention détaillant l'urgence (Basse, Moyenne, Haute) et l'action à mener.
-\end{enumerate}
+Le module **ERP / Comptabilité** centralise tous les flux monétaires de l'établissement et gère la paie du personnel dans le strict respect de la réglementation locale.
 
-\subsection{Validation de Fin de Service}
-Dès que le nettoyage ou la réparation d'un équipement est finalisé :
-\begin{enumerate}
-  \item L'agent ouvre la tâche sur son mobile et sélectionne le statut \textbf{``Complétée / Completed''}.
-  \item \textbf{Impact Instantané :} L'état de la chambre bascule immédiatement au statut \badge{success}{white}{Available} (Propre et Disponible) sur les tableaux d'en-tête de la réception. La chambre est de nouveau louable sans appel de contrôle ni déplacement physique requis.
-\end{enumerate}
+### A. Journal de Caisse & Gestion des Dépenses
+Pour une gestion rigoureuse et transparente de la trésorerie physique :
+1. **Enregistrement des Sorties d'Argent :** Chaque fois qu'une dépense est effectuée (ex : *achat d'ingrédients bruts au marché, règlement de facture d'électricité, achat de bouteilles de gaz*), cliquez sur **"Nouvelle Transaction / Dépense"**.
+2. Renseignez le montant en Francs CFA, la catégorie (Achats, Maintenance, Énergie, Paie) et ajoutez un mémo textuel.
+3. **Le Journal de Caisse :** Il affiche en temps réel le solde théorique du tiroir-caisse et trace l'historique complet des entrées (ventes POS, règlements PMS) et des sorties.
 
-\newpage
+### B. Gestion Administrative du Personnel & Paie CNPS
+Le module RH calcule les bulletins de salaire et automatise l'acquittement des charges sociales de Côte d'Ivoire.
 
-% --- CHAPITRE 6 ---
-\section{LE GUIDE DU MANAGER \& COMPTABLE (ERP, Caisse \& RH)}
-Ce module centralise les fonctions d'analyse financière, de suivi de trésorerie et d'automatisation de la paie en conformité avec la législation de la République de Côte d'Ivoire.
+#### 📊 RÉGLEMENTATION SOCIALE IVOIRIENNE (CNPS)
 
-\subsection{Journal de Caisse et Suivi des Dépenses de Fonctionnement}
-Pour assurer une traçabilité rigoureuse et écarter tout risque de coulage de trésorerie :
-\begin{enumerate}
-  \item \textbf{Saisie systématique des sorties d'argent :} Pour toute dépense opérationnelle (ex : \textit{achat de gaz pour les fourneaux}, \textit{réapprovisionnement de légumes au marché}, \textit{frais de carburant pour le groupe électrogène}), cliquez sur \textbf{``Nouvelle Dépense''}.
-  \item Renseignez le montant exact en Francs CFA, attribuez une catégorie comptable (Achats, Énergie, Entretien, Salaires) et ajoutez un mémo d'explication.
-  \item \textbf{Suivi de Solde :} Le journal de caisse comptabilise instantanément le solde théorique physique du coffre ou du tiroir-caisse en croisant les entrées (ventes POS, acomptes PMS) et les dépenses validées.
-\end{enumerate}
+| Composante de la Fiche de Paie | Taux Applicable | Sens Financier | Rôle et Destination des Cotisations |
+| :--- | :---: | :---: | :--- |
+| **Salaire Brut Imposable** | Base 100% | *Base de calcul* | Salaire contractuel de l'employé avant prélèvements |
+| **Retenue Sociale Ouvrière CNPS** | **6.3%** | ➖ Déduction | Prélevée du salaire de l'employé pour le régime de retraite CNPS |
+| **Cotisations Patronales** | Selon barème légal | ➕ Charge Employeur | Payées directement par l'établissement pour la protection sociale |
+| **Salaire Net à Payer** | **93.7%** *(hors primes)* | 🪙 Versement Final | Montant net crédité sur le compte Mobile Money du salarié |
 
-\subsection{Gestion du Personnel et Calcul de la Paie CNPS}
-Le moteur de paie intégré applique scrupuleusement le barème légal obligatoire de Côte d'Ivoire :
+#### Procédure de Génération de la Paie :
+1. Allez dans le module **Ressources Humaines / Paie**.
+2. Cliquez sur **"Générer Bulletin"** pour l'employé concerné. Le bulletin est créé avec le statut initial **Draft (Brouillon)**.
+3. Vérifiez la concordance du salaire de base et des primes éventuelles. Le système applique automatiquement la retenue CNPS obligatoire de 6.3%.
+4. Cliquez sur **"Valider le Paiement"** pour officialiser le versement :
+   * **Génération automatique de la dépense :** Le montant net est automatiquement déduit du journal de caisse de l'établissement.
+   * **Sécurité Anti-Double Paiement (Idempotence) :** Le système calcule instantanément une clé d'idempotence unique combinant l'identifiant de l'employé et la période concernée (ex : `EMP-04-2026-07`). Si vous ou un autre gestionnaire cliquez par mégarde une deuxième fois sur le bouton de paiement pour la même période, le système intercepte la clé existante et refuse catégoriquement d'enregistrer un deuxième décaissement, évitant ainsi des pertes de trésorerie accidentelles.
+5. **Notification Reçu de Salaire :** Cliquez sur **"Envoyer par WhatsApp"**. L'orchestrateur transmet immédiatement à l'employé son récapitulatif de paie complet sur son compte WhatsApp personnel :
+   > *"Bonjour M. Kouadio Koffi Jean. Votre bulletin de paie de Juillet 2026 a été validé. Brut Imposable : 250 000 FCFA. Retenue CNPS (6.3%) : 15 750 FCFA. Net à Payer versé : 234 250 FCFA. Merci pour votre dévouement !"*
 
-\subsubsection{Répartition Standard de la Structure Salariale (Base CNPS)}
-\vspace{0.3cm}
-\noindent
-\begin{tabularx}{\textwidth}{l c c X}
-\toprule
-\textbf{Composante du Bulletin} & \textbf{Taux Applicable} & \textbf{Type d'Opération} & \textbf{Rôle et Destination des Fonds} \\
-\midrule
-\textbf{Salaire Brut Imposable} & Base $100\%$ & Référence de calcul & Salaire de base contractuel de l'employé avant retenues. \\
-\midrule
-\textbf{Retenue Sociale Ouvrière} & \textbf{6.3\%} & Déduction (---) & Part salariale obligatoire versée à la Caisse Nationale de Prévoyance Sociale (CNPS) pour la retraite. \\
-\midrule
-\textbf{Cotisations Patronales} & Selon barème légal & Charge employeur (+) & Contribution à la charge exclusive de l'établissement versée à la CNPS. \\
-\midrule
-\textbf{Salaire Net à Payer} & \textbf{93.7\%} (hors primes) & Versement final ($\rightarrow$) & Rémunération nette versée sur le compte Mobile Money (Wave ou Orange Money) du salarié. \\
-\bottomrule
-\end{tabularx}
-\vspace{0.3cm}
+---
 
-\subsubsection{Procédure de Génération et Validation du Bulletin de Paie}
-\begin{enumerate}
-  \item Ouvrez l'onglet \textbf{``Gestion RH / Paie''} et cliquez sur \textbf{``Générer Bulletin''} pour l'employé concerné. Le bulletin est créé au statut \textbf{Draft (Brouillon)}.
-  \item Vérifiez le salaire brut de base et ajoutez les éventuelles indemnités ou primes autorisées. Le système calcule automatiquement la déduction de $6.3\%$ pour la CNPS.
-  \item Cliquez sur le bouton \textbf{``Valider le Paiement''} pour officialiser l'écriture :
-  \begin{itemize}
-    \item \textbf{Impact Trésorerie :} Le montant net à payer est déduit de la caisse.
-    \item \textbf{Sécurisation contre les doublons (Idempotence) :} Pour protéger les finances de l'établissement contre les clics répétés ou l'exécution simultanée par deux responsables, le système calcule une clé d'idempotence unique basée sur le binôme d'identification \code{Employé-Période} (ex : \code{EMP-04-2026-07}). Si une seconde tentative de validation est lancée pour la même période sur le même compte d'employé, le système l'intercepte et la rejette immédiatement, interdisant tout double décaissement.
-  \end{itemize}
-  \item \textbf{Notification de Fiche de Paie :} Cliquez sur \textbf{``Envoyer par WhatsApp''}. L'employé reçoit instantanément sur son numéro de portable le récapitulatif officiel de sa paie :
-  \begin{quote}
-    \textit{``Bonjour M. Kouadio Koffi Jean. Votre bulletin de paie de Juillet 2026 a été validé. Brut Imposable : 250 000 FCFA. Retenue CNPS (6.3\%) : 15 750 FCFA. Net versé : 234 250 FCFA. Merci pour votre engagement au sein de notre établissement !''}
-  \end{quote}
-\end{enumerate}
+## 📊 CHAPITRE 7 : BUSINESS INTELLIGENCE & ANALYSE FINANCIÈRE (BI)
 
-\newpage
+Prenez des décisions éclairées grâce aux graphiques dynamiques et aux calculs financiers de notre moteur décisionnel intégré.
 
-% --- CHAPITRE 7 ---
-\section{BUSINESS INTELLIGENCE \& ANALYSE FINANCIÈRE (BI)}
-Le module de Business Intelligence (BI) convertit vos données opérationnelles en indicateurs clés de performance (KPIs) graphiques pour piloter l'établissement avec rigueur.
+### A. Indicateurs Clés de Performance (KPIs)
+Le tableau de bord analytique calcule et met à jour en continu les indicateurs clés du secteur hôtelier :
+1. **Taux d'Occupation :** Détermine le taux d'utilisation de vos capacités d'hébergement.
+   `Taux d'Occupation (%) = (Chambres Occupées / Nombre Total de Chambres) × 100`
+2. **RevPAR (Revenue Per Available Room) :** Mesure la performance financière globale de votre parc hôtelier.
+   `RevPAR = Chiffre d'Affaires Hébergement / Nombre Total de Chambres Disponibles`
+3. **Marge Brute F&B (Restauration) :** Évalue la rentabilité directe du maquis-restaurant en comparant le chiffre d'affaires des ventes de repas aux coûts d'achat des ingrédients consommés.
+   `Taux de Marge Brute (%) = ((Ventes - Coûts Ingrédients) / Ventes) × 100`
 
-\subsection{Indicateurs Clés de Performance (KPIs)}
-Le tableau de bord décisionnel calcule et met à jour en continu les indicateurs clés du secteur hôtelier :
-\begin{itemize}
-  \item \textbf{Taux d'Occupation :} Ratio mesurant l'efficacité commerciale de l'hébergement.
-  $$\text{Taux d'Occupation (\%)} = \left( \frac{\text{Chambres Occupées}}{\text{Nombre Total de Chambres}} \right) \times 100$$
-  \item \textbf{RevPAR (Revenue Per Available Room) :} Indicateur clé de rentabilité hôtelière mesurant le revenu moyen généré par l'ensemble des chambres exploitables.
-  $$\text{RevPAR} = \frac{\text{Chiffre d'Affaires de l'Hébergement}}{\text{Nombre Total de Chambres Disponibles}}$$
-  \item \textbf{Marge Brute F\&B (Food \& Beverage) :} Indice de rentabilité directe du maquis-restaurant en croisant les ventes et le coût d'achat des ingrédients bruts consommés.
-  $$\text{Taux de Marge Brute (\%)} = \left( \frac{\text{Ventes} - \text{Coût Ingrédients}}{\text{Ventes}} \right) \times 100$$
-\end{itemize}
+### B. Exportation Excel & Sauvegarde Comptable
+Tous les graphiques et listes financières (Ventes POS, Revenus de réservations, Fiches de dépenses, Bulletins de paie validés) disposent d'un outil d'exportation de données :
+1. Cliquez sur le bouton **"Exporter au format CSV"** situé au-dessus des tableaux ou graphiques.
+2. Le système génère instantanément un fichier structuré encodé en **CSV (UTF-8)**.
+3. Ce fichier est optimisé pour être ouvert et exploité sans aucune déformation de caractères ou de chiffres dans **Microsoft Excel** ou Google Sheets pour vos synthèses mensuelles.
 
-\subsection{Exportation des Données Comptables}
-Chaque graphique et tableau financier du module (recettes d'hébergement, journal des ventes du restaurant, relevés de dépenses, historique des paies) comporte une option d'extraction :
-\begin{enumerate}
-  \item Cliquez sur le bouton \textbf{``Exporter au format CSV''}.
-  \item Le système compile et télécharge immédiatement un fichier structuré encodé au format standardisé \textbf{CSV (UTF-8)}.
-  \item Ce fichier est optimisé pour être importé sans aucune déformation de caractères ou de formats numériques dans les logiciels de comptabilité de l'établissement ou dans \textbf{Microsoft Excel}.
-\end{enumerate}
+---
 
-% --- CHAPITRE 8 ---
-\section{CONFIGURATION SYSTÈME, SAUVEGARDE ET REPRISE SUR SINISTRE}
-Pour prémunir l'établissement contre toute panne réseau, crash matériel ou vidage accidentel du cache des navigateurs locaux, la plateforme dispose d'un plan de reprise d'activité (PRA) robuste et autonome.
+## 💾 CHAPITRE 8 : CONFIGURATION SYSTÈME, SAUVEGARDE ET REPRISE SUR SINISTRE
 
-\subsection{Sauvegarde Hebdomadaire Complète de l'Établissement}
-L'administrateur ou le gérant général de l'établissement doit obligatoirement procéder à une exportation de sécurité manuelle chaque fin de semaine :
-\begin{enumerate}
-  \item Rendez-vous dans le panneau \textbf{Property Settings} (Paramètres de l'Établissement).
-  \item Faites défiler l'écran jusqu'à la section \textbf{``Sauvegarde \& Restauration de l'état local''}.
-  \item Cliquez sur le bouton de sauvegarde. Le système compile instantanément la totalité des bases de données de votre locataire :
-  \begin{itemize}
-    \item Profils physiques des chambres et plannings des réservations actives.
-    \item Inventaire complet et état des stocks de la cuisine.
-    \item Folios clients actifs et additions en cours de transfert.
-    \item Historique des dépenses et bulletins de paie validés.
-    \item Annuaire du personnel et configurations de la passerelle WhatsApp.
-  \end{itemize}
-  \item Un fichier unique au format \textbf{JSON} (ex : \code{brunch\_bouake\_backup\_2026-07-06.json}) est alors téléchargé sur votre ordinateur.
-  \item Conservez impérativement ce fichier sur une clé USB ou un dossier cloud sécurisé de l'établissement.
-\end{enumerate}
+Pour prémunir l'établissement contre toute panne réseau, crash matériel ou mauvaise manipulation humaine des terminaux de vente, la plateforme dispose d'un plan robuste de reprise d'activité (PRA).
 
-\subsection{Restauration Complète du Système en Moins de 3 Secondes}
-En cas de crash complet d'une tablette de service ou de changement d'ordinateur à la réception :
-\begin{enumerate}
-  \item Connectez-vous à l'application Brunch Bouaké sur votre nouveau terminal de travail.
-  \item Accédez à l'onglet \textbf{Property Settings} (Paramètres de l'Établissement).
-  \item Repérez l'encadré de restauration de base et cliquez sur le bouton \textbf{``Choisir un fichier''}.
-  \item Sélectionnez votre fichier JSON de sauvegarde le plus récent enregistré sur votre support de stockage externe.
-  \item Cliquez sur \textbf{``Restaurer la Base de Données''}.
-  \item \textbf{Reprise Immédiate :} L'application recrée l'ensemble des plannings, des fiches de stocks et de la comptabilité locale en moins de 3 secondes, permettant de reprendre immédiatement l'exploitation sans aucune perte d'informations.
-\end{enumerate}
+### A. Sauvegarde Manuelle Complète de l'Établissement
+L'administrateur ou le gérant général doit procéder à une exportation de sécurité chaque fin de semaine :
+1. Rendez-vous dans le panneau **Property Settings** (Paramètres de l'établissement).
+2. Faites défiler l'écran jusqu'à la section **Sauvegarde & Restauration de l'état local**.
+3. Cliquez sur le bouton de sauvegarde. Le système va instantanément compiler la totalité des structures de données dynamiques de l'application :
+   * Les profils des chambres et leurs plannings de réservation.
+   * Les fiches d'inventaire et stocks d'ingrédients en cuisine.
+   * L'historique complet des additions du POS et des folios clients.
+   * Les transactions du journal de caisse et les bulletins de paie validés.
+   * L'annuaire du personnel et l'ensemble des configurations multi-tenant.
+4. Un fichier unique au format **JSON** (ex : `brunch_bouake_backup_2026-07-06.json`) est téléchargé sur votre ordinateur.
+5. Conservez impérativement ce fichier sur un support de stockage externe (clé USB, disque dur externe de l'établissement ou dossier cloud sécurisé).
 
-\subsection{Vérification de la Liaison WhatsApp Business en Direct}
-Pour diagnostiquer un problème de communication, le panneau d'administration propose également un onglet technique de contrôle de délivrabilité :
-\begin{enumerate}
-  \item Saisissez la variable active \code{VITE\_WHATSAPP\_TEST\_NUMBER} pour renseigner le numéro de test professionnel standardisé (par défaut le numéro de contrôle \code{+212777346787}).
-  \item Cliquez sur le bouton de test \textbf{``Envoyer un Message de Test''}.
-  \item Le système tente d'expédier un message type via l'orchestrateur de communication WhatsApp Business.
-  \item L'affichage immédiat d'un badge vert de réussite ou rouge d'erreur permet de confirmer l'état de la liaison réseau en quelques secondes.
-\end{enumerate}
+### B. Restauration Complète du Système en Moins de 3 Secondes
+En cas de sinistre informatique (panne de tablette, perte de données de l'appareil local suite à un vidage accidentel du cache du navigateur ou changement de poste de travail) :
+1. Connectez-vous sur votre nouveau terminal de travail.
+2. Allez dans l'onglet **Property Settings** (Paramètres de l'établissement).
+3. Repérez l'encadré de restauration et cliquez sur **"Choisir un fichier"**.
+4. Sélectionnez le fichier JSON de sauvegarde le plus récent enregistré sur votre support externe.
+5. Cliquez sur **"Restaurer la Base de Données"**.
+6. **Reprise Immédiate :** L'application recharge et recrée l'ensemble des variables système, des plannings de chambres et des stocks d'ingrédients en cuisine en moins de 3 secondes, vous permettant de reprendre l'exploitation immédiatement sans la moindre perte d'informations.
 
-\vspace{1.2cm}
-\begin{center}
-  \textcolor{primary}{\hrule height 2pt}
-  \vspace{0.2cm}
-  \small\textcolor{darkgray}{\textbf{Brunch Bouaké Hospitality} --- Excellence Numérique et Rigueur Opérationnelle au Service du Terroir. Issu du document d'ingénierie principal \code{MANUEL\_UTILISATEUR.md}.}
-\end{center}
+### C. Vérification de la Liaison WhatsApp Business en Direct
+Le panneau d'administration propose également un onglet technique pour tester en direct la délivrabilité de l'API de communication WhatsApp Business :
+1. Renseignez la variable d'environnement active `VITE_WHATSAPP_TEST_NUMBER` pour définir votre numéro de test professionnel (ex: `+212777346787`).
+2. Cliquez sur le bouton de test d'intégration **"Envoyer un Message de Test"** disponible dans le panneau.
+3. Le système envoie immédiatement une fausse confirmation de séjour au numéro enregistré.
+4. Les badges de réussite ou d'erreur s'affichent instantanément sous le bouton pour vous aider à diagnostiquer et résoudre les éventuelles anomalies de connexion avec le serveur WhatsApp en quelques secondes.
 
-\end{document}
+---
+
+*Fin du Manuel d'Utilisation. Brunch Bouaké — L'alliance de l'élégance numérique et de la rigueur opérationnelle.*

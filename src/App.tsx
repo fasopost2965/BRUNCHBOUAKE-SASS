@@ -27,7 +27,9 @@ import {
   Calendar,
   Trash2,
   AlertCircle,
-  Key
+  Key,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 // Seed data
@@ -614,6 +616,11 @@ export default function App() {
   // Active view state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pms' | 'pos' | 'erp' | 'staff' | 'crm' | 'blueprints' | 'settings' | 'users' | 'tour'>('dashboard');
   const [pmsActiveSubTab, setPmsActiveSubTab] = useState<'kpis' | 'rooms' | 'calendar' | 'monthly' | 'access-control'>('rooms');
+  
+  // Sidebar section expand/collapse states
+  const [pmsExpanded, setPmsExpanded] = useState(true);
+  const [posExpanded, setPosExpanded] = useState(true);
+  const [erpExpanded, setErpExpanded] = useState(true);
   
   // Simulation role-based selector
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
@@ -1393,285 +1400,314 @@ export default function App() {
 
           {/* Section 2 */}
           <div className="space-y-1 w-full shrink-0">
-            <span className="hidden md:block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
+            <button
+              onClick={() => setPmsExpanded(!pmsExpanded)}
+              className="hidden md:flex items-center justify-between w-full text-left text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest px-3 mb-2 font-mono transition-colors focus:outline-none group"
+            >
+              <span>Hébergement & PMS</span>
+              <ChevronDown className={`w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform duration-200 ${pmsExpanded ? 'rotate-0' : '-rotate-90'}`} />
+            </button>
+            <span className="md:hidden block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
               Hébergement & PMS
             </span>
             
-            {/* 1. Aperçu & Inventaire */}
-            <button
-              onClick={() => {
-                setActiveTab('pms');
-                setPmsActiveSubTab('kpis');
-              }}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pms' && pmsActiveSubTab === 'kpis'
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Activity className="w-4 h-4 opacity-75 text-orange-500" />
-                <span>Aperçu & Inventaire</span>
-              </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-              )}
-            </button>
+            <div className={`space-y-1 transition-all duration-200 ${pmsExpanded ? 'block' : 'hidden md:hidden'} pl-2 md:pl-2.5 md:border-l border-slate-800/60 md:ml-3`}>
+              {/* 1. Aperçu & Inventaire */}
+              <button
+                onClick={() => {
+                  setActiveTab('pms');
+                  setPmsActiveSubTab('kpis');
+                }}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pms' && pmsActiveSubTab === 'kpis'
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Activity className="w-3.5 h-3.5 opacity-75 text-orange-500" />
+                  <span>Aperçu & Inventaire</span>
+                </div>
+                {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                )}
+              </button>
 
-            {/* 2. Grille des Chambres (PMS) */}
-            <button
-              onClick={() => {
-                setActiveTab('pms');
-                setPmsActiveSubTab('rooms');
-              }}
-              id="nav-pms"
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pms' && pmsActiveSubTab === 'rooms'
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''} ${isPMSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <BedDouble className="w-4 h-4 opacity-75 text-emerald-500" />
-                <span>Grille des Chambres</span>
-              </div>
-              {isPMSHighlighted ? (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                </span>
-              ) : (
-                !ROLE_PERMISSIONS[currentRole].includes('pms') && (
-                  <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-                )
-              )}
-            </button>
+              {/* 2. Grille des Chambres (PMS) */}
+              <button
+                onClick={() => {
+                  setActiveTab('pms');
+                  setPmsActiveSubTab('rooms');
+                }}
+                id="nav-pms"
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pms' && pmsActiveSubTab === 'rooms'
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''} ${isPMSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <BedDouble className="w-3.5 h-3.5 opacity-75 text-emerald-500" />
+                  <span>Grille des Chambres</span>
+                </div>
+                {isPMSHighlighted ? (
+                  <span className="flex h-1.5 w-1.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
+                  </span>
+                ) : (
+                  !ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                    <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                  )
+                )}
+              </button>
 
-            {/* 3. Planning Hebdomadaire */}
-            <button
-              onClick={() => {
-                setActiveTab('pms');
-                setPmsActiveSubTab('calendar');
-              }}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pms' && pmsActiveSubTab === 'calendar'
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 opacity-75 text-blue-500" />
-                <span>Planning Hebdo (15j)</span>
-              </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-              )}
-            </button>
+              {/* 3. Planning Hebdomadaire */}
+              <button
+                onClick={() => {
+                  setActiveTab('pms');
+                  setPmsActiveSubTab('calendar');
+                }}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pms' && pmsActiveSubTab === 'calendar'
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="w-3.5 h-3.5 opacity-75 text-blue-500" />
+                  <span>Planning Hebdo (15j)</span>
+                </div>
+                {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                )}
+              </button>
 
-            {/* 4. Calendrier Mensuel */}
-            <button
-              onClick={() => {
-                setActiveTab('pms');
-                setPmsActiveSubTab('monthly');
-              }}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pms' && pmsActiveSubTab === 'monthly'
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 opacity-75 text-rose-500 animate-pulse" />
-                <span>Calendrier Mensuel</span>
-              </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-              )}
-            </button>
+              {/* 4. Calendrier Mensuel */}
+              <button
+                onClick={() => {
+                  setActiveTab('pms');
+                  setPmsActiveSubTab('monthly');
+                }}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pms' && pmsActiveSubTab === 'monthly'
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="w-3.5 h-3.5 opacity-75 text-rose-500 animate-pulse" />
+                  <span>Calendrier Mensuel</span>
+                </div>
+                {!ROLE_PERMISSIONS[currentRole].includes('pms') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                )}
+              </button>
 
-            {/* 5. Contrôle d'Accès Serrure (Admins & Managers) */}
-            <button
-              onClick={() => {
-                setActiveTab('pms');
-                setPmsActiveSubTab('access-control');
-              }}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pms' && pmsActiveSubTab === 'access-control'
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Key className="w-4 h-4 opacity-75 text-amber-500" />
-                <span>Contrôle d'Accès SERRURES</span>
-              </div>
-              {!(currentRole === 'admin' || currentRole === 'manager') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès restreint aux Managers/Admins" />
-              )}
-            </button>
+              {/* 5. Contrôle d'Accès Serrure (Admins & Managers) */}
+              <button
+                onClick={() => {
+                  setActiveTab('pms');
+                  setPmsActiveSubTab('access-control');
+                }}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pms' && pmsActiveSubTab === 'access-control'
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('pms') ? 'opacity-65' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Key className="w-3.5 h-3.5 opacity-75 text-amber-500" />
+                  <span>Contrôle d'Accès SERRURES</span>
+                </div>
+                {!(currentRole === 'admin' || currentRole === 'manager') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès restreint aux Managers/Admins" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Section 3 */}
           <div className="space-y-1 w-full shrink-0">
-            <span className="hidden md:block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
+            <button
+              onClick={() => setPosExpanded(!posExpanded)}
+              className="hidden md:flex items-center justify-between w-full text-left text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest px-3 mb-2 font-mono transition-colors focus:outline-none group"
+            >
+              <span>Restauration & POS</span>
+              <ChevronDown className={`w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform duration-200 ${posExpanded ? 'rotate-0' : '-rotate-90'}`} />
+            </button>
+            <span className="md:hidden block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
               Restauration & POS
             </span>
-            <button
-              onClick={() => setActiveTab('pos')}
-              id="nav-pos"
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'pos' 
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${isPOSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <UtensilsCrossed className="w-4 h-4 opacity-75" />
-                <span>Caisse Maquis POS</span>
-              </div>
-              {isPOSHighlighted && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                </span>
-              )}
-            </button>
 
-            {ROLE_PERMISSIONS[currentRole].includes('restaurant') && (
+            <div className={`space-y-1 transition-all duration-200 ${posExpanded ? 'block' : 'hidden md:hidden'} pl-2 md:pl-2.5 md:border-l border-slate-800/60 md:ml-3`}>
               <button
-                onClick={() => setActiveTab('restaurant')}
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                  activeTab === 'restaurant' 
+                onClick={() => setActiveTab('pos')}
+                id="nav-pos"
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'pos' 
                     ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                }`}
+                } ${isPOSHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
               >
-                <div className="flex items-center gap-3">
-                  <UtensilsCrossed className="w-4 h-4 opacity-75 text-orange-500" />
-                  <span>Menus Resto & Maquis</span>
+                <div className="flex items-center gap-2.5">
+                  <UtensilsCrossed className="w-3.5 h-3.5 opacity-75" />
+                  <span>Caisse Maquis POS</span>
                 </div>
-              </button>
-            )}
-
-            {ROLE_PERMISSIONS[currentRole].includes('stocks') && (
-              <button
-                onClick={() => setActiveTab('stocks')}
-                id="nav-stocks"
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                  activeTab === 'stocks' 
-                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                } ${isStocksHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
-              >
-                <div className="flex items-center gap-3">
-                  <Layers className="w-4 h-4 opacity-75 text-amber-500" />
-                  <span>Gestion des Stocks</span>
-                </div>
-                {isStocksHighlighted && (
-                  <span className="flex h-2 w-2 relative">
+                {isPOSHighlighted && (
+                  <span className="flex h-1.5 w-1.5 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
                   </span>
                 )}
               </button>
-            )}
+
+              {ROLE_PERMISSIONS[currentRole].includes('restaurant') && (
+                <button
+                  onClick={() => setActiveTab('restaurant')}
+                  className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
+                    activeTab === 'restaurant' 
+                      ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <UtensilsCrossed className="w-3.5 h-3.5 opacity-75 text-orange-500" />
+                    <span>Menus Resto & Maquis</span>
+                  </div>
+                </button>
+              )}
+
+              {ROLE_PERMISSIONS[currentRole].includes('stocks') && (
+                <button
+                  onClick={() => setActiveTab('stocks')}
+                  id="nav-stocks"
+                  className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                    activeTab === 'stocks' 
+                      ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                  } ${isStocksHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Layers className="w-3.5 h-3.5 opacity-75 text-amber-500" />
+                    <span>Gestion des Stocks</span>
+                  </div>
+                  {isStocksHighlighted && (
+                    <span className="flex h-1.5 w-1.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Section 4 */}
           <div className="space-y-1 w-full shrink-0">
-            <span className="hidden md:block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
+            <button
+              onClick={() => setErpExpanded(!erpExpanded)}
+              className="hidden md:flex items-center justify-between w-full text-left text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest px-3 mb-2 font-mono transition-colors focus:outline-none group"
+            >
+              <span>Comptabilité & Back-Office</span>
+              <ChevronDown className={`w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform duration-200 ${erpExpanded ? 'rotate-0' : '-rotate-90'}`} />
+            </button>
+            <span className="md:hidden block text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5 font-mono">
               Comptabilité & Back-Office
             </span>
-            <button
-              onClick={() => setActiveTab('erp')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                activeTab === 'erp' 
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('erp') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Receipt className="w-4 h-4 opacity-75" />
-                <span>Trésorerie & Factures</span>
-              </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('erp') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-              )}
-            </button>
 
-            <button
-              onClick={() => setActiveTab('staff')}
-              id="nav-staff"
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
-                activeTab === 'staff' 
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('staff') ? 'opacity-65' : ''} ${isStaffHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <Users className="w-4 h-4 opacity-75" />
-                <span>Équipe & Tâches</span>
-              </div>
-              {isStaffHighlighted ? (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                </span>
-              ) : (
-                !ROLE_PERMISSIONS[currentRole].includes('staff') && (
-                  <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-                )
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('crm')}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                activeTab === 'crm' 
-                  ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-              } ${!ROLE_PERMISSIONS[currentRole].includes('crm') ? 'opacity-65' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <UserCheck className="w-4 h-4 opacity-75" />
-                <span>Fichier Clients</span>
-              </div>
-              {!ROLE_PERMISSIONS[currentRole].includes('crm') && (
-                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" title="Accès Restreint" />
-              )}
-            </button>
-
-            {ROLE_PERMISSIONS[currentRole].includes('reports') && (
+            <div className={`space-y-1 transition-all duration-200 ${erpExpanded ? 'block' : 'hidden md:hidden'} pl-2 md:pl-2.5 md:border-l border-slate-800/60 md:ml-3`}>
               <button
-                onClick={() => setActiveTab('reports')}
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                  activeTab === 'reports' 
+                onClick={() => setActiveTab('erp')}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors w-full text-left relative ${
+                  activeTab === 'erp' 
                     ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                }`}
+                } ${!ROLE_PERMISSIONS[currentRole].includes('erp') ? 'opacity-65' : ''}`}
               >
-                <div className="flex items-center gap-3">
-                  <BarChart2 className="w-4 h-4 opacity-75 text-orange-500" />
-                  <span>Rapports & Stats</span>
+                <div className="flex items-center gap-2.5">
+                  <Receipt className="w-3.5 h-3.5 opacity-75" />
+                  <span>Trésorerie & Factures</span>
                 </div>
+                {!ROLE_PERMISSIONS[currentRole].includes('erp') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                )}
               </button>
-            )}
 
-            {ROLE_PERMISSIONS[currentRole].includes('hr') && (
               <button
-                onClick={() => setActiveTab('hr')}
-                className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors w-full text-left ${
-                  activeTab === 'hr' 
+                onClick={() => setActiveTab('staff')}
+                id="nav-staff"
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-all w-full text-left relative ${
+                  activeTab === 'staff' 
                     ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
                     : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-                }`}
+                } ${!ROLE_PERMISSIONS[currentRole].includes('staff') ? 'opacity-65' : ''} ${isStaffHighlighted ? 'ring-2 ring-orange-500 bg-slate-800 text-white font-extrabold shadow-lg shadow-orange-500/30 z-40 scale-[1.03]' : ''}`}
               >
-                <div className="flex items-center gap-3">
-                  <Briefcase className="w-4 h-4 opacity-75 text-amber-500" />
-                  <span>Gestion RH & Paie</span>
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-3.5 h-3.5 opacity-75" />
+                  <span>Équipe & Tâches</span>
                 </div>
+                {isStaffHighlighted ? (
+                  <span className="flex h-1.5 w-1.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
+                  </span>
+                ) : (
+                  !ROLE_PERMISSIONS[currentRole].includes('staff') && (
+                    <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                  )
+                )}
               </button>
-            )}
+
+              <button
+                onClick={() => setActiveTab('crm')}
+                className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors w-full text-left relative ${
+                  activeTab === 'crm' 
+                    ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                } ${!ROLE_PERMISSIONS[currentRole].includes('crm') ? 'opacity-65' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <UserCheck className="w-3.5 h-3.5 opacity-75" />
+                  <span>Fichier Clients</span>
+                </div>
+                {!ROLE_PERMISSIONS[currentRole].includes('crm') && (
+                  <Lock className="w-3 h-3 text-slate-500 shrink-0" title="Accès Restreint" />
+                )}
+              </button>
+
+              {ROLE_PERMISSIONS[currentRole].includes('reports') && (
+                <button
+                  onClick={() => setActiveTab('reports')}
+                  className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors w-full text-left relative ${
+                    activeTab === 'reports' 
+                      ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart2 className="w-3.5 h-3.5 opacity-75 text-orange-500" />
+                    <span>Rapports & Stats</span>
+                  </div>
+                </button>
+              )}
+
+              {ROLE_PERMISSIONS[currentRole].includes('hr') && (
+                <button
+                  onClick={() => setActiveTab('hr')}
+                  className={`flex items-center justify-between px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors w-full text-left relative ${
+                    activeTab === 'hr' 
+                      ? 'bg-slate-800 text-white shadow-xs font-bold border-l-2 border-orange-500 rounded-l-none' 
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Briefcase className="w-3.5 h-3.5 opacity-75 text-amber-500" />
+                    <span>Gestion RH & Paie</span>
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Section 5 */}
